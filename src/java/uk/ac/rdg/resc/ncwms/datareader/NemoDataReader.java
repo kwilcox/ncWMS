@@ -77,7 +77,6 @@ public class NemoDataReader extends DefaultDataReader
     {
         // TODO: allow for aggregated dataset - see DefaultDataReader.
         // This assumes that the whole dataset is one NetCDF or NcML file
-        NetcdfDataset nc = null;
         try
         {
             // Get the metadata from the cache
@@ -278,11 +277,12 @@ public class NemoDataReader extends DefaultDataReader
     public Hashtable<String, VariableMetadata> getVariableMetadata()
         throws IOException
     {
+        logger.debug("Loading metadata from {}", this.location);
         Hashtable<String, VariableMetadata> vars = new Hashtable<String, VariableMetadata>();
         
         if (this.nc == null)
         {
-            this.nc = NetcdfDataset.openDataset(location, false, null);
+            this.nc = NetcdfDataset.openDataset(this.location, false, null);
         }
 
         // Get the depth values and units
