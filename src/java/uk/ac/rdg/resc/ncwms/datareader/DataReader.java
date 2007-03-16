@@ -171,7 +171,7 @@ public abstract class DataReader
      * Closes the DataReader: frees up any resources.  This default implementation
      * does nothing: subclasses should override if necessary.
      */
-    public void close()
+    public void close() throws IOException
     {
     }
 }

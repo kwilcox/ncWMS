@@ -196,7 +196,14 @@ public class DefaultDataReader extends DataReader
         }
         catch(IOException e)
         {
-            logger.error("IOException reading from " + nc.getLocation(), e);
+            if (nc == null)
+            {
+                logger.error("IOException", e);
+            }
+            else
+            {
+                logger.error("IOException reading from " + nc.getLocation(), e);
+            }
             throw new WMSExceptionInJava("IOException: " + e.getMessage());
         }
         catch(InvalidRangeException ire)
@@ -400,7 +407,7 @@ public class DefaultDataReader extends DataReader
     /**
      * Closes any NetCDF files that we might have open
      */
-    public void close()
+    public void close() throws IOException
     {
         this.closeDataset();
     }
