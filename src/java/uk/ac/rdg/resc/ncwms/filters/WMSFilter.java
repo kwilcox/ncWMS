@@ -40,9 +40,9 @@ import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.log4j.Logger;
+import ucar.nc2.dataset.NetcdfDatasetCache;
 import uk.ac.rdg.resc.ncwms.config.Config;
 import uk.ac.rdg.resc.ncwms.config.Dataset;
 
@@ -113,6 +113,10 @@ public class WMSFilter implements Filter
             throw new ServletException(e);
         }
         
+        // Initialize the cache of NetcdfDatasets
+        NetcdfDatasetCache.init();
+        logger.debug("NetcdfDatasetCache initialized");
+        
         // Now start the regular TimerTask that periodically checks to see if
         // the datasets need reloading
         this.timer = new Timer("Dataset reloader", true);
@@ -170,6 +174,7 @@ public class WMSFilter implements Filter
         this.timer.cancel();
         this.config = null;
         this.filterConfig = null;
+        NetcdfDatasetCache.exit();
         logger.debug("WMSFilter destroyed");
     }
     

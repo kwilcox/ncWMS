@@ -77,10 +77,10 @@ public class Dataset
     // Variables contained in this dataset, keyed by their unique IDs
     private Hashtable<String, VariableMetadata> vars;
     
-    private State state; // State of this dataset
-    private Exception err; // Set if there is an error loading the dataset
-    private DataReader dataReader; // Object used to read data and metadata
+    private State state;     // State of this dataset
+    private Exception err;   // Set if there is an error loading the dataset
     private Date lastUpdate; // Time at which the dataset was last updated
+    private Config config;   // The Config object to which this belongs
     
     public Dataset()
     {
@@ -188,6 +188,18 @@ public class Dataset
     }
     
     /**
+     * Thread that loads metadata on demand, without waiting for the periodic 
+     * reloader ({@link WMSFilter.DatasetReloader})
+     */
+    private class Refresher extends Thread
+    {
+        public void run()
+        {
+            loadMetadata();
+        }
+    }
+    
+    /**
      * (Re)loads the metadata for this Dataset.  Clients must call needsRefresh()
      * before calling this method to check that the metadata needs reloading.
      * This is called from the {@link WMSFilter.DatasetReloader} timer task.
@@ -198,19 +210,11 @@ public class Dataset
         this.err = null;
         try
         {
-            // Destroy any previous DataReader object (close files etc)
-            if (this.dataReader != null) this.dataReader.close();
-            logger.debug("Closed datareader (if it existed)");
-            // Create a new DataReader object of the correct type
-            if (this.dataReader == null ||
-                !this.dataReader.getClass().getName().equals(this.dataReaderClass))
-            {
-                logger.debug("Creating new data reader of type {}", this.dataReaderClass);
-                this.dataReader = DataReader.createDataReader(this.dataReaderClass,
-                    this.location);
-            }
+            // Get a DataReader object of the correct type
+            logger.debug("Getting data reader of type {}", this.dataReaderClass);
+            DataReader dr = DataReader.getDataReader(this.dataReaderClass, this.location);
             // Read the metadata
-            Hashtable<String, VariableMetadata> vars = this.dataReader.getVariableMetadata();
+            Hashtable<String, VariableMetadata> vars = dr.getVariableMetadata(this.getLocation());
             logger.debug("loaded VariableMetadata");
             for (VariableMetadata vm : vars.values())
             {
@@ -219,6 +223,7 @@ public class Dataset
             this.vars = vars;
             this.state = State.READY;
             this.lastUpdate = new Date();
+            this.config.setLastUpdateTime(this.lastUpdate);
         }
         catch(Exception e)
         {
@@ -245,7 +250,9 @@ public class Dataset
         int tIndex, String zValue, float[] latValues, float[] lonValues,
         float fillValue) throws WMSExceptionInJava
     {
-        return this.dataReader.read(vm, tIndex, zValue, latValues, lonValues, fillValue);
+        logger.debug("Getting data reader of type {}", this.dataReaderClass);
+        DataReader dr = DataReader.getDataReader(this.dataReaderClass, this.location);
+        return dr.read(this.location, vm, tIndex, zValue, latValues, lonValues, fillValue);
     }
     
     /**
@@ -299,5 +306,10 @@ public class Dataset
     public void setUpdateInterval(int updateInterval)
     {
         this.updateInterval = updateInterval;
+    }
+
+    public void setConfig(Config config)
+    {
+        this.config = config;
     }
 }

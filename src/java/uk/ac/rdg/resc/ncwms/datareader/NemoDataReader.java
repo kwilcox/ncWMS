@@ -39,7 +39,6 @@ import ucar.ma2.Array;
 import ucar.ma2.InvalidRangeException;
 import ucar.ma2.Range;
 import ucar.nc2.Variable;
-import ucar.nc2.dataset.CoordSysBuilder;
 import ucar.nc2.dataset.NetcdfDataset;
 import ucar.nc2.units.DateUnit;
 import ucar.unidata.geoloc.LatLonPoint;
@@ -47,8 +46,7 @@ import ucar.unidata.geoloc.LatLonPointImpl;
 import uk.ac.rdg.resc.ncwms.exceptions.WMSExceptionInJava;
 
 /**
- * Reads NEMO tripolar data.  We inherit from DefaultDataReader to get the
- * close() method.
+ * Description of NemoDataReader
  *
  * @author Jon Blower
  * $Revision$
@@ -63,6 +61,7 @@ public class NemoDataReader extends DefaultDataReader
      * Reads an array of data from a NetCDF file and projects onto a rectangular
      * lat-lon grid.  Reads data for a single time index only.
      *
+     * @param location Location of the NetCDF dataset (full file path, OPeNDAP URL etc)
      * @param vm {@link VariableMetadata} object representing the variable
      * @param tIndex The index along the time axis as found in getmap.py
      * @param zIndex The index along the vertical axis (or 0 if there is no vertical axis)
@@ -71,12 +70,13 @@ public class NemoDataReader extends DefaultDataReader
      * @param fillValue Value to use for missing data
      * @throws WMSExceptionInJava if an error occurs
      */
-    public float[] read(VariableMetadata vm,
+    public float[] read(String location, VariableMetadata vm,
         int tIndex, int zIndex, float[] latValues, float[] lonValues,
         float fillValue) throws WMSExceptionInJava
     {
         // TODO: allow for aggregated dataset - see DefaultDataReader.
         // This assumes that the whole dataset is one NetCDF or NcML file
+        NetcdfDataset nc = null;
         try
         {
             // Get the metadata from the cache
@@ -127,12 +127,7 @@ public class NemoDataReader extends DefaultDataReader
             start = System.currentTimeMillis();
 
             // Now build the picture
-            if (this.nc == null)
-            {
-                // Get the dataset from the cache, without enhancing it
-                this.nc = NetcdfDataset.openDataset(this.location, false, null);
-                CoordSysBuilder.addCoordinateSystems(nc, null);
-            }
+            nc = getDataset(location);
             Variable var = nc.findVariable(vm.getId());
             
             float scaleFactor = 1.0f;
@@ -218,7 +213,20 @@ public class NemoDataReader extends DefaultDataReader
             logger.error("InvalidRangeException reading from " + nc.getLocation(), ire);
             throw new WMSExceptionInJava("InvalidRangeException: " + ire.getMessage());
         }
-        // We don't close the dataset just yet: we wait till this.close() is called
+        finally
+        {
+            if (nc != null)
+            {
+                try
+                {
+                    nc.close();
+                }
+                catch (IOException ex)
+                {
+                    logger.error("IOException closing " + nc.getLocation(), ex);
+                }
+            }
+        }
     }
     
     private static class Scanline
@@ -271,97 +279,132 @@ public class NemoDataReader extends DefaultDataReader
     /**
      * Reads and returns the metadata for all the variables in the dataset
      * at the given location.
+     * @param location The location of the NetCDF dataset
      * @return Hashtable of variable IDs mapped to {@link VariableMetadata} objects
      * @throws IOException if there was an error reading from the data source
      */
-    public Hashtable<String, VariableMetadata> getVariableMetadata()
+    public Hashtable<String, VariableMetadata> getVariableMetadata(String location)
         throws IOException
     {
-        logger.debug("Loading metadata from {}", this.location);
         Hashtable<String, VariableMetadata> vars = new Hashtable<String, VariableMetadata>();
+        NetcdfDataset nc = null;
         
-        if (this.nc == null)
-        {
-            this.nc = NetcdfDataset.openDataset(this.location, false, null);
-        }
-
-        // Get the depth values and units
-        Variable depth = nc.findVariable("deptht");
-        float[] fzVals = (float[])depth.read().copyTo1DJavaArray();
-        // Copy to an array of doubles
-        double[] zVals = new double[fzVals.length];
-        for (int i = 0; i < fzVals.length; i++)
-        {
-            zVals[i] = -fzVals[i];
-        }
-        String zUnits = depth.getUnitsString();
-
-        // Get the time values and units
-        Variable time = nc.findVariable("time_counter");
-        float[] ftVals = (float[])time.read().copyTo1DJavaArray();
-        DateUnit dateUnit = null;
         try
         {
-            dateUnit = new DateUnit(time.getUnitsString());
-        }
-        catch(Exception e)
-        {
-            // Shouldn't happen if file is well formed
-            logger.error("Malformed time units string " + time.getUnitsString());
-            // IOException not ideal here but didn't want to create new exception
-            // type just for this rare case
-            throw new IOException("Malformed time units string " + time.getUnitsString());
-        }
-
-        for (Object varObj : nc.getVariables())
-        {
-            Variable var = (Variable)varObj;
-            // We ignore the coordinate axes
-            if (!var.getName().equals("nav_lon") && !var.getName().equals("nav_lat")
-                && !var.getName().equals("deptht") && !var.getName().equals("time_counter"))
+            nc = NetcdfDataset.openDataset(location, false, null);
+            
+            // Get the depth values and units
+            Variable depth = nc.findVariable("deptht");
+            float[] fzVals = (float[])depth.read().copyTo1DJavaArray();
+            // Copy to an array of doubles
+            double[] zVals = new double[fzVals.length];
+            for (int i = 0; i < fzVals.length; i++)
             {
-                VariableMetadata vm = new VariableMetadata();
-                vm.setId(var.getName());
-                //vm.setTitle(getStandardName(var));
-                //vm.setAbstract(var.getDescription());
-                vm.setTitle(var.getDescription()); // TODO: standard_names are not set: set these in NcML?
-                vm.setUnits(var.getUnitsString());
-                vm.setZpositive(false);
-                // TODO: check for the presence of a z axis in a neater way
-                if (var.getRank() == 4)
-                {
-                    vm.setZvalues(zVals);
-                    vm.setZunits(zUnits);
-                }
-                // TODO: should check these values exist
-                vm.setValidMin(var.findAttribute("valid_min").getNumericValue().doubleValue());
-                vm.setValidMax(var.findAttribute("valid_max").getNumericValue().doubleValue());
+                zVals[i] = -fzVals[i];
+            }
+            String zUnits = depth.getUnitsString();
+            
+            // Get the time values and units
+            Variable time = nc.findVariable("time_counter");
+            float[] ftVals = (float[])time.read().copyTo1DJavaArray();
+            DateUnit dateUnit = null;
+            try
+            {
+                dateUnit = new DateUnit(time.getUnitsString());
+            }
+            catch(Exception e)
+            {
+                // Shouldn't happen if file is well formed
+                logger.error("Malformed time units string " + time.getUnitsString());
+                // IOException not ideal here but didn't want to create new exception
+                // type just for this rare case
+                throw new IOException("Malformed time units string " + time.getUnitsString());
+            }
 
-                // Create the coordinate axes
-                String res = nc.findGlobalAttributeIgnoreCase("resolution").getStringValue();
-                if (res.equals("one_degree"))
+            for (Object varObj : nc.getVariables())
+            {
+                Variable var = (Variable)varObj;
+                // We ignore the coordinate axes
+                if (!var.getName().equals("nav_lon") && !var.getName().equals("nav_lat")
+                    && !var.getName().equals("deptht") && !var.getName().equals("time_counter"))
                 {
-                    vm.setXaxis(NemoCoordAxis.ONE_DEGREE_I_AXIS);
-                    vm.setYaxis(NemoCoordAxis.ONE_DEGREE_J_AXIS);
-                }
-                else
-                {
-                    vm.setXaxis(NemoCoordAxis.ONE_QUARTER_DEGREE_I_AXIS);
-                    vm.setYaxis(NemoCoordAxis.ONE_QUARTER_DEGREE_J_AXIS);
-                }
+                    VariableMetadata vm = new VariableMetadata();
+                    vm.setId(var.getName());
+                    //vm.setTitle(getStandardName(var));
+                    //vm.setAbstract(var.getDescription());
+                    vm.setTitle(var.getDescription()); // TODO: standard_names are not set: set these in NcML?
+                    vm.setUnits(var.getUnitsString());
+                    vm.setZpositive(false);
+                    // TODO: check for the presence of a z axis in a neater way
+                    if (var.getRank() == 4)
+                    {
+                        vm.setZvalues(zVals);
+                        vm.setZunits(zUnits);
+                    }
+                    // TODO: should check these values exist
+                    vm.setValidMin(var.findAttribute("valid_min").getNumericValue().doubleValue());
+                    vm.setValidMax(var.findAttribute("valid_max").getNumericValue().doubleValue());
+                    
+                    // Create the coordinate axes
+                    if (nc.findGlobalAttributeIgnoreCase("resolution") == null)
+                    {
+                        throw new IOException("NEMO datasets must have a \"resolution\" attribute");
+                    }
+                    String res = nc.findGlobalAttributeIgnoreCase("resolution").getStringValue();
+                    if (res.equals("one_degree"))
+                    {
+                        vm.setXaxis(NemoCoordAxis.ONE_DEGREE_I_AXIS);
+                        vm.setYaxis(NemoCoordAxis.ONE_DEGREE_J_AXIS);
+                    }
+                    else
+                    {
+                        vm.setXaxis(NemoCoordAxis.ONE_QUARTER_DEGREE_I_AXIS);
+                        vm.setYaxis(NemoCoordAxis.ONE_QUARTER_DEGREE_J_AXIS);
+                    }
+                    
+                    // Set the time axis
+                    for (int i = 0; i < ftVals.length; i++)
+                    {
+                        Date timestep = dateUnit.makeDate(ftVals[i]);
+                        vm.addTimestepInfo(new VariableMetadata.TimestepInfo(
+                            timestep, location, i));
+                    }
 
-                // Set the time axis
-                for (int i = 0; i < ftVals.length; i++)
-                {
-                    Date timestep = dateUnit.makeDate(ftVals[i]);
-                    vm.addTimestepInfo(new VariableMetadata.TimestepInfo(
-                        timestep, location, i));
+                    vars.put(vm.getId(), vm);
                 }
-
-                vars.put(vm.getId(), vm);
+            }
+            return vars;
+        }
+        finally
+        {
+            if (nc != null)
+            {
+                try
+                {
+                    nc.close();
+                }
+                catch (IOException ex)
+                {
+                    logger.error("IOException closing " + nc.getLocation(), ex);
+                }
             }
         }
-        return vars;
-        // We don't close the dataset just yet: we wait till this.close() is called
+    }
+    
+    public static void main(String[] args) throws Exception
+    {
+        DataReader dr = new NemoDataReader();
+        Hashtable<String, VariableMetadata> vms = dr.getVariableMetadata("C:\\data\\NEMO\\NEMO.ncml");
+        for (String varID : vms.keySet())
+        {
+            System.out.println(varID);
+            if (vms.get(varID).getTvalues() != null)
+            {
+                for (double t : vms.get(varID).getTvalues())
+                {
+                    System.out.println("  " + new Date(new Double(t * 1000).longValue()));
+                }
+            }
+        }
     }
 }

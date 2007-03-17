@@ -142,13 +142,17 @@ public class Config
     {
         for (Dataset ds : this.datasetList)
         {
+            ds.setConfig(this);
             this.datasets.put(ds.getId(), ds);
         }
     }
     
-    public void setLastUpdateTime(Date date)
+    public synchronized void setLastUpdateTime(Date date)
     {
-        this.lastUpdateTime = date;
+        if (date.after(this.lastUpdateTime))
+        {
+            this.lastUpdateTime = date;
+        }
     }
     
     public Date getLastUpdateTime()
@@ -202,6 +206,7 @@ public class Config
     
     public synchronized void addDataset(Dataset ds)
     {
+        ds.setConfig(this);
         this.datasets.put(ds.getId(), ds);
         this.datasetList.add(ds);
     }

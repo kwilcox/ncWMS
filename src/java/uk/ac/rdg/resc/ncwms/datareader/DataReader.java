@@ -42,29 +42,30 @@ public abstract class DataReader
 {
     private static final Logger logger = Logger.getLogger(DataReader.class);
     
-    protected String location; // Location of the data that we'll be reading
-                               // (could be a glob expression or OPeNDAP address)
+    /**
+     * Maps class names to DataReader objects.  Only one DataReader object of
+     * each class will ever be created.
+     */
+    private static Hashtable<String, DataReader> readers = new Hashtable<String, DataReader>();
     
     /**
-     * This class can only be instantiated through createDataReader()
+     * This class can only be instantiated through getDataReader()
      */
     protected DataReader()
     {
     }
     
     /**
-     * Gets a DataReader object of a certain type, for data at a certain location.
-     * We need the location information because we might want to detect whether
-     * a dataset is local or remote (e.g. OPeNDAP).  Creates a new DataReader object
-     * with each invocation.
-     * @param className Name of the DataReader class to generate
+     * Gets a DataReader object.  <b>Only one</b> object of each class will be
+     * created (hence methods have to be thread-safe).
+     * @param className Name of the class to generate
      * @param the location of the dataset: used to detect OPeNDAP URLs
      * @return a DataReader object of the given class, or {@link DefaultDataReader}
      * or {@link OpendapDataReader} (depending on whether the location starts with
      * "http://" or "dods://") if <code>className</code> is null or the empty string
      * @throws a {@link WMSExceptionInJava} if the DataReader could not be created
      */
-    public static DataReader createDataReader(String className, String location)
+    public static DataReader getDataReader(String className, String location)
         throws WMSExceptionInJava
     {
         String clazz = DefaultDataReader.class.getName();
@@ -78,9 +79,14 @@ public abstract class DataReader
             {
                 clazz = className;
             }
-            DataReader dr = (DataReader)Class.forName(clazz).newInstance();
-            dr.location = location;
-            return dr;
+            if (!readers.containsKey(clazz))
+            {
+                // Create the DataReader object
+                Object drObj = Class.forName(clazz).newInstance();
+                // this will throw a ClassCastException if drObj is not a DataReader
+                readers.put(clazz, (DataReader)drObj);
+            }
+            return readers.get(clazz);
         }
         catch(ClassNotFoundException cnfe)
         {
@@ -111,7 +117,7 @@ public abstract class DataReader
     /**
      * Reads an array of data from a NetCDF file and projects onto a rectangular
      * lat-lon grid.  Reads data for a single time index only.
-     *
+     * @param location Location of the dataset
      * @param vm {@link VariableMetadata} object representing the variable
      * @param tIndex The index along the time axis as found in getmap.py
      * @param zValue The value of elevation as specified by the client
@@ -121,7 +127,7 @@ public abstract class DataReader
      * @return array of data values
      * @throws WMSExceptionInJava if an error occurs
      */
-    public float[] read(VariableMetadata vm,
+    public float[] read(String location, VariableMetadata vm,
         int tIndex, String zValue, float[] latValues, float[] lonValues,
         float fillValue) throws WMSExceptionInJava
     {
@@ -133,7 +139,7 @@ public abstract class DataReader
             {
                 zIndex = vm.findZIndex(zValue);
             }
-            return this.read(vm, tIndex, zIndex, latValues, lonValues, fillValue);
+            return this.read(location, vm, tIndex, zIndex, latValues, lonValues, fillValue);
         }
         catch(Exception e)
         {
@@ -145,7 +151,7 @@ public abstract class DataReader
     /**
      * Reads an array of data from a NetCDF file and projects onto a rectangular
      * lat-lon grid.  Reads data for a single time index only.
-     *
+     * @param location Location of the dataset
      * @param vm {@link VariableMetadata} object representing the variable
      * @param tIndex The index along the time axis as found in getmap.py
      * @param zIndex The index along the vertical axis (or 0 if there is no vertical axis)
@@ -154,24 +160,18 @@ public abstract class DataReader
      * @param fillValue Value to use for missing data
      * @throws WMSExceptionInJava if an error occurs
      */
-    protected abstract float[] read(VariableMetadata vm,
+    protected abstract float[] read(String location, VariableMetadata vm,
         int tIndex, int zIndex, float[] latValues, float[] lonValues,
         float fillValue) throws WMSExceptionInJava;
     
     /**
      * Reads and returns the metadata for all the variables in the dataset
      * at the given location.
+     * @param location Full path to the dataset
      * @return Hashtable of variable IDs mapped to {@link VariableMetadata} objects
      * @throws IOException if there was an error reading from the data source
      */
-    public abstract Hashtable<String, VariableMetadata> getVariableMetadata()
+    public abstract Hashtable<String, VariableMetadata> getVariableMetadata(String location)
         throws IOException;
-    
-    /**
-     * Closes the DataReader: frees up any resources.  This default implementation
-     * does nothing: subclasses should override if necessary.
-     */
-    public void close() throws IOException
-    {
-    }
+
 }

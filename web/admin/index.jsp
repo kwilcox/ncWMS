@@ -91,6 +91,7 @@
     
     <p><a href="./index.jsp">Refresh this page (without saving)</a></p>
     <p><a href="/ncWMS">ncWMS Front page</a></p>
+    <p><a href="/ncWMS/godiva2.html">Godiva2 interface</a></p>
     <p><a href="/ncWMS/WMS.py?SERVICE=WMS&REQUEST=GetCapabilities">Capabilities document</a></p>
     
     <form id="config" action="index.jsp" method="POST">
@@ -99,7 +100,7 @@
         
         <h2>Datasets</h2>
         <table border="1">
-            <tr><th>ID</th><th>Title</th><th>Location</th><th>State</th><th>Refresh frequency</th><th>Force refresh?</th><th>Queryable?</th><th>Remove?</th><th>Data reading class</th></tr>
+            <tr><th>Unique ID</th><th>Title</th><th>Location</th><th>State</th><th>Refresh frequency</th><th>Force refresh?</th><th>Queryable?</th><th>Remove?</th><th>Data reading class</th></tr>
             
             <% for (Dataset ds : conf.getDatasets().values()) { %>
             <tr>

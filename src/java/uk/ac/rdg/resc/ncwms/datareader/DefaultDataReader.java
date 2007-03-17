@@ -29,7 +29,6 @@
 package uk.ac.rdg.resc.ncwms.datareader;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Date;
@@ -41,10 +40,10 @@ import ucar.ma2.InvalidRangeException;
 import ucar.ma2.Range;
 import ucar.nc2.Attribute;
 import ucar.nc2.Variable;
-import ucar.nc2.dataset.CoordSysBuilder;
 import ucar.nc2.dataset.CoordinateAxis1D;
 import ucar.nc2.dataset.EnhanceScaleMissingImpl;
 import ucar.nc2.dataset.NetcdfDataset;
+import ucar.nc2.dataset.NetcdfDatasetCache;
 import ucar.nc2.dataset.VariableDS;
 import ucar.nc2.dataset.grid.GeoGrid;
 import ucar.nc2.dataset.grid.GridCoordSys;
@@ -66,20 +65,11 @@ public class DefaultDataReader extends DataReader
 {
     private static final Logger logger = Logger.getLogger(DefaultDataReader.class);
     
-    protected NetcdfDataset nc;
-    private boolean isGlobAggregation; // True if this is an aggregation of several files
-                               // by specifying a glob expression as the location
-    
-    public DefaultDataReader()
-    {
-        this.nc = null;
-        this.isGlobAggregation = false;
-    }
-    
     /**
      * Reads an array of data from a NetCDF file and projects onto a rectangular
      * lat-lon grid.  Reads data for a single time index only.
      *
+     * @param location Location of the NetCDF dataset (full file path, OPeNDAP URL etc)
      * @param vm {@link VariableMetadata} object representing the variable
      * @param tIndex The index along the time axis as found in getmap.py
      * @param zIndex The index along the vertical axis (or 0 if there is no vertical axis)
@@ -88,7 +78,7 @@ public class DefaultDataReader extends DataReader
      * @param fillValue Value to use for missing data
      * @throws WMSExceptionInJava if an error occurs
      */
-    public float[] read(VariableMetadata vm,
+    public float[] read(String location, VariableMetadata vm,
         int tIndex, int zIndex, float[] latValues, float[] lonValues,
         float fillValue) throws WMSExceptionInJava
     {
@@ -96,13 +86,14 @@ public class DefaultDataReader extends DataReader
         // for this timestep:  TODO: do this in DataReader?
         VariableMetadata.TimestepInfo tInfo = vm.getTimestepInfo(tIndex);
         int tIndexInFile = 0;
-        String filename = this.location;
+        String filename = location;
         if (tInfo != null)
         {
             tIndexInFile = tInfo.getIndexInFile();
             filename = tInfo.getFilename();
         }
         
+        NetcdfDataset nc = null;
         try
         {
             long start = System.currentTimeMillis();
@@ -142,15 +133,11 @@ public class DefaultDataReader extends DataReader
             long readMetadata = System.currentTimeMillis();
             logger.debug("Read metadata in {} milliseconds", (readMetadata - start));
             
-            if (this.nc == null)
-            {
-                // Get the dataset from the cache, without enhancing it
-                this.nc = NetcdfDataset.openDataset(filename, false, null);
-                CoordSysBuilder.addCoordinateSystems(nc, null);
-            }
+            // Get the dataset from the cache, without enhancing it
+            nc = getDataset(filename);
             long openedDS = System.currentTimeMillis();
             logger.debug("Opened NetcdfDataset in {} milliseconds", (openedDS - readMetadata));            
-            GridDataset gd = new GridDataset(this.nc);
+            GridDataset gd = new GridDataset(nc);
             GeoGrid gg = gd.findGridByName(vm.getId());
             // Get an enhanced version of the variable for fast reading of data
             EnhanceScaleMissingImpl enhanced = getEnhanced(gg);
@@ -196,14 +183,7 @@ public class DefaultDataReader extends DataReader
         }
         catch(IOException e)
         {
-            if (nc == null)
-            {
-                logger.error("IOException", e);
-            }
-            else
-            {
-                logger.error("IOException reading from " + nc.getLocation(), e);
-            }
+            logger.error("IOException reading from " + nc.getLocation(), e);
             throw new WMSExceptionInJava("IOException: " + e.getMessage());
         }
         catch(InvalidRangeException ire)
@@ -213,37 +193,30 @@ public class DefaultDataReader extends DataReader
         }
         finally
         {
-            // We only close the NetCDF dataset if this is a glob aggregation,
-            // in which case this dataset might consist of a large number of
-            // (relatively small files).  If this is not a glob aggregation,
-            // this could be an OPeNDAP or NcML dataset, which takes significant
-            // time to open: in which case we leave the dataset open and only close
-            // it when the client calls this.close().
-            if (this.isGlobAggregation)
+            if (nc != null)
             {
-                this.closeDataset();
+                try
+                {
+                    nc.close();
+                }
+                catch (IOException ex)
+                {
+                    logger.error("IOException closing " + nc.getLocation(), ex);
+                }
             }
         }
     }
     
-    private void closeDataset()
+    /**
+     * Gets the {@link NetcdfDataset} at the given location from the cache.
+     * @throws IOException if there was an error opening the dataset
+     */
+    protected static synchronized NetcdfDataset getDataset(String location)
+        throws IOException
     {
-        if (this.nc != null)
-        {
-            try
-            {
-                logger.debug("Closing {}", this.nc.getLocation());
-                this.nc.close();
-            }
-            catch (IOException ex)
-            {
-                logger.error("IOException closing " + nc.getLocation(), ex);
-            }
-            finally
-            {
-                this.nc = null;
-            }
-        }
+        NetcdfDataset nc = NetcdfDatasetCache.acquire(location, null, DatasetFactory.get());
+        logger.debug("Returning NetcdfDataset at {} from cache", location);
+        return nc;
     }
     
     /**
@@ -258,10 +231,11 @@ public class DefaultDataReader extends DataReader
     /**
      * Reads and returns the metadata for all the variables in the dataset
      * at the given location.
+     * @param location The location of the NetCDF dataset
      * @return Hashtable of variable IDs mapped to {@link VariableMetadata} objects
      * @throws IOException if there was an error reading from the data source
      */
-    public Hashtable<String, VariableMetadata> getVariableMetadata()
+    public Hashtable<String, VariableMetadata> getVariableMetadata(String location)
         throws IOException
     {
         logger.debug("Reading metadata for dataset {}", location);
@@ -280,20 +254,9 @@ public class DefaultDataReader extends DataReader
             locFile = new File(location);
             GlobFilenameFilter filter = new GlobFilenameFilter(locFile.getName());
             // Loop over all the files that match the glob pattern
-            if (locFile.getParentFile() == null)
-            {
-                throw new FileNotFoundException(location);
-            }
             filenames = locFile.getParentFile().list(filter);
-            if (filenames == null)
-            {
-                throw new FileNotFoundException(location);
-            }
         }
-        this.isGlobAggregation = filenames.length > 1;
         
-        // We need to enhance the dataset for reading metadata (whereas we don't
-        // for reading data in read() so we use a local NetcdfDataset object.
         NetcdfDataset nc = null;
         try
         {
@@ -372,7 +335,7 @@ public class DefaultDataReader extends DataReader
                     }
                     
                     // Now add the timestep information to the VM object
-                    Date[] tVals = this.getTimesteps(nc, gg);
+                    Date[] tVals = this.getTimesteps(gg);
                     for (int i = 0; i < tVals.length; i++)
                     {
                         VariableMetadata.TimestepInfo tInfo = new
@@ -405,23 +368,14 @@ public class DefaultDataReader extends DataReader
     }
     
     /**
-     * Closes any NetCDF files that we might have open
-     */
-    public void close() throws IOException
-    {
-        this.closeDataset();
-    }
-    
-    /**
      * Gets array of Dates representing the timesteps of the given variable.
      * This method is factored out to allow for simple subclasses that read 
      * time information in different ways.
-     * @param nc The NetcdfDataset to which the variable belongs
      * @param gg the variable as a GeoGrid
-     * @return Array of {@link Date}s
+     * @return Array of {@link Date}s (empty if gg has no time axis)
      * @throws IOException if there was an error reading the timesteps data
      */
-    protected Date[] getTimesteps(NetcdfDataset nc, GeoGrid gg)
+    protected Date[] getTimesteps(GeoGrid gg)
         throws IOException
     {
         GridCoordSys coordSys = gg.getCoordinateSystem();
@@ -444,6 +398,11 @@ public class DefaultDataReader extends DataReader
         Attribute stdNameAtt = var.findAttributeIgnoreCase("standard_name");
         return (stdNameAtt == null || stdNameAtt.getStringValue().trim().equals(""))
             ? var.getName() : stdNameAtt.getStringValue();
+    }
+    
+    public static void main(String[] args) throws Exception
+    {
+        NetcdfDataset nc = NetcdfDataset.openDataset("thredds:file:/M:/raid/data/marine/processing/ag_server_xml/catalog.xml.sample#MERSEA North Atlantic TEP");
     }
     
 }

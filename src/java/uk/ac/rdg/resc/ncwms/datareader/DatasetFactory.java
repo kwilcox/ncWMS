@@ -28,37 +28,46 @@
 
 package uk.ac.rdg.resc.ncwms.datareader;
 
+import ucar.nc2.dataset.CoordSysBuilder;
+import ucar.nc2.dataset.NetcdfDataset;
+import ucar.nc2.dataset.NetcdfDatasetFactory;
+import ucar.nc2.util.CancelTask;
+
 /**
- * Simple class holding the x and y coordinates of a point in a source
- * dataset (i.e. array indices) as integers
+ * A {@link NetcdfDatasetFactory} that opens datasets without enhancing them,
+ * but adds the coordinate systems
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
  */
-public class XYPoint
+class DatasetFactory implements NetcdfDatasetFactory
 {
-    private int x;
-    private int y;
+    private static DatasetFactory df = new DatasetFactory();
+    
+    /** Creates a new instance of DatasetFactory */
+    private DatasetFactory()
+    {
+    }
     
     /**
-     * Creates a new instance of XYPoint
+     * Gets the DatasetFactory: there is only ever one instance of this
      */
-    public XYPoint(int x, int y)
+    public static DatasetFactory get()
     {
-        this.x = x;
-        this.y = y;
+        return df;
     }
 
-    public int getX()
+    /**
+     * Opens the dataset without enhancement and adds the coordinate systems
+     */
+    public NetcdfDataset openDataset(String location, CancelTask cancelTask)
+        throws java.io.IOException
     {
-        return x;
-    }
-
-    public int getY()
-    {
-        return y;
+        NetcdfDataset nc = NetcdfDataset.openDataset(location, false, cancelTask);
+        CoordSysBuilder.addCoordinateSystems(nc, null);
+        return nc;
     }
     
 }

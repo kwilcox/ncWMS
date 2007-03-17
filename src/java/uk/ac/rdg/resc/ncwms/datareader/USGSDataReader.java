@@ -69,7 +69,7 @@ public class USGSDataReader extends DataReader
      * @param fillValue Value to use for missing data
      * @throws WMSExceptionInJava if an error occurs
      */
-    public float[] read(VariableMetadata vm,
+    public float[] read(String location, VariableMetadata vm,
         int tIndex, int zIndex, float[] latValues, float[] lonValues,
         float fillValue) throws WMSExceptionInJava
     {
@@ -280,7 +280,7 @@ public class USGSDataReader extends DataReader
      * @return Hashtable of variable IDs mapped to {@link VariableMetadata} objects
      * @throws IOException if there was an error reading from the data source
      */
-    public Hashtable<String, VariableMetadata> getVariableMetadata()
+    public Hashtable<String, VariableMetadata> getVariableMetadata(String location)
         throws IOException
     {
         Hashtable<String, VariableMetadata> vars = new Hashtable<String, VariableMetadata>();
