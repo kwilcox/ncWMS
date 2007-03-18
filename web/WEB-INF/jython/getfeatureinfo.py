@@ -133,7 +133,7 @@ def getFeatureInfo(req, params, config):
 
         # Creat a chart with no legend, tooltips or URLs
         title = "Lon: %f, Lat: %f" % (lon, lat)
-        yLabel = "%s (%s)" % (var.title, vars[varID].units)
+        yLabel = "%s (%s)" % (var.title, var.units)
         chart = ChartFactory.createTimeSeriesChart(title, "Date / time", yLabel, xydataset, 0, 0, 0)
         # Output the chart. TODO: control the plot size
         ChartUtilities.writeChartAsPNG(req.getOutputStream(), chart, 400, 300)
