@@ -482,7 +482,6 @@ function validateScale()
 function resetAnimation()
 {
     hideAnimation();
-    $('featureInfo').style.visibility = 'visible';
     $('setFrames').style.visibility = 'hidden';
     $('animation').style.visibility = 'hidden';
     $('firstFrame').innerHTML = '';
@@ -553,6 +552,7 @@ function hideAnimation()
     if (essc_wms != null) {
         essc_wms.setVisibility(true);
     }
+    $('featureInfo').style.visibility = 'visible';
     $('autoZoom').style.visibility = 'visible';
     $('hideAnimation').style.visibility = 'hidden';
     $('mapOverlayDiv').style.visibility = 'hidden';
