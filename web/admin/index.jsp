@@ -30,6 +30,7 @@
         // First look through the existing datasets for edits.
         for (Dataset ds : conf.getDatasets().values())
         {
+            boolean refreshDataset = false;
             if (request.getParameter("dataset." + ds.getId() + ".remove") != null)
             {
                 conf.removeDataset(ds);
@@ -37,17 +38,29 @@
             else
             {
                 ds.setTitle(request.getParameter("dataset." + ds.getId() + ".title"));
-                ds.setLocation(request.getParameter("dataset." + ds.getId() + ".location"));
-                ds.setDataReaderClass(request.getParameter("dataset." + ds.getId() + ".reader"));
+                String newLocation = request.getParameter("dataset." + ds.getId() + ".location");
+                if (!newLocation.trim().equals(ds.getLocation().trim()))
+                {
+                    refreshDataset = true;
+                }
+                ds.setLocation(newLocation);
+                String newDataReaderClass = request.getParameter("dataset." + ds.getId() + ".reader");
+                if (!newDataReaderClass.trim().equals(ds.getDataReaderClass().trim()))
+                {
+                    refreshDataset = true;
+                }
+                ds.setDataReaderClass(newDataReaderClass);
                 ds.setQueryable(request.getParameter("dataset." + ds.getId() + ".queryable") != null);
                 ds.setUpdateInterval(Integer.parseInt(request.getParameter("dataset." + ds.getId() + ".updateinterval")));
                 ds.setId(request.getParameter("dataset." + ds.getId() + ".id"));
             }
             if (request.getParameter("dataset." + ds.getId() + ".refresh") != null)
             {
-                // TODO: refresh the dataset.  What if the change of location name
-                // has already forced a refresh?  Also force a refresh if data reader
-                // class name changes?
+                refreshDataset = true;
+            }
+            if (refreshDataset)
+            {
+                ds.forceRefresh();
             }
         }
         // Now look for the new datasets
@@ -64,6 +77,7 @@
                 ds.setQueryable(request.getParameter("dataset.new" + i + ".queryable") != null);
                 ds.setUpdateInterval(Integer.parseInt(request.getParameter("dataset.new" + i + ".updateinterval")));
                 conf.addDataset(ds);
+                ds.forceRefresh();
             }
         }
         
@@ -100,7 +114,7 @@
         
         <h2>Datasets</h2>
         <table border="1">
-            <tr><th>Unique ID</th><th>Title</th><th>Location</th><th>State</th><th>Refresh frequency</th><th>Force refresh?</th><th>Queryable?</th><th>Remove?</th><th>Data reading class</th></tr>
+            <tr><th>Unique ID</th><th>Title</th><th>Location</th><th>State</th><th>Auto refresh frequency</th><th>Force refresh?</th><th>Queryable?</th><th>Remove?</th><th>Data reading class</th></tr>
             
             <% for (Dataset ds : conf.getDatasets().values()) { %>
             <tr>

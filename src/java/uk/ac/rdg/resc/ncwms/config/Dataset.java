@@ -108,14 +108,8 @@ public class Dataset
         return location;
     }
 
-    public synchronized void setLocation(String location)
+    public void setLocation(String location)
     {
-        // Mark for reload only if the location has changed
-        if (this.location != null && !this.location.trim().equals(location.trim()))
-        {
-            // TODO: actually reload the dataset.
-            this.state = State.TO_BE_LOADED;
-        }
         this.location = location.trim();
     }
 
@@ -159,9 +153,25 @@ public class Dataset
     }
     
     /**
+     * Thread that loads metadata on demand, without waiting for the periodic 
+     * reloader ({@link WMSFilter.DatasetReloader})
+     */
+    private class Refresher extends Thread
+    {
+        public void run()
+        {
+            logger.debug("Loading metadata for {}", location);
+            boolean loaded = loadMetadata();
+            String message = loaded ? "Loaded metadata for {}" :
+                "Did not load metadata for {}";
+            logger.debug(message, location);
+        }
+    }
+    
+    /**
      * @return true if this dataset needs to be reloaded
      */
-    public synchronized boolean needsRefresh()
+    private boolean needsRefresh()
     {
         if (this.state == State.LOADING || this.state == State.UPDATING)
         {
@@ -188,26 +198,27 @@ public class Dataset
     }
     
     /**
-     * Thread that loads metadata on demand, without waiting for the periodic 
-     * reloader ({@link WMSFilter.DatasetReloader})
+     * (Re)loads the metadata for this Dataset, checking first to see if the
+     * metadata need reloading (returning false if not).
+     * @return true if the metadata was reloaded, false if not (either because of
+     * an error or because the metadata does not need to be reloaded yet).
      */
-    private class Refresher extends Thread
+    public boolean loadMetadata()
     {
-        public void run()
+        // We must make this part of the method thread-safe because more than
+        // one thread might be trying to update the metadata.
+        synchronized(this)
         {
-            loadMetadata();
+            if (this.needsRefresh())
+            {
+                this.state = this.state == State.READY ? State.UPDATING : State.LOADING;
+                this.err = null;
+            }
+            else
+            {
+                return false;
+            }
         }
-    }
-    
-    /**
-     * (Re)loads the metadata for this Dataset.  Clients must call needsRefresh()
-     * before calling this method to check that the metadata needs reloading.
-     * This is called from the {@link WMSFilter.DatasetReloader} timer task.
-     */
-    public void loadMetadata()
-    {
-        this.state = this.state == State.READY ? State.UPDATING : State.LOADING;
-        this.err = null;
         try
         {
             // Get a DataReader object of the correct type
@@ -224,12 +235,23 @@ public class Dataset
             this.state = State.READY;
             this.lastUpdate = new Date();
             this.config.setLastUpdateTime(this.lastUpdate);
+            return true;
         }
         catch(Exception e)
         {
             this.err = e;
             this.state = State.ERROR;
+            return false;
         }
+    }
+    
+    /**
+     * Forces a refresh of the metadata: loads the metadata in a new thread
+     */
+    public synchronized void forceRefresh()
+    {
+        this.state = State.TO_BE_LOADED;
+        new Refresher().start();
     }
     
     /**

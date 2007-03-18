@@ -157,14 +157,12 @@ public class WMSFilter implements Filter
     {
         public void run()
         {
-            logger.debug("Checking to see if datasets need reloading...");
+            logger.debug("Reloading metadata...");
             for (Dataset ds : config.getDatasets().values())
             {
-                if (ds.needsRefresh())
-                {
-                    ds.loadMetadata();
-                    config.setLastUpdateTime(new Date());
-                }
+                // loadMetadata() includes a check to see if the metadata need
+                // reloading
+                ds.loadMetadata();
             }
         }
     }
