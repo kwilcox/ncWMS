@@ -74,9 +74,10 @@ window.onload = function()
     
     map.addLayers([bluemarble_wms, ol_wms, osm_wms, human_wms, seazone_wms/*, essi_wms*/]);
     
-    // Make sure the "Open in Google Earth" link is kept up to date when the map
-    // is moved or zoomed
+    // Make sure the Google Earth and Permalink links are kept up to date when
+    // the map is moved or zoomed
     map.events.register('moveend', map, setGEarthURL);
+    map.events.register('moveend', map, setPermalinkURL);
     
     // If we have loaded Google Maps and the browser is compatible, add it as a base layer
     if (typeof GBrowserIsCompatible == 'function' && GBrowserIsCompatible()) {
@@ -100,18 +101,32 @@ window.onload = function()
         autoLoad = new Object();
         autoLoad.dataset = null;
         autoLoad.variable = null;
+        autoLoad.zValue = null;
+        autoLoad.tValue = null;
+        autoLoad.bbox = null;
+        autoLoad.scaleMin = null;
+        autoLoad.scaleMax = null;
         // strip off the leading question mark
         var queryString = window.location.search.split('?')[1];
         var kvps = queryString.split('&');
-        // TODO What is "for each" in Javascript?
         for (var i = 0; i < kvps.length; i++) {
             keyAndVal = kvps[i].split('=');
             if (keyAndVal.length > 1) {
-                if (keyAndVal[0] == 'dataset') {
+                var key = keyAndVal[0].toLowerCase();
+                if (key == 'dataset') {
                     autoLoad.dataset = keyAndVal[1];
-                } else if (keyAndVal[0] == 'variable') {
+                } else if (key == 'variable') {
                     autoLoad.variable = keyAndVal[1];
-                } else if (keyAndVal[0] == 'filter') {
+                } else if (key == 'elevation') {
+                    autoLoad.zValue = keyAndVal[1];
+                } else if (key == 'time') {
+                    autoLoad.tValue = keyAndVal[1];
+                } else if (key == 'bbox') {
+                    autoLoad.bbox = keyAndVal[1];
+                } else if (key == 'scale') {
+                    autoLoad.scaleMin = keyAndVal[1].split(',')[0];
+                    autoLoad.scaleMax = keyAndVal[1].split(',')[1];
+                } else if (key == 'filter') {
                     // we must adapt the site for this brand (e.g. by showing only
                     // certain datasets)
                     filter = keyAndVal[1];
@@ -199,18 +214,19 @@ function loadDatasets(dsDivId, filter)
                 dsDivId,
                 { onShowTab: datasetSelected, panelHeight: 200 }
             );
+            var foundAuto = false;
             if (autoLoad != null && autoLoad.dataset != null) {
                 // We are automatically loading a dataset from a permalink
-                for (var i = 0; i < accordion.accordionTabs.length; i++) {
+                for (var i = 0; i < accordion.accordionTabs.length && !foundAuto; i++) {
                     if (autoLoad.dataset == accordion.accordionTabs[i].titleBar.id) {
-                        // TODO: why doesn't showExpanded() work as expected?
-                        accordion.accordionTabs[i].showExpanded();
-                        datasetSelected(accordion.accordionTabs[i]);
-                        break;
+                        foundAuto = true;
+                        accordion.showTab(accordion.accordionTabs[i]);
                     }
                 }
-            } else {
+            }
+            if (!foundAuto) {
                 // Make sure that the variables are loaded for the first data set
+                autoLoad = null; // Don't try to load anything else automatically
                 datasetSelected( accordion.accordionTabs[0] );
             }
         }
@@ -237,6 +253,7 @@ function datasetSelected(expandedTab)
             panel.style.height = varList.length * 20 + 'px';
             panel.innerHTML = req.responseText;
             if (autoLoad != null && autoLoad.variable != null) {
+                // TODO: how do we check that this variable exists?
                 variableSelected(dataset, autoLoad.variable);
             }
         }
@@ -267,7 +284,11 @@ function variableSelected(datasetName, variableName)
 
             // Set the range selector objects
             var theAxes = xmldoc.getElementsByTagName('axis');
-            var zValue = getZValue();
+            if (autoLoad == null || autoLoad.zValue == null) {
+                var zValue = getZValue();
+            } else {
+                var zValue = parseFloat(autoLoad.zValue);
+            }
             for (var i = 0; i < theAxes.length; i++)
             {
                 var axisType = theAxes[i].getAttribute('type');
@@ -328,6 +349,11 @@ function variableSelected(datasetName, variableName)
             // Set the auto-zoom box
             bbox = xmldoc.getElementsByTagName('bbox')[0].firstChild.nodeValue;
             $('autoZoom').innerHTML = "<a href=\"#\" onclick=\"javascript:map.zoomToExtent(new OpenLayers.Bounds(" + bbox + "));\">Fit data to window</a>";
+            
+            // See if we're auto-loading a certain time value
+            if (autoLoad != null && autoLoad.tValue != null) {
+                tValue = autoLoad.tValue;
+            }
             
             // Get the currently-selected time and date or the current time if
             // none has been selected
@@ -406,7 +432,11 @@ function getTimesteps(dataset, variable, tIndex, tVal, prettyTVal)
             if ($('t' + timestep)) {
                 $('t' + timestep).style.backgroundColor = '#dadee9';
             }
-            if (newVariable) {
+            if (autoLoad != null && autoLoad.scaleMin != null && autoLoad.scaleMax != null) {
+                $('scaleMin').value = autoLoad.scaleMin;
+                $('scaleMax').value = autoLoad.scaleMax;
+                validateScale(); // this calls updateMap()
+            } else if (newVariable) {
                 autoScale(); // Scales the map automatically and updates it
             } else {
                 updateMap(); // Update the map without changing the scale
@@ -571,6 +601,14 @@ function updateMap()
     }
     
     var opacity = $('opacityValue').value;
+    
+    // Set the map bounds automatically
+    if (autoLoad != null && autoLoad.bbox != null) {
+        map.zoomToExtent(getBounds(autoLoad.bbox));
+    }
+    
+    // Make sure the autoLoad object is cleared
+    autoLoad = null;
 
     // Notify the OpenLayers widget
     // SCALE=minval,maxval is a non-standard extension to WMS, describing how
@@ -598,12 +636,10 @@ function updateMap()
     $('featureInfo').innerHTML = "Click on the map to get more information";
     $('featureInfo').style.visibility = 'visible';
     
-    var bboxEls = bbox.split(",");
-    var bounds = new OpenLayers.Bounds(parseFloat(bboxEls[0]), 
-        parseFloat(bboxEls[1]), parseFloat(bboxEls[2]), parseFloat(bboxEls[3]));
-    var imageURL = essc_wms.getURL(bounds);
+    var imageURL = essc_wms.getURL(getBounds(bbox));
     $('testImage').innerHTML = '<a href=\'' + imageURL + '\'>link to test image</a>';
     setGEarthURL();
+    setPermalinkURL();
 }
 
 // Gets the Z value set by the user
@@ -616,36 +652,52 @@ function getZValue()
     return zPositive ? zValue : -zValue;
 }
 
-// Sets the URL for "Open in Google Earth"
+// Sets the permalink
+function setPermalinkURL()
+{
+    $('permalink').innerHTML = '<a target="_blank" href="' +
+        window.location.protocol + '//' +
+        window.location.host +
+        window.location.pathname +
+        '?dataset=' + layerName.split('/')[0] +
+        '&variable=' + layerName.split('/')[1] +
+        '&elevation=' + getZValue() +
+        '&time=' + tValue +
+        '&scale=' + scaleMinVal + ',' + scaleMaxVal +
+        '&bbox=' + map.getExtent().toBBOX() +
+        '">Permalink</a>';
+}
+
+// Sets the URL for "Open in Google Earth" and the permalink
 function setGEarthURL()
 {
     if (essc_wms != null) {
         // Get a URL for a WMS request that covers the current map extent
         var mapBounds = map.getExtent();
         var urlEls = essc_wms.getURL(mapBounds).split('&');
-        var newURL = urlEls[0];
+        var gEarthURL = urlEls[0];
         for (var i = 1; i < urlEls.length; i++) {
             if (urlEls[i].startsWith('FORMAT')) {
                 // Make sure the FORMAT is set correctly
-                newURL += '&FORMAT=application/vnd.google-earth.kmz';
+                gEarthURL += '&FORMAT=application/vnd.google-earth.kmz';
             } else if (urlEls[i].startsWith('TIME') && timeSeriesSelected()) {
                 // If we can make an animation, do so
-                newURL += '&TIME=' + $('firstFrame').innerHTML + '/' + $('lastFrame').innerHTML;
+                gEarthURL += '&TIME=' + $('firstFrame').innerHTML + '/' + $('lastFrame').innerHTML;
             } else if (urlEls[i].startsWith('BBOX')) {
                 // Set the bounding box so that there are no transparent pixels around
                 // the edge of the image: i.e. find the intersection of the layer BBOX
                 // and the viewport BBOX
-                newURL += '&BBOX=' + getIntersectionBBOX();
+                gEarthURL += '&BBOX=' + getIntersectionBBOX();
             } else if (!urlEls[i].startsWith('OPACITY')) {
                 // We remove the OPACITY ARGUMENT as Google Earth allows opacity
                 // to be controlled in the client
-                newURL += '&' + urlEls[i];
+                gEarthURL += '&' + urlEls[i];
             }
         }
         if (timeSeriesSelected()) {
-            $('googleEarth').innerHTML = '<a href=\'' + newURL + '\'>Open animation in Google Earth</a>';
+            $('googleEarth').innerHTML = '<a href=\'' + gEarthURL + '\'>Open animation in Google Earth</a>';
         } else {
-            $('googleEarth').innerHTML = '<a href=\'' + newURL + '\'>Open in Google Earth</a>';
+            $('googleEarth').innerHTML = '<a href=\'' + gEarthURL + '\'>Open in Google Earth</a>';
         }
     }
 }
@@ -707,4 +759,14 @@ function toNSigFigs(value, numSigFigs)
 function timeSeriesSelected()
 {
     return $('firstFrame').innerHTML != '' && $('lastFrame').innerHTML != '';
+}
+
+// Takes a BBOX string of the form "minlon,minlat,maxlon,maxlat" and returns
+// the corresponding OpenLayers.Bounds object
+// TODO: error checking
+function getBounds(bboxStr)
+{
+    var bboxEls = bboxStr.split(",");
+    return new OpenLayers.Bounds(parseFloat(bboxEls[0]), parseFloat(bboxEls[1]),
+        parseFloat(bboxEls[2]), parseFloat(bboxEls[3]));
 }

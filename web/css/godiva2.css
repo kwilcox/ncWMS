@@ -195,6 +195,14 @@ div.underMap
     font-size: 9pt;
 }
 
+#permalink
+{
+    position: absolute;
+    top: 460px;
+    right: 50px;
+    font-size: 9pt;
+}
+
 img.scaleBar
 {
     position: absolute;
