@@ -422,6 +422,16 @@ function getTimesteps(dataset, variable, tIndex, tVal, prettyTVal)
         '&variable=' + variable + '&tIndex=' + tIndex,
         function(req) {
             $('time').innerHTML = req.responseText; // the data will be a selection box
+            if (autoLoad != null && autoLoad.tValue != null) {
+                // Now select the relevant item in the selection box
+                var timeSelect = $('tValues');
+                for (var i = 0; i < timeSelect.options.length; i++) {
+                    if (timeSelect.options[i].value == autoLoad.tValue) {
+                        timeSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
             $('setFrames').style.visibility = 'visible';
             // Make sure the correct day is highlighted in the calendar
             // TODO: doesn't work if there are many timesteps on the same day!
@@ -655,17 +665,21 @@ function getZValue()
 // Sets the permalink
 function setPermalinkURL()
 {
-    $('permalink').innerHTML = '<a target="_blank" href="' +
-        window.location.protocol + '//' +
-        window.location.host +
-        window.location.pathname +
-        '?dataset=' + layerName.split('/')[0] +
-        '&variable=' + layerName.split('/')[1] +
-        '&elevation=' + getZValue() +
-        '&time=' + tValue +
-        '&scale=' + scaleMinVal + ',' + scaleMaxVal +
-        '&bbox=' + map.getExtent().toBBOX() +
-        '">Permalink</a>';
+    if (layerName != '') {
+        var url = window.location.protocol + '//' +
+            window.location.host +
+            window.location.pathname +
+            '?dataset=' + layerName.split('/')[0] +
+            '&variable=' + layerName.split('/')[1] +
+            '&elevation=' + getZValue() +
+            '&time=' + tValue +
+            '&scale=' + scaleMinVal + ',' + scaleMaxVal +
+            '&bbox=' + map.getExtent().toBBOX();
+        $('permalink').innerHTML = '<a target="_blank" href="' + url +
+            '">Permalink</a>&nbsp;|&nbsp;<a href="mailto:?subject=Godiva2%20link&body='
+            + escape(url) + '">email</a>';
+        $('permalink').style.visibility = 'visible';
+    }
 }
 
 // Sets the URL for "Open in Google Earth" and the permalink
