@@ -334,4 +334,9 @@ public class Dataset
     {
         this.config = config;
     }
+    
+    public Date getLastUpdate()
+    {
+        return this.lastUpdate;
+    }
 }

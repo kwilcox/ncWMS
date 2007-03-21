@@ -1,5 +1,6 @@
 <%@page contentType="text/html"%>
 <%@page pageEncoding="UTF-8"%>
+<%@page import="ucar.nc2.units.DateFormatter"%>
 <%@page import="java.util.Collection"%>
 <%@page import="uk.ac.rdg.resc.ncwms.config.*"%>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
@@ -8,6 +9,7 @@
     Config conf = (Config)application.getAttribute("config");
     Contact contact = conf.getContact();
     Server server = conf.getServer();
+    DateFormatter dateFormatter = new DateFormatter();
     boolean configSaved = false;
     int numBlankDatasets = 3;
     
@@ -114,7 +116,7 @@
         
         <h2>Datasets</h2>
         <table border="1">
-            <tr><th>Unique ID</th><th>Title</th><th>Location</th><th>State</th><th>Auto refresh frequency</th><th>Force refresh?</th><th>Queryable?</th><th>Remove?</th><th>Data reading class</th></tr>
+            <tr><th>Unique ID</th><th>Title</th><th>Location</th><th>State</th><th>Last update</th><th>Auto refresh frequency</th><th>Force refresh?</th><th>Queryable?</th><th>Remove?</th><th>Data reading class</th></tr>
             
             <% for (Dataset ds : conf.getDatasets().values()) { %>
             <tr>
@@ -126,6 +128,7 @@
               <%} else {
                     out.print(ds.getState().toString());
                 }%></td>
+                <td><%=ds.getLastUpdate() == null ? "never" : dateFormatter.toDateTimeStringISO(ds.getLastUpdate())%></td>
                 <td>
                     <select name="dataset.<%=ds.getId()%>.updateinterval">
                         <option value="-1" <%=ds.getUpdateInterval() < 0 ? "selected=\"selected\"" : ""%>>Never</option>
@@ -150,6 +153,7 @@
                 <td><input type="text" name="dataset.new<%=i%>.id" value=""/></td>
                 <td><input type="text" name="dataset.new<%=i%>.title" value=""/></td>
                 <td><input type="text" name="dataset.new<%=i%>.location" value=""/></td>
+                <td>N/A</td>
                 <td>N/A</td>
                 <td>
                     <select name="dataset.new<%=i%>.updateinterval">
