@@ -353,13 +353,13 @@ public class NemoDataReader extends DefaultDataReader
                     String res = nc.findGlobalAttributeIgnoreCase("resolution").getStringValue();
                     if (res.equals("one_degree"))
                     {
-                        vm.setXaxis(NemoCoordAxis.ONE_DEGREE_I_AXIS);
-                        vm.setYaxis(NemoCoordAxis.ONE_DEGREE_J_AXIS);
+                        vm.setXaxis(LUTCoordAxis.createAxis("/uk/ac/rdg/resc/ncwms/datareader/ORCA1_4x4.zip/ORCA1_ilt_4x4.dat"));
+                        vm.setYaxis(LUTCoordAxis.createAxis("/uk/ac/rdg/resc/ncwms/datareader/ORCA1_4x4.zip/ORCA1_jlt_4x4.dat"));
                     }
                     else
                     {
-                        vm.setXaxis(NemoCoordAxis.ONE_QUARTER_DEGREE_I_AXIS);
-                        vm.setYaxis(NemoCoordAxis.ONE_QUARTER_DEGREE_J_AXIS);
+                        vm.setXaxis(LUTCoordAxis.createAxis("/uk/ac/rdg/resc/ncwms/datareader/ORCA025_12x12.zip/ORCA025_ilt_12x12_new.dat"));
+                        vm.setYaxis(LUTCoordAxis.createAxis("/uk/ac/rdg/resc/ncwms/datareader/ORCA025_12x12.zip/ORCA025_jlt_12x12_new.dat"));
                     }
                     
                     // Set the time axis

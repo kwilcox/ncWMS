@@ -393,7 +393,7 @@ public class DefaultDataReader extends DataReader
      * @return the value of the standard_name attribute of the variable,
      * or the unique id if it does not exist
      */
-    private static String getStandardName(Variable var)
+    protected static String getStandardName(Variable var)
     {
         Attribute stdNameAtt = var.findAttributeIgnoreCase("standard_name");
         return (stdNameAtt == null || stdNameAtt.getStringValue().trim().equals(""))

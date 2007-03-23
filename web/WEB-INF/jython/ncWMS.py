@@ -76,36 +76,32 @@ def doWms(req, config):
             from Jython servlet)
         config = Configuration object """
        
-    try:
-        # Parse the URL parameters
-        args = req.args
-        if req.args is None or req.args.strip() == "":
-            # If there is no request string, return the front page
-            args = "SERVICE=WMS&REQUEST=GetMetadata&item=frontpage"
-        params = wmsUtils.RequestParser(args)
-        service = params.getParamValue("service")
-        request = params.getParamValue("request")
-        if service != "WMS":
-            raise WMSException("SERVICE parameter must be \"WMS\"")
-        if request == "GetCapabilities":
-            getCapabilities(req, params, config)
-        elif request == "GetMap":
-            getMap(req, params, config)
-        elif request == "GetFeatureInfo":
-            if config.server.allowFeatureInfo:
-                getFeatureInfo(req, params, config)
-            else:
-                raise OperationNotSupported("GetFeatureInfo")
-        elif request == "GetMetadata":
-            # This is a convenience extension to WMS for reading smaller
-            # chunks of metadata
-            getMetadata(req, config)
-        elif request == "GetKML":
-            # Used to get the top-level KML document
-            doGEarth2(req, params, config)
+    # Parse the URL parameters
+    args = req.args
+    if req.args is None or req.args.strip() == "":
+        # If there is no request string, return the front page
+        args = "SERVICE=WMS&REQUEST=GetMetadata&item=frontpage"
+    params = wmsUtils.RequestParser(args)
+    service = params.getParamValue("service")
+    request = params.getParamValue("request")
+    if service != "WMS":
+        raise WMSException("SERVICE parameter must be \"WMS\"")
+    if request == "GetCapabilities":
+        getCapabilities(req, params, config)
+    elif request == "GetMap":
+        getMap(req, params, config)
+    elif request == "GetFeatureInfo":
+        if config.server.allowFeatureInfo:
+            getFeatureInfo(req, params, config)
         else:
-            raise WMSException("Invalid operation")
-    except WMSException, e:
-        req.content_type="text/xml"
-        e.write(req)
+            raise OperationNotSupported("GetFeatureInfo")
+    elif request == "GetMetadata":
+        # This is a convenience extension to WMS for reading smaller
+        # chunks of metadata
+        getMetadata(req, config)
+    elif request == "GetKML":
+        # Used to get the top-level KML document
+        doGEarth2(req, params, config)
+    else:
+        raise WMSException("Invalid operation")
 

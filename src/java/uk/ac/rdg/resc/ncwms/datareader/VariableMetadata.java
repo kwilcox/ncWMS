@@ -153,7 +153,7 @@ public class VariableMetadata
         this.bbox = bbox;
     }
 
-    public boolean getZpositive()
+    public boolean isZpositive()
     {
         return zPositive;
     }

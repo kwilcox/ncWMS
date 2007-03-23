@@ -141,6 +141,10 @@ public abstract class DataReader
             }
             return this.read(location, vm, tIndex, zIndex, latValues, lonValues, fillValue);
         }
+        catch(WMSExceptionInJava wmeij)
+        {
+            throw wmeij;
+        }
         catch(Exception e)
         {
             logger.error(e.getMessage(), e);
