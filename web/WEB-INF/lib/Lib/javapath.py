@@ -20,11 +20,12 @@ from java.io import File
 from java.lang import System
 import os
 
+
 def _tostr(s, method):
-    if isinstance(s, "".__class__):
+    if isinstance(s, basestring):
         return s
     import org
-    raise TypeError, "%s() argument must be a string object, not %s" % (
+    raise TypeError, "%s() argument must be a str or unicode object, not %s" % (
                 method, org.python.core.Py.safeRepr(s))
         
 def dirname(path):
@@ -236,8 +237,11 @@ def normpath(path):
 # Return an absolute path.
 def abspath(path):
     path = _tostr(path, "abspath")
-    return File(path).getAbsolutePath()
+    return File(path).getCanonicalPath()
 
+def realpath(path):
+    path = _tostr(path, "realpath")
+    return File(path).getCanonicalPath()
 
 def getsize(path):
     path = _tostr(path, "getsize")
@@ -252,6 +256,8 @@ def getsize(path):
 def getmtime(path):
     path = _tostr(path, "getmtime")
     f = File(path)
+    if not f.exists():
+        raise OSError(0, 'No such file or directory', path)
     return f.lastModified() / 1000.0
 
 def getatime(path):
@@ -259,6 +265,8 @@ def getatime(path):
     # matches the behaviour in os.stat().
     path = _tostr(path, "getatime")
     f = File(path)
+    if not f.exists():
+        raise OSError(0, 'No such file or directory', path)
     return f.lastModified() / 1000.0
 
 
