@@ -7,10 +7,6 @@
             <minimum-ant-version>1.6</minimum-ant-version>
             <web-module-libraries>
                 <library files="1">
-                    <file>${file.reference.jython.jar}</file>
-                    <path-in-war>WEB-INF/lib</path-in-war>
-                </library>
-                <library files="1">
                     <file>${file.reference.grib.jar-1}</file>
                     <path-in-war>WEB-INF/lib</path-in-war>
                 </library>
@@ -60,6 +56,10 @@
                 </library>
                 <library files="1">
                     <file>${file.reference.simple-xml-1.1.2.jar}</file>
+                    <path-in-war>WEB-INF/lib</path-in-war>
+                </library>
+                <library files="1">
+                    <file>${file.reference.jython-2.2b1-standalone.jar}</file>
                     <path-in-war>WEB-INF/lib</path-in-war>
                 </library>
             </web-module-libraries>
