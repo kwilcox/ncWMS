@@ -183,7 +183,14 @@ public class DefaultDataReader extends DataReader
         }
         catch(IOException e)
         {
-            logger.error("IOException reading from " + nc.getLocation(), e);
+            if (nc == null)
+            {
+                logger.error("IOException", e);
+            }
+            else
+            {
+                logger.error("IOException reading from " + nc.getLocation(), e);
+            }
             throw new WMSExceptionInJava("IOException: " + e.getMessage());
         }
         catch(InvalidRangeException ire)
@@ -335,7 +342,7 @@ public class DefaultDataReader extends DataReader
                     }
                     
                     // Now add the timestep information to the VM object
-                    Date[] tVals = this.getTimesteps(gg);
+                    Date[] tVals = this.getTimesteps(nc, gg);
                     for (int i = 0; i < tVals.length; i++)
                     {
                         VariableMetadata.TimestepInfo tInfo = new
@@ -369,13 +376,12 @@ public class DefaultDataReader extends DataReader
     
     /**
      * Gets array of Dates representing the timesteps of the given variable.
-     * This method is factored out to allow for simple subclasses that read 
-     * time information in different ways.
+     * @param nc The NetcdfDataset to which the variable belongs
      * @param gg the variable as a GeoGrid
-     * @return Array of {@link Date}s (empty if gg has no time axis)
+     * @return Array of {@link Date}s
      * @throws IOException if there was an error reading the timesteps data
      */
-    protected Date[] getTimesteps(GeoGrid gg)
+    protected Date[] getTimesteps(NetcdfDataset nc, GeoGrid gg)
         throws IOException
     {
         GridCoordSys coordSys = gg.getCoordinateSystem();

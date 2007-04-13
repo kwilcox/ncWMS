@@ -397,7 +397,7 @@ public class USGSDataReader extends DefaultDataReader
                     }
                     
                     // Now add the timestep information to the VM object
-                    Date[] tVals = this.getTimesteps(gg);
+                    Date[] tVals = this.getTimesteps(nc, gg);
                     for (int i = 0; i < tVals.length; i++)
                     {
                         VariableMetadata.TimestepInfo tInfo = new
