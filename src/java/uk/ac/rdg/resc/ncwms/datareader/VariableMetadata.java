@@ -344,7 +344,9 @@ public class VariableMetadata
             float zVal = Float.parseFloat(targetVal);
             for (int i = 0; i < this.zValues.length; i++)
             {
-                if (Math.abs((this.zValues[i] - zVal) / zVal) < 1e-5)
+                // The fuzzy comparison fails for zVal == 0.0 so we do a direct
+                // comparison too
+                if (this.zValues[i] == zVal || Math.abs((this.zValues[i] - zVal) / zVal) < 1e-5)
                 {
                     return i;
                 }
