@@ -25,7 +25,7 @@ else:
         else:
             return datavalue
         
-import iso8601
+import wmsUtils
 from wmsExceptions import *
 from getmap import _getBbox, _getGrid, _checkVersion, _getDatasetAndVariableID, _getTIndices, _getFillValue
 
@@ -111,7 +111,7 @@ def getFeatureInfo(req, params, config):
             req.write("<FeatureInfo>")
             if len(var.tvalues) > 0:
                 tval = var.tvalues[tIndices[i]]
-                req.write("<time>%s</time>" % iso8601.tostring(tval))
+                req.write("<time>%s</time>" % wmsUtils.secondsToISOString(tval))
             if datavalues[i] is None:
                 req.write("<value>none</value>") 
             else:

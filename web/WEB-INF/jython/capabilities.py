@@ -5,7 +5,6 @@ except ImportError:
     from StringIO import StringIO
 import time
 
-import iso8601
 import wmsUtils
 import grids
 import getfeatureinfo
@@ -28,7 +27,7 @@ def getCapabilities(req, params, config):
     updatesequence = params.getParamValue("updatesequence", "")
     if updatesequence != "":
         try:
-            us = iso8601.parse(updatesequence)
+            us = wmsUtils.isoStringToSeconds(updatesequence)
             if round(us) == round(lastUpdateTime):
                 # Equal to the nearest second
                 raise CurrentUpdateSequence(updatesequence)
@@ -44,7 +43,7 @@ def getCapabilities(req, params, config):
     output.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
     output.write("<WMS_Capabilities version=\"" + wmsUtils.getWMSVersion() + "\"")
     # UpdateSequence is accurate to the nearest second
-    output.write(" updateSequence=\"%s\"" % iso8601.tostring(round(lastUpdateTime)))
+    output.write(" updateSequence=\"%s\"" % wmsUtils.secondsToISOString(round(lastUpdateTime)))
     output.write(" xmlns=\"http://www.opengis.net/wms\"")
     output.write(" xmlns:xlink=\"http://www.w3.org/1999/xlink\"")
     # The next two lines should be commented out if you wish to load this document
@@ -169,14 +168,14 @@ def getCapabilities(req, params, config):
                     output.write("<Dimension name=\"time\" units=\"ISO8601\"")
                     # TODO: default value should be the time closest to now
                     output.write(" multipleValues=\"true\" current=\"true\" default=\"%s\">" %
-                        iso8601.tostring(vars[vid].tvalues[-1]))
+                        wmsUtils.secondsToISOString(vars[vid].tvalues[-1]))
                     firstTime = 1
                     for t in vars[vid].tvalues:
                         if firstTime:
                             firstTime = 0
                         else:
                             output.write(",")
-                        output.write(iso8601.tostring(t))
+                        output.write(wmsUtils.secondsToISOString(t))
                     output.write("</Dimension>")
 
                 output.write("</Layer>") # end of variable Layer

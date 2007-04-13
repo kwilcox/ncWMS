@@ -7,11 +7,10 @@ import sys, time, math, calendar
 
 if sys.platform.startswith("java"):
     # We're running on Jython
-    prefix = "WMS.py"
+    prefix = "WMS.py"    
 else:
     # TODO: check for presence of CDAT
     prefix = "wms"
-import iso8601
 import wmsUtils
 import getmap, getfeatureinfo
 
@@ -81,7 +80,7 @@ def getFrontPage(config):
                     doc.write("&BBOX=%s,%s,%s,%s" % tuple([str(b) for b in bbox]))
                     tvals = vars[varID].tvalues
                     if len(tvals) > 0:
-                        doc.write("&TIME=%s" % iso8601.tostring(tvals[-1]))
+                        doc.write("&TIME=%s" % wmsUtils.secondsToISOString(tvals[-1]))
                     doc.write("\">%s</a><br />" % vars[varID].title)
                 doc.write("</td>")
             if config.server.allowFeatureInfo:
@@ -95,7 +94,7 @@ def getFrontPage(config):
                         doc.write("&I=128&J=128")
                         tvals = vars[varID].tvalues
                         if len(tvals) > 0:
-                            doc.write("&TIME=%s" % iso8601.tostring(tvals[-1]))
+                            doc.write("&TIME=%s" % wmsUtils.secondsToISOString(tvals[-1]))
                         doc.write("\">%s</a><br />" % vars[varID].title)
                 else:
                     doc.write("Dataset not queryable")
@@ -173,7 +172,7 @@ def getCalendar(config, dsId, varID, dateTime):
 
     # Find the closest time step to the given dateTime value
     # TODO: binary search would be more efficient
-    reqTime = iso8601.parse(dateTime) # Gives seconds since the epoch
+    reqTime = wmsUtils.isoStringToSeconds(dateTime) # Gives seconds since the epoch
     diff = 1e20
     for i in xrange(len(tValues)):
         testDiff = math.fabs(tValues[i] - reqTime)
@@ -187,7 +186,7 @@ def getCalendar(config, dsId, varID, dateTime):
             break
     
     str.write("<root>")
-    str.write("<nearestValue>%s</nearestValue>" % iso8601.tostring(tValues[nearestIndex]))
+    str.write("<nearestValue>%s</nearestValue>" % wmsUtils.secondsToISOString(tValues[nearestIndex]))
     str.write("<prettyNearestValue>%s</prettyNearestValue>" % time.strftime(prettyDateFormat, time.gmtime(tValues[nearestIndex])))
     str.write("<nearestIndex>%d</nearestIndex>" % nearestIndex)
 
@@ -227,7 +226,7 @@ def getCalendar(config, dsId, varID, dateTime):
                     else:
                         break # Date on axis is after target day: no point searching further
                 if found:
-                    tValue = iso8601.tostring(tValues[tValIndex])
+                    tValue = wmsUtils.secondsToISOString(tValues[tValIndex])
                     prettyTValue = time.strftime(prettyDateFormat, axisDay)
                     str.write("<td id=\"t%d\"><a href=\"#\" onclick=\"javascript:getTimesteps('%s','%s','%d','%s','%s'); return false\">%d</a></td>" % (tValIndex, dsId, varID, tValIndex, tValue, prettyTValue, day))
                 else:
@@ -254,14 +253,14 @@ def _getYearBefore(date):
         the given date """
     # Get the tuple of year, month, day etc
     newDate = tuple([date[0] - 1] + list(date[1:]))
-    return iso8601.tostring(time.mktime(newDate))
+    return wmsUtils.secondsToISOString(time.mktime(newDate))
 
 def _getYearAfter(date):
     """ Returns an ISO8601-formatted date that is exactly one year later than
         the given date """
     # Get the tuple of year, month, day etc
     newDate = tuple([date[0] + 1] + list(date[1:]))
-    return iso8601.tostring(time.mktime(newDate))
+    return wmsUtils.secondsToISOString(time.mktime(newDate))
 
 def _getMonthBefore(date):
     """ Returns an ISO8601-formatted date that is exactly one month earlier than
@@ -273,7 +272,7 @@ def _getMonthBefore(date):
         month = date[1] - 1
         year = date[0]
     newDate = tuple([year] + [month] + list(date[2:]))
-    return iso8601.tostring(time.mktime(newDate))
+    return wmsUtils.secondsToISOString(time.mktime(newDate))
 
 def _getMonthAfter(date):
     """ Returns an ISO8601-formatted date that is exactly one month later than
@@ -285,7 +284,7 @@ def _getMonthAfter(date):
         month = date[1] + 1
         year = date[0]
     newDate = tuple([year] + [month] + list(date[2:]))
-    return iso8601.tostring(time.mktime(newDate))
+    return wmsUtils.secondsToISOString(time.mktime(newDate))
 
 def getTimesteps(config, dsId, varID, tIndex):
     """ Returns an HTML select box allowing the user to select a 
@@ -323,7 +322,7 @@ def getTimesteps(config, dsId, varID, tIndex):
     keys = indices.keys()
     keys.sort()
     for i in keys:
-        str.write("<option value=\"%s\">%s</option>" % (iso8601.tostring(tValues[i]), indices[i]))
+        str.write("<option value=\"%s\">%s</option>" % (wmsUtils.secondsToISOString(tValues[i]), indices[i]))
     str.write("</select>")
 
     s = str.getvalue()

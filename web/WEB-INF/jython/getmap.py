@@ -8,7 +8,6 @@ if sys.platform.startswith("java"):
 else:
     # TODO: check for presence of CDAT
     import graphics
-import iso8601
 from wmsExceptions import *
 import wmsUtils
 import grids
@@ -114,7 +113,7 @@ def getMap(req, params, config):
         if len(var.tvalues) == 0:
             tValue = ""
         else:
-            tValue = iso8601.tostring(var.tvalues[tIndex])
+            tValue = wmsUtils.secondsToISOString(var.tvalues[tIndex])
         picMaker.addFrame(picData, bbox, zValue, tValue, animation)
     # Write the image to the client
     req.content_type = picMaker.mimeType

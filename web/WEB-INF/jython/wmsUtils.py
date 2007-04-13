@@ -1,8 +1,31 @@
 # Common utility routines
 
-import urllib
+import urllib, sys
 
 from wmsExceptions import WMSException
+
+if sys.platform.startswith("java"):
+    # We're running on Jython.  These Java methods for formatting and
+    # parsing ISO8601 dates are more forgiving than their Python counterparts
+    # in terms of dates before 1970
+    from java.util import Date
+    from java.lang import Double
+    from ucar.nc2.units import DateFormatter
+    df = DateFormatter()
+    def secondsToISOString(secondsSince1970):
+        return df.toDateTimeStringISO(Date(Double(secondsSince1970 * 1000).longValue()))
+    def isoStringToSeconds(isoString):
+        """ returns the number of seconds since 1970-01-01 represented by the given ISO8601 string """
+        return df.getISODate(isoString).time / 1000.0
+    
+else:
+    # TODO: check for presence of CDAT
+    import iso8601
+    def secondsToISOString(secondsSince1970):
+        return iso8601.tostring(secondsSince1970)
+    def isoStringToSeconds(isoString):
+        """ returns the number of seconds since 1970-01-01 represented by the given ISO8601 string """
+        return iso8601.parse(isoString)
 
 def getWMSVersion():
     """ Returns the version of this WMS server """
