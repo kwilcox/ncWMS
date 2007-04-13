@@ -130,6 +130,15 @@ window.onload = function()
                     // we must adapt the site for this brand (e.g. by showing only
                     // certain datasets)
                     filter = keyAndVal[1];
+                    if (filter == 'MERSEA') {
+                        // Hack to change the logo from JCOMM to MERSEA
+                        // TODO: make more general (e.g. with CSS)
+                        $('jcommlogo').src = 'http://w3.mersea.eu.org/images/general/smallTitre.jpg';
+                        $('jcommlogo').alt = 'MERSEA logo';
+                        $('jcommlogo').width = 133;
+                        $('jcommlogo').height = 30;
+                        $('jcommlink').href = 'http://www.mersea.eu.org/';
+                    }
                 }
             }
         }
