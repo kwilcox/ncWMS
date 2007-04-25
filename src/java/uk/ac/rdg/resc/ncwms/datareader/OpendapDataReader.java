@@ -103,6 +103,7 @@ public class OpendapDataReader extends DefaultDataReader
                     if (maxX < 0 || xIndices[i] > maxX) maxX = xIndices[i];
                 }
             }
+            logger.debug("xRange = ({},{})", minX, maxX);
             // TODO: subsample if we are going to read very many more points
             // than we actually need
             if (minX < 0 || maxX < 0)
@@ -110,7 +111,6 @@ public class OpendapDataReader extends DefaultDataReader
                 // We haven't found any valid data
                 return picData;
             }
-            logger.debug("xRange = ({},{})", minX, maxX);
             Range xRange = new Range(minX, maxX);
             
             // Find the range of y indices
