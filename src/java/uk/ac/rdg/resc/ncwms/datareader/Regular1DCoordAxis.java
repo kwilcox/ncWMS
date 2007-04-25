@@ -80,10 +80,13 @@ public class Regular1DCoordAxis extends OneDCoordAxis
         if (this.isLongitude)
         {
             Longitude st = new Longitude(this.start);
+            Longitude mid = new Longitude(this.start + this.stride * this.getCount() / 2);
             // Find the longitude of the point that is just off the end of the axis
             Longitude end = new Longitude(this.start + this.stride * this.getCount());
-            logger.debug("Longitudes: st = {}, end = {}", st.getValue(), end.getValue());
-            if (st.equals(end))
+            logger.debug("Longitudes: st = {}, mid = {}, end = {}",
+                new Object[]{st.getValue(), mid.getValue(), end.getValue()});
+            // In some cases the end point might be past the original start point
+            if (st.equals(end) || st.getClockwiseDistanceTo(mid) > st.getClockwiseDistanceTo(end))
             {
                 this.wraps = true;
             }
@@ -104,6 +107,7 @@ public class Regular1DCoordAxis extends OneDCoordAxis
     {
         if (this.isLongitude)
         {
+            logger.debug("Finding value for longitude {}", point.getLongitude());
             Longitude lon = new Longitude(point.getLongitude());
             if (this.wraps || lon.isBetween(this.start, this.maxValue))
             {
@@ -112,10 +116,13 @@ public class Regular1DCoordAxis extends OneDCoordAxis
                 double exactNumSteps = distance / this.stride;
                 // This axis might wrap, so we make sure that the returned index
                 // is within range
-                return ((int)Math.round(exactNumSteps)) % this.getCount();                
+                int index = ((int)Math.round(exactNumSteps)) % this.getCount(); 
+                logger.debug("returning {}", index);
+                return index;              
             }
             else
             {
+                logger.debug("out of range: returning -1");
                 return -1;
             }
         }
