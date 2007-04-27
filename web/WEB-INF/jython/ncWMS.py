@@ -14,7 +14,7 @@ def wms(req):
     """ Entry point with mod_python """
     # Config file is in the same directory as this script
     path = os.path.join(os.path.split(__file__)[0], "ncWMS.ini")
-    doWms(req, _readConfig(path), time.time())
+    doWms(req, _readConfig(path))
 
 class NcWMSConfig: pass
 def _readConfig(configFile):
@@ -70,11 +70,12 @@ def _getDatasets(config):
     return datasets
 
 # Entry point from Java
-def doWms(req, config):
+def doWms(req, config, cache=None):
     """ Does the WMS operation.
         req = mod_python request object (or FakeModPythonRequestObject
             from Jython servlet)
-        config = Configuration object """
+        config = Configuration object
+        cache = Cache of image tiles """
        
     # Parse the URL parameters
     args = req.args
@@ -89,7 +90,7 @@ def doWms(req, config):
     if request == "GetCapabilities":
         getCapabilities(req, params, config)
     elif request == "GetMap":
-        getMap(req, params, config)
+        getMap(req, params, config, cache)
     elif request == "GetFeatureInfo":
         if config.server.allowFeatureInfo:
             getFeatureInfo(req, params, config)

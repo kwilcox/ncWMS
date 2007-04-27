@@ -31,7 +31,6 @@ package uk.ac.rdg.resc.ncwms.filters;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 import javax.servlet.Filter;
@@ -43,6 +42,7 @@ import javax.servlet.ServletResponse;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.log4j.Logger;
 import ucar.nc2.dataset.NetcdfDatasetCache;
+import uk.ac.rdg.resc.ncwms.cache.ImageTileCache;
 import uk.ac.rdg.resc.ncwms.config.Config;
 import uk.ac.rdg.resc.ncwms.config.Dataset;
 
@@ -62,6 +62,7 @@ public class WMSFilter implements Filter
     
     private FilterConfig filterConfig = null;
     private Config config = null; // the ncWMS configuration information
+    private ImageTileCache tileCache = null;
     private Timer timer = null;
     
     /**
@@ -107,6 +108,13 @@ public class WMSFilter implements Filter
             // Store in the servlet context
             this.filterConfig.getServletContext().setAttribute("config", this.config);
             logger.debug("Read ncWMS configuration information");
+            
+            // Create or load the cache of image tiles
+            File cacheDir = new File(ncWMSDir, "cache");
+            mkdir(cacheDir);            
+            this.tileCache = new ImageTileCache(cacheDir);
+            // Store in the servlet context
+            this.filterConfig.getServletContext().setAttribute("cache", tileCache);
         }
         catch(Exception e)
         {
@@ -173,6 +181,8 @@ public class WMSFilter implements Filter
         this.config = null;
         this.filterConfig = null;
         NetcdfDatasetCache.exit();
+        // Close the database of cached tiles
+        if (this.tileCache != null) this.tileCache.close();
         logger.debug("WMSFilter destroyed");
     }
     

@@ -5,9 +5,11 @@ import sys
 if sys.platform.startswith("java"):
     # We're running on Jython
     import javagraphics as graphics
+    from uk.ac.rdg.resc.ncwms.cache import ImageTileKey
 else:
     # TODO: check for presence of CDAT
     import graphics
+    class ImageTileKey: pass
 from wmsExceptions import *
 import wmsUtils
 import grids
@@ -26,11 +28,12 @@ def getSupportedExceptionFormats():
     # of work in the exception-handling code
     return ["XML"]
 
-def getMap(req, params, config):
+def getMap(req, params, config, cache):
     """ The GetMap operation.
        req = mod_python request object (or FakeModPythonRequestObject from Jython servlet)
        params = wmsUtils.RequestParser object containing the request parameters
-       config = configuration object """
+       config = configuration object
+       cache = cache of image tiles """
     
     _checkVersion(params) # Checks the VERSION parameter
     
@@ -106,10 +109,31 @@ def getMap(req, params, config):
     picMaker.fillValue = _getFillValue()
     animation = len(tIndices) > 1
     for tIndex in tIndices:
-        # TODO: see if we already have this image in cache
-        # TODO: deal with non lat-lon grids
-        picData = dataset.read(var, tIndex, zValue, grid.latValues, grid.lonValues, _getFillValue())
-        # TODO: cache the data array
+        picData = None
+
+        if cache != None:
+            # See if we already have this data array in cache
+            # Create the key for this data array
+            key = ImageTileKey()
+            key.crs = params.getParamValue("crs")
+            key.layer = layers[0]
+            key.bbox = bbox
+            key.width, key.height = grid.width, grid.height
+            if zValue.strip() == "":
+                key.elevation = ""
+            else:
+                key.elevation = str(float(zValue)) # removes trailing zeros
+            if len(var.tvalues) == 0:
+                key.time = 0.0
+            else:
+                key.time = var.tvalues[tIndex]
+            picData = cache.getImageTile(key)
+
+        if picData is None:
+            # TODO: deal with non lat-lon grids
+            picData = dataset.read(var, tIndex, zValue, grid.latValues, grid.lonValues, _getFillValue())
+            if cache != None:
+                cache.putImageTile(key, picData)
         if len(var.tvalues) == 0:
             tValue = ""
         else:

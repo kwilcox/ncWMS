@@ -68,8 +68,9 @@ class WMS (HttpServlet):
             HttpServlet.init(self)
         else:
             HttpServlet.init(self, cfg)
-        # The config object has been created by the GlobalFilter
+        # The config and cache objects have been created by the WMSFilter
         self.config = self.servletContext.getAttribute("config")
+        self.cache = self.servletContext.getAttribute("cache")
         WMS.logger.debug("ncWMS Servlet initialized")
 
     def destroy(self):
@@ -85,8 +86,7 @@ class WMS (HttpServlet):
         try:
             try:
                 # Do the WMS operation
-                # TODO: get time of last metadata update somehow
-                ncWMS.doWms(req, self.config)
+                ncWMS.doWms(req, self.config, self.cache)
             except InvalidDimensionValueException, e:
                 raise InvalidDimensionValue(e.getDimName(), e.getValue())
             except MissingDimensionValueException, e:
