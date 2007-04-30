@@ -227,6 +227,8 @@ public class Dataset
             // Read the metadata
             Hashtable<String, VariableMetadata> vars = dr.getVariableMetadata(this.getLocation());
             logger.debug("loaded VariableMetadata");
+            // Search for vector quantities (e.g. northward/eastward_sea_water_velocity)
+            findVectorQuantities(vars);
             for (VariableMetadata vm : vars.values())
             {
                 vm.setDataset(this);
@@ -242,6 +244,57 @@ public class Dataset
             this.err = e;
             this.state = State.ERROR;
             return false;
+        }
+    }
+    
+    /**
+     * Searches through the collection of VariableMetadata objects, looking for
+     * pairs of quantities that represent the components of a vector, e.g.
+     * northward/eastward_sea_water_velocity.  Modifies the given Hashtable
+     * in-place.
+     * @todo Only works for northward/eastward components so far
+     */
+    private static void findVectorQuantities(Hashtable<String, VariableMetadata> vars)
+    {
+        // This hashtable will store pairs of components in eastward-northward
+        // order, keyed by the standard name for the vector quantity
+        Hashtable<String, VariableMetadata[]> components =
+            new Hashtable<String, VariableMetadata[]>();
+        for (VariableMetadata vm : vars.values())
+        {
+            if (vm.getTitle().contains("northward"))
+            {
+                String vectorKey = vm.getTitle().replaceFirst("northward_", "");
+                // Look to see if we've already found the eastward component
+                if (!components.containsKey(vectorKey))
+                {
+                    // We haven't found the eastward component yet
+                    components.put(vectorKey, new VariableMetadata[2]);
+                }
+                components.get(vectorKey)[1] = vm;
+            }
+            else if (vm.getTitle().contains("eastward"))
+            {
+                String vectorKey = vm.getTitle().replaceFirst("eastward_", "");
+                // Look to see if we've already found the eastward component
+                if (!components.containsKey(vectorKey))
+                {
+                    // We haven't found the eastward component yet
+                    components.put(vectorKey, new VariableMetadata[2]);
+                }
+                components.get(vectorKey)[0] = vm;
+            }
+        }
+        
+        // Now add the vector quantities to the collection of VariableMetadata objects
+        for (String key : components.keySet())
+        {
+            VariableMetadata[] comps = components.get(key);
+            if (comps[0] != null && comps[1] != null)
+            {
+                // We've found both components
+                
+            }
         }
     }
     
