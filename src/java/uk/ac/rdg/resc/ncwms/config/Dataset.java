@@ -262,7 +262,18 @@ public class Dataset
             new Hashtable<String, VariableMetadata[]>();
         for (VariableMetadata vm : vars.values())
         {
-            if (vm.getTitle().contains("northward"))
+            if (vm.getTitle().contains("eastward"))
+            {
+                String vectorKey = vm.getTitle().replaceFirst("eastward_", "");
+                // Look to see if we've already found the northward component
+                if (!components.containsKey(vectorKey))
+                {
+                    // We haven't found the northward component yet
+                    components.put(vectorKey, new VariableMetadata[2]);
+                }
+                components.get(vectorKey)[0] = vm;
+            }
+            else if (vm.getTitle().contains("northward"))
             {
                 String vectorKey = vm.getTitle().replaceFirst("northward_", "");
                 // Look to see if we've already found the eastward component
@@ -273,16 +284,49 @@ public class Dataset
                 }
                 components.get(vectorKey)[1] = vm;
             }
-            else if (vm.getTitle().contains("eastward"))
+            else if (vm.getTitle().contains("_x_"))
             {
-                String vectorKey = vm.getTitle().replaceFirst("eastward_", "");
-                // Look to see if we've already found the eastward component
+                String vectorKey = vm.getTitle().replaceFirst("_x_", "_");
+                // Look to see if we've already found the y component
                 if (!components.containsKey(vectorKey))
                 {
-                    // We haven't found the eastward component yet
+                    // We haven't found the y component yet
                     components.put(vectorKey, new VariableMetadata[2]);
                 }
                 components.get(vectorKey)[0] = vm;
+            }
+            else if (vm.getTitle().contains("_y_"))
+            {
+                String vectorKey = vm.getTitle().replaceFirst("_y_", "_");
+                // Look to see if we've already found the x component
+                if (!components.containsKey(vectorKey))
+                {
+                    // We haven't found the x component yet
+                    components.put(vectorKey, new VariableMetadata[2]);
+                }
+                components.get(vectorKey)[1] = vm;
+            }
+            else if (vm.getTitle().startsWith("x_"))
+            {
+                String vectorKey = vm.getTitle().replaceFirst("x_", "");
+                // Look to see if we've already found the y component
+                if (!components.containsKey(vectorKey))
+                {
+                    // We haven't found the y component yet
+                    components.put(vectorKey, new VariableMetadata[2]);
+                }
+                components.get(vectorKey)[0] = vm;
+            }
+            else if (vm.getTitle().startsWith("y_"))
+            {
+                String vectorKey = vm.getTitle().replaceFirst("y_", "");
+                // Look to see if we've already found the x component
+                if (!components.containsKey(vectorKey))
+                {
+                    // We haven't found the x component yet
+                    components.put(vectorKey, new VariableMetadata[2]);
+                }
+                components.get(vectorKey)[1] = vm;
             }
         }
         
@@ -292,8 +336,10 @@ public class Dataset
             VariableMetadata[] comps = components.get(key);
             if (comps[0] != null && comps[1] != null)
             {
-                // We've found both components
-                
+                // We've found both components.  Create a new VariableMetadata object
+                VariableMetadata vec = new VariableMetadata(key, comps[0], comps[1]);
+                // Use the title as the unique ID for this variable
+                vars.put(key, vec);
             }
         }
     }

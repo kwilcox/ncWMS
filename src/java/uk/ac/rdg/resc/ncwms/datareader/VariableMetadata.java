@@ -65,6 +65,11 @@ public class VariableMetadata
     private Dataset dataset;
     private Hashtable<Date, TimestepInfo> timesteps;
     
+    // If this is a vector quantity, these values will be the northward and
+    // eastward components
+    private VariableMetadata eastward;
+    private VariableMetadata northward;
+    
     /** Creates a new instance of VariableMetadata */
     VariableMetadata()
     {
@@ -77,6 +82,38 @@ public class VariableMetadata
         this.yaxis = null;
         this.dataset = null;
         this.timesteps = new Hashtable<Date, TimestepInfo>();
+        this.eastward = null;
+        this.northward = null;
+    }
+    
+    /**
+     * Creates a VariableMetadata object that comprises an eastward and 
+     * northward component (e.g. for velocities)
+     */
+    public VariableMetadata(String title, VariableMetadata eastward, VariableMetadata northward)
+    {
+        // Copy the metadata from the eastward component
+        // TODO: check that the two components match
+        this.title = title;
+        this.abstr = "Description goes here"; // TODO
+        this.zUnits = eastward.zUnits;
+        this.zValues = eastward.zValues;
+        this.bbox = eastward.bbox;
+        this.xaxis = eastward.xaxis;
+        this.yaxis = eastward.yaxis;
+        this.dataset = eastward.dataset;
+        this.timesteps = eastward.timesteps;
+        
+        this.eastward = eastward;
+        this.northward = northward;
+    }
+    
+    /**
+     * @return true if this is a vector quantity (e.g. velocity)
+     */
+    public boolean isVector()
+    {
+        return this.getEastwardComponent() != null && this.getNorthwardComponent() != null;
     }
 
     public String getTitle()
@@ -391,6 +428,16 @@ public class VariableMetadata
         {
             return this.indexInFile;
         }
+    }
+
+    public VariableMetadata getEastwardComponent()
+    {
+        return this.eastward;
+    }
+
+    public VariableMetadata getNorthwardComponent()
+    {
+        return this.northward;
     }
     
 }
