@@ -35,6 +35,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -43,21 +44,16 @@ import org.apache.log4j.Logger;
 import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
 
 /**
- * Creates KMZ files for importing into Google Earth.  We inherit from GifMaker
- * because this contains code that can handle animations.  However, we actually
- * make PNG files!  Read the code to understand how this works... TODO: refactor
- * this more sensibly.
+ * Creates KMZ files for importing into Google Earth.
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
  */
-public class KmzMaker extends GifMaker
+public class KmzMaker extends PicMaker
 {
     private static final Logger logger = Logger.getLogger(KmzMaker.class);
-    
-    private StringBuffer kml; // The KML that accompanies the images
     
     private static final String PICNAME = "frame";
     private static final String PICEXT  = "png";
@@ -65,104 +61,92 @@ public class KmzMaker extends GifMaker
     
     private static DecimalFormat DECIMAL_FORMATTER = new DecimalFormat("0.#####");
     private static DecimalFormat SCIENTIFIC_FORMATTER = new DecimalFormat("0.###E0");
-    
-    /** Creates a new instance of KmzMaker */
-    public KmzMaker()
-    {
-        this.kml = new StringBuffer();
-    }
 
-    public void addFrame(float[] data, float[] bbox, String zValue,
-        String tValue, boolean isAnimation) throws IOException
+    public void writeImage(ArrayList<BufferedImage> frames, OutputStream out) throws IOException
     {
-        // GifMaker.addFrame() creates the Image if it can, otherwise it stores the data
-        // Each individual frame is separate and not part of an animation: setting
-        // isAnimation = false prevents the time from being added to the frames
-        // as labels
-        super.addFrame(data, bbox, zValue, tValue, false);
-        int frameIndex = this.getNumFrames() - 1;
+        StringBuffer kml = new StringBuffer();
         
-        if (frameIndex == 0)
+        for (int frameIndex = 0; frameIndex < frames.size(); frameIndex++)
         {
-            // This is the first frame.  Add the KML header and folder metadata
-            this.kml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-            this.kml.append(System.getProperty("line.separator"));
-            this.kml.append("<kml xmlns=\"http://earth.google.com/kml/2.0\">");
-            this.kml.append("<Folder>");
-            this.kml.append("<visibility>1</visibility>");
-            this.kml.append("<name>" + this.var.getDataset().getId() + ", " +
-                this.var.getId() + "</name>");
-            this.kml.append("<description>" + this.var.getDataset().getTitle() + ", "
-                + this.var.getTitle() + ": " + this.var.getAbstract() +
-                "</description>");
-            
-            // Add the screen overlay containing the colour scale
-            this.kml.append("<ScreenOverlay>");
-            this.kml.append("<name>Colour scale</name>");
-            this.kml.append("<Icon><href>" + COLOUR_SCALE_FILENAME + "</href></Icon>");
-            this.kml.append("<overlayXY x=\"0\" y=\"1\" xunits=\"fraction\" yunits=\"fraction\"/>");
-            this.kml.append("<screenXY x=\"0\" y=\"1\" xunits=\"fraction\" yunits=\"fraction\"/>");
-            this.kml.append("<rotationXY x=\"0\" y=\"0\" xunits=\"fraction\" yunits=\"fraction\"/>");
-            this.kml.append("<size x=\"0\" y=\"0\" xunits=\"fraction\" yunits=\"fraction\"/>");
-            this.kml.append("</ScreenOverlay>");
-        }
-        
-        this.kml.append("<GroundOverlay>");
-        String timestamp = null;
-        String z = null;
-        if (tValue != null && !tValue.equals(""))
-        {
-            // We must make sure the ISO8601 timestamp is full and includes
-            // seconds, otherwise Google Earth gets confused.  This is why we
-            // convert to a Date and back again.
-            Date date = VariableMetadata.dateFormatter.getISODate(tValue);
-            timestamp = VariableMetadata.dateFormatter.toDateTimeStringISO(date);
-            this.kml.append("<TimeStamp><when>" + timestamp + "</when></TimeStamp>");
-        }
-        if (zValue != null && !zValue.equals("") && this.var.getZvalues() != null)
-        {
-            z = "";
-            if (timestamp != null) z += "<br />";
-            z += "Elevation: " + zValue + " " + this.var.getZunits();
-        }
-        this.kml.append("<name>");
-        if (timestamp == null && z == null)
-        {
-            this.kml.append("Frame " + frameIndex);
-        }
-        else
-        {
-            this.kml.append("<![CDATA[");
-            if (timestamp != null)
+            if (frameIndex == 0)
             {
-                this.kml.append("Time: " + timestamp);
-            }
-            if (z != null)
-            {
-                this.kml.append(z);
-            }
-            this.kml.append("]]>");
-        }
-        this.kml.append("</name>");
-        this.kml.append("<visibility>1</visibility>");
-        
-        this.kml.append("<Icon><href>" + getPicFileName(frameIndex) + "</href></Icon>");
-        
-        this.kml.append("<LatLonBox id=\"" + frameIndex + "\">");
-        this.kml.append("<west>"  + bbox[0] + "</west>");
-        this.kml.append("<south>" + bbox[1] + "</south>");
-        this.kml.append("<east>"  + bbox[2] + "</east>");
-        this.kml.append("<north>" + bbox[3] + "</north>");
-        this.kml.append("<rotation>0</rotation>");
-        this.kml.append("</LatLonBox>");
-        this.kml.append("</GroundOverlay>");
-    }
+                // This is the first frame.  Add the KML header and folder metadata
+                kml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+                kml.append(System.getProperty("line.separator"));
+                kml.append("<kml xmlns=\"http://earth.google.com/kml/2.0\">");
+                kml.append("<Folder>");
+                kml.append("<visibility>1</visibility>");
+                kml.append("<name>" + this.var.getDataset().getId() + ", " +
+                    this.var.getId() + "</name>");
+                kml.append("<description>" + this.var.getDataset().getTitle() + ", "
+                    + this.var.getTitle() + ": " + this.var.getAbstract() +
+                    "</description>");
 
-    public void writeImage(OutputStream out) throws IOException
-    {
+                // Add the screen overlay containing the colour scale
+                kml.append("<ScreenOverlay>");
+                kml.append("<name>Colour scale</name>");
+                kml.append("<Icon><href>" + COLOUR_SCALE_FILENAME + "</href></Icon>");
+                kml.append("<overlayXY x=\"0\" y=\"1\" xunits=\"fraction\" yunits=\"fraction\"/>");
+                kml.append("<screenXY x=\"0\" y=\"1\" xunits=\"fraction\" yunits=\"fraction\"/>");
+                kml.append("<rotationXY x=\"0\" y=\"0\" xunits=\"fraction\" yunits=\"fraction\"/>");
+                kml.append("<size x=\"0\" y=\"0\" xunits=\"fraction\" yunits=\"fraction\"/>");
+                kml.append("</ScreenOverlay>");
+            }
+        
+            kml.append("<GroundOverlay>");
+            String timestamp = null;
+            String z = null;
+            if (tValue != null && !tValue.equals(""))
+            {
+                // We must make sure the ISO8601 timestamp is full and includes
+                // seconds, otherwise Google Earth gets confused.  This is why we
+                // convert to a Date and back again.
+                Date date = VariableMetadata.dateFormatter.getISODate(tValue);
+                timestamp = VariableMetadata.dateFormatter.toDateTimeStringISO(date);
+                kml.append("<TimeStamp><when>" + timestamp + "</when></TimeStamp>");
+            }
+            if (zValue != null && !zValue.equals("") && this.var.getZvalues() != null)
+            {
+                z = "";
+                if (timestamp != null) z += "<br />";
+                z += "Elevation: " + zValue + " " + this.var.getZunits();
+            }
+            kml.append("<name>");
+            if (timestamp == null && z == null)
+            {
+                kml.append("Frame " + frameIndex);
+            }
+            else
+            {
+                kml.append("<![CDATA[");
+                if (timestamp != null)
+                {
+                    kml.append("Time: " + timestamp);
+                }
+                if (z != null)
+                {
+                    kml.append(z);
+                }
+                kml.append("]]>");
+            }
+            kml.append("</name>");
+            kml.append("<visibility>1</visibility>");
+
+            kml.append("<Icon><href>" + getPicFileName(frameIndex) + "</href></Icon>");
+
+            kml.append("<LatLonBox id=\"" + frameIndex + "\">");
+            kml.append("<west>"  + bbox[0] + "</west>");
+            kml.append("<south>" + bbox[1] + "</south>");
+            kml.append("<east>"  + bbox[2] + "</east>");
+            kml.append("<north>" + bbox[3] + "</north>");
+            kml.append("<rotation>0</rotation>");
+            kml.append("</LatLonBox>");
+            kml.append("</GroundOverlay>");
+        }
+
         // Write the footer of the KML file
-        this.kml.append("</Folder>");
-        this.kml.append("</kml>");
+        kml.append("</Folder>");
+        kml.append("</kml>");
         
         ZipOutputStream zipOut = new ZipOutputStream(out);
         
@@ -172,13 +156,12 @@ public class KmzMaker extends GifMaker
             this.var.getId() + ".kml");
         kmlEntry.setTime(System.currentTimeMillis());
         zipOut.putNextEntry(kmlEntry);
-        zipOut.write(this.kml.toString().getBytes());
+        zipOut.write(kml.toString().getBytes());
         
         // Now write all the images
-        this.createAllFrames();
         int frameIndex = 0;
         logger.debug("Writing frames to KMZ file");
-        for (BufferedImage frame : this.frames)
+        for (BufferedImage frame : frames)
         {
             ZipEntry picEntry = new ZipEntry(getPicFileName(frameIndex));
             frameIndex++;

@@ -30,6 +30,8 @@ package uk.ac.rdg.resc.ncwms.styles;
 
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import org.apache.log4j.Logger;
+import uk.ac.rdg.resc.ncwms.exceptions.StyleNotDefinedException;
 
 /**
  * An abstract definition of a Style
@@ -41,6 +43,8 @@ import java.util.ArrayList;
  */
 public abstract class AbstractStyle
 {
+    private static final Logger logger = Logger.getLogger(AbstractStyle.class);
+    
     protected String name;
     // Width and height of the resulting picture
     protected int picWidth;
@@ -49,8 +53,13 @@ public abstract class AbstractStyle
     protected float fillValue;
     protected boolean transparent;
     protected int bgColor; // Background colour as an integer
+    
     // set of rendered images, ready to be turned into a picture
     protected ArrayList<BufferedImage> renderedFrames;
+    // If we need to cache the frame data and associated labels (we do this if
+    // we have to auto-scale the image) this is where we put them.
+    protected ArrayList<float[]> frameData;
+    protected ArrayList<String> labels;
     
     /**
      * Creates a new instance of AbstractStyle
@@ -60,6 +69,44 @@ public abstract class AbstractStyle
     {
         this.name = name;
         this.renderedFrames = new ArrayList<BufferedImage>();
+    }
+    
+    /**
+     * Creates an AbstractStyle from the given specification (e.g.
+     * "boxfill;scale=-5:15;palette=rainbow")
+     * @throws StyleNotDefinedException if there is no matching style for the 
+     * given specification
+     */
+    public static AbstractStyle createStyle(String styleSpec)
+        throws StyleNotDefinedException
+    {
+        AbstractStyle style = null;
+        String[] els = styleSpec.split(";");
+        if (els[0].equalsIgnoreCase("boxfill"))
+        {
+            style = new BoxFillStyle();
+        }
+        else if (els[0].equalsIgnoreCase("vector"))
+        {
+            // TODO
+        }
+        if (style == null)
+        {
+            throw new StyleNotDefinedException(styleSpec + " is not a valid STYLE");
+        }
+        // Set the attributes of the AbstractStyle
+        for (int i = 1; i < els.length; i++)
+        {
+            String[] keyAndValue = els[i].split("=");
+            if (keyAndValue.length != 2)
+            {
+                throw new StyleNotDefinedException("STYLE specification format error");
+            }
+            style.setAttribute(keyAndValue[0], keyAndValue[1]);
+        }
+        logger.debug("Style object of type {} created from styleSpec {}",
+            style.getClass(), styleSpec);
+        return style;
     }
     
     /**
@@ -143,12 +190,47 @@ public abstract class AbstractStyle
     public abstract void setAttribute(String attName, String value);
     
     /**
+     * Adds a frame of data to this Style.  If the data cannot yet be rendered 
+     * into a BufferedImage, the data and label are stored.
+     */
+    public void addFrame(float[] data, String label)
+    {
+        if (this.isAutoScale())
+        {
+            if (this.frameData == null)
+            {
+                this.frameData = new ArrayList<float[]>();
+                this.labels = new ArrayList<String>();
+            }
+            this.frameData.add(data);
+            this.labels.add(label);
+        }
+        else
+        {
+            this.createImage(data, label);
+        }
+    }
+    
+    /**
      * Creates a single image in this style and adds to the internal store
-     * of BufferedImages.
+     * of BufferedImages.  This is only called when the scale information has been
+     * set, so all info should be present for creating the image.
      * @param data The data to be rendered into an image
      * @param label Label to add to the image (ignored if null or the empty string)
      */
-    public abstract void createImage(float[] data, String label);
+    protected abstract void createImage(float[] data, String label);
+    
+    /**
+     * @return true if this image is to be auto-scaled (meaning we have to collect
+     * all of the frame data before we calculate the scale)
+     */
+    protected abstract boolean isAutoScale();
+    
+    /**
+     * Adjusts the colour scale of the image based on the given data.  Used if
+     * <code>isAutoScale() == true</code>.
+     */
+    protected abstract void adjustScaleForFrame(float[] data);
 
     /**
      * Gets the frames as BufferedImages, ready to be turned into a picture or
@@ -158,6 +240,27 @@ public abstract class AbstractStyle
      * we can't create each individual frame until we have data for all the frames)
      * @return ArrayList of BufferedImages
      */
-    public abstract ArrayList<BufferedImage> getRenderedFrames();
+    public ArrayList<BufferedImage> getRenderedFrames()
+    {
+        if (this.isAutoScale())
+        {
+            // Now we can set the colour scale and generate the frames
+            logger.debug("  ... we must set the colour scale");
+            // We have a cache of image data, which we need to turn into images
+            // First we set the colour scale correctly
+            for (float[] data : this.frameData)
+            {
+                this.adjustScaleForFrame(data);
+            }
+            logger.debug("  ... colour scale set, rendering stored frames...");
+            // Now we render the frames
+            for (int i = 0; i < this.frameData.size(); i++)
+            {
+                logger.debug("    ... rendering frame {}", i);
+                this.createImage(this.frameData.get(i), this.labels.get(i));
+            }
+        }
+        return this.renderedFrames;
+    }
     
 }

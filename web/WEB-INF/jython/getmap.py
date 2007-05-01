@@ -41,16 +41,24 @@ def getMap(req, params, config, cache):
     if len(layers) > getLayerLimit():
         raise WMSException("You may only request a maximum of " +
             str(getLayerLimit()) + " layer(s) simultaneously from this server")
+
+    # Find the source of the requested data
+    dataset, varID = _getDatasetAndVariableID(layers, config.datasets)
+    # Get the metadata
+    var = dataset.variables[varID]
     
     styles = params.getParamValue("styles").split(",")
     # We must either have one style per layer or else an empty parameter: "STYLES="
     if len(styles) != len(layers) and styles != ['']:
-        raise WMSException("You must request exactly one STYLE per layer, or use"
+            raise WMSException("You must request exactly one STYLE per layer, or use"
            + " the default style for each layer with STYLES=")
     for style in styles:
         if style != "":
             # TODO: handle styles properly
             raise StyleNotDefined(style)
+    # Get a Style object that turns data arrays into arrays of pixels:
+    # these pixels will be formatted into images using a Format object
+    style = graphics.getStyle(styles[0]) 
     
     # RequestParser replaces pluses with spaces: we must change back
     # to parse the format correctly
@@ -65,10 +73,6 @@ def getMap(req, params, config, cache):
 
     zValue = _getZValue(params)
 
-    # Find the source of the requested data
-    dataset, varID = _getDatasetAndVariableID(layers, config.datasets)
-    # Get the metadata
-    var = dataset.variables[varID]
     picMaker.var = var # This is used to create descriptions in the KML
 
     # Get the requested indices along the time axis
@@ -77,9 +81,9 @@ def getMap(req, params, config, cache):
     # Get the requested transparency and background colour for the layer
     trans = params.getParamValue("transparent", "false").lower()
     if trans == "false":
-        picMaker.transparent = 0
+        style.transparent = 0
     elif trans == "true":
-        picMaker.transparent = 1
+        style.transparent = 1
     else:
         raise WMSException("The value of TRANSPARENT must be \"TRUE\" or \"FALSE\"")
     
@@ -87,63 +91,50 @@ def getMap(req, params, config, cache):
     if len(bgc) != 8 or not bgc.startswith("0x"):
         raise WMSException("Invalid format for BGCOLOR")
     try:
-        picMaker.bgColor = eval(bgc) # Parses hex string into an integer
+        style.bgColor = eval(bgc) # Parses hex string into an integer
     except:
         raise WMSException("Invalid format for BGCOLOR")
 
     # Get the extremes of the colour scale
-    picMaker.scaleMin, picMaker.scaleMax = _getScale(params)
+    # SCALE is now handled as part of the STYLE specification
+    #picMaker.scaleMin, picMaker.scaleMax = _getScale(params)
 
     # Get the percentage opacity of the map layer: another WMS extension
-    opa = params.getParamValue("opacity", "100")
-    try:
-        picMaker.opacity = int(opa)
-    except:
-        raise WMSException("The OPACITY parameter must be a valid number in the range 0 to 100 inclusive")
+    # Opacity is now handled as part of the STYLE specification
+    #opa = params.getParamValue("opacity", "100")
+    #try:
+    #    picMaker.opacity = int(opa)
+    #except:
+    #    raise WMSException("The OPACITY parameter must be a valid number in the range 0 to 100 inclusive")
 
     # Generate a grid of lon,lat points, one for each image pixel
     bbox = _getBbox(params)
     grid = _getGrid(params, bbox, config)
-    picMaker.picWidth, picMaker.picHeight = grid.width, grid.height
+    style.picWidth, style.picHeight = grid.width, grid.height
+    style.fillValue = _getFillValue()
+
     # Read the data for the image frames
-    picMaker.fillValue = _getFillValue()
-    animation = len(tIndices) > 1
+    isanimation = len(tIndices) > 1
     for tIndex in tIndices:
-        picData = None
+        picData = [] # Contains one (scalar) or two (vector) components
+        if var.vector:
+            picData.append(readPicData(dataset, var.eastwardComponent, params.getParamValue("crs"), layers[0], bbox, grid, zValue, tIndex, cache))
+            picData.append(readPicData(dataset, var.northwardComponent, params.getParamValue("crs"), layers[0], bbox, grid, zValue, tIndex, cache))
+        else:
+            picData.append(readPicData(dataset, var, params.getParamValue("crs"), layers[0], bbox, grid, zValue, tIndex, cache))
 
-        if cache != None:
-            # See if we already have this data array in cache
-            # Create the key for this data array
-            key = ImageTileKey()
-            key.crs = params.getParamValue("crs")
-            key.layer = layers[0]
-            key.bbox = bbox
-            key.width, key.height = grid.width, grid.height
-            if zValue.strip() == "":
-                key.elevation = ""
-            else:
-                key.elevation = str(float(zValue)) # removes trailing zeros
-            if len(var.tvalues) == 0:
-                key.time = 0.0
-            else:
-                key.time = var.tvalues[tIndex]
-            picData = cache.getImageTile(key)
-
-        if picData is None:
-            # TODO: deal with non lat-lon grids
-            picData = dataset.read(var, tIndex, zValue, grid.latValues, grid.lonValues, _getFillValue())
-            if cache != None:
-                cache.putImageTile(key, picData)
         if len(var.tvalues) == 0:
             tValue = ""
         else:
             tValue = wmsUtils.secondsToISOString(var.tvalues[tIndex])
-        picMaker.addFrame(picData, bbox, zValue, tValue, animation)
+        # TODO: deal with vectors properly
+        style.addFrame(picData[0], tValue) # the tValue is the label for the image
     # Write the image to the client
     req.content_type = picMaker.mimeType
     # If this is a KMZ file give it a sensible filename
     if picMaker.mimeType == "application/vnd.google-earth.kmz":
         req.headers_out["Content-Disposition"] = "inline; filename=%s_%s.kmz" % (dataset.id, varID)
+    picMaker.renderedFrames = style.renderedFrames
     graphics.writePicture(req, picMaker)
 
     return
@@ -266,5 +257,35 @@ def _getFillValue():
     """ returns the fill value to be used internally - can't be NaN because NaN is 
         not portable across Python versions or Jython """
     return 1.0e20
-    
+
+def readPicData(dataset, var, crs, layer, bbox, grid, zValue, tIndex, cache):
+    """ Reads the data for the given variable"""
+
+    picData = None
+
+    if cache != None:
+        # See if we already have this data array in cache
+        # Create the key for this data array
+        key = ImageTileKey()
+        key.crs = crs
+        key.layer = layer
+        key.bbox = bbox
+        key.width, key.height = grid.width, grid.height
+        if zValue.strip() == "":
+            key.elevation = ""
+        else:
+            key.elevation = str(float(zValue)) # removes trailing zeros
+        if len(var.tvalues) == 0:
+            key.time = 0.0
+        else:
+            key.time = var.tvalues[tIndex]
+        picData = cache.getImageTile(key)
+
+    if picData is None:
+        # TODO: deal with non lat-lon grids
+        picData = dataset.read(var, tIndex, zValue, grid.latValues, grid.lonValues, _getFillValue())
+        if cache != None:
+            cache.putImageTile(key, picData)
+
+    return picData
         

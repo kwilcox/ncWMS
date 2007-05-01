@@ -47,64 +47,27 @@ public class GifMaker extends PicMaker
 {
     private static final Logger logger = Logger.getLogger(GifMaker.class);
     
-    protected ArrayList<float[]> frameData;
-    protected ArrayList<String> labels;
-    protected ArrayList<BufferedImage> frames;
-    
     /** Creates a new instance of GifMaker */
     public GifMaker()
     {
-        this.frameData = null;
-        this.labels = null;
-        this.frames = new ArrayList<BufferedImage>();
         logger.debug("Created GifMaker");
     }
 
-    /**
-     * Adds a frame to this animation.  If the colour scale hasn't yet been set
-     * we cache the data and render the frames later
-     */
-    public void addFrame(float[] data, float[] bbox, String zValue,
-        String tValue, boolean isAnimation) throws IOException
+    public void writeImage(ArrayList<BufferedImage> frames, OutputStream out) throws IOException
     {
-        logger.debug("Adding frame representing time {}...", tValue);
-        String label = isAnimation ? tValue : "";
-        if (this.isAutoScale())
-        {
-            logger.debug("  ... auto-scaling, so caching frame");
-            if (this.frameData == null)
-            {
-                this.frameData = new ArrayList<float[]>();
-                this.labels = new ArrayList<String>();
-            }
-            this.frameData.add(data);
-            this.labels.add(label);
-        }
-        else
-        {
-            logger.debug("  ... colour scale already set, so creating image of frame");
-            this.frames.add(this.createFrame(data, label));
-        }
-    }
-
-    public void writeImage(OutputStream out) throws IOException
-    {
-        logger.debug("writing GIF...");
-        // Create the set of Images if we haven't already done so
-        this.createAllFrames();
         logger.debug("Writing GIF to output stream ...");
         AnimatedGifEncoder e = new AnimatedGifEncoder();
         e.start(out);
-        if (this.frames.size() > 1)
+        if (frames.size() > 1)
         {
             logger.debug("Animated GIF ({} frames), setting loop count and delay",
-                this.frames.size());
+                frames.size());
             // this is an animated GIF.  Set to loop infinitely.
             e.setRepeat(0);
             e.setDelay(150); // delay between frames in milliseconds
         }
         boolean firstTime = true;
-        for (BufferedImage frame : this.frames)
+        for (BufferedImage frame : frames)
         {
             if (firstTime)
             {
@@ -116,50 +79,11 @@ public class GifMaker extends PicMaker
             // the image.
             byte[] indices = ((DataBufferByte)frame.getRaster().getDataBuffer()).getData();
             // The index of the transparent colour is 0 (if transparent=true)
-            e.addFrame(this.getRGBPalette(), indices, this.transparent ? 0 : -1);
+            // TODO - how do we get the RGBPalette cleanly?
+            //e.addFrame(this.getRGBPalette(), indices, this.transparent ? 0 : -1);
         }
         e.finish();
         logger.debug("  ... written.");
-    }
-    
-    /**
-     * @return the number of frames that have been added
-     */
-    protected int getNumFrames()
-    {
-        if (this.frameData == null)
-        {
-            return this.frames == null ? 0 : this.frames.size();
-        }
-        else
-        {
-            return this.frameData.size();
-        }
-    }
-    
-    /**
-     * Creates the array of BufferedImages if we have not already done so.
-     */
-    protected void createAllFrames()
-    {
-        if (this.frameData != null)
-        {
-            logger.debug("  ... we must set the colour scale");
-            // We have a cache of image data, which we need to turn into images
-            // First we set the colour scale correctly
-            for (float[] data : this.frameData)
-            {
-                this.adjustColourScaleForFrame(data);
-            }
-            logger.debug("  ... colour scale set, rendering stored frames...");
-            // Now we render the frames
-            for (int i = 0; i < this.frameData.size(); i++)
-            {
-                logger.debug("    ... rendering frame {}", i);
-                this.frames.add(this.createFrame(this.frameData.get(i),
-                    this.labels.get(i)));
-            }
-        }
     }
     
 }

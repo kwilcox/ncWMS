@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 The University of Reading
+ * Copyright (c) 2007 The University of Reading
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,31 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package uk.ac.rdg.resc.ncwms.graphics;
-
-import java.awt.image.BufferedImage;
-import javax.imageio.ImageIO;
-
-import java.io.OutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
+package uk.ac.rdg.resc.ncwms.exceptions;
 
 /**
- * Makes a picture from an array of raw data, using a rainbow colour model.
- * Fill values are represented as transparent pixels and out-of-range values
- * are represented as black pixels.
+ * Exception that is raised when a client attempts to request a style that is
+ * not supported
  *
- * Supports any output format that is supported by ImageIO class
- * @author jdb
+ * @author Jon Blower
+ * $Revision$
+ * $Date$
+ * $Log$
  */
-public class SimplePicMaker extends PicMaker
+public class StyleNotDefinedException extends WMSExceptionInJava
 {
+    
     /**
-     * This just writes the first frame as the image
+     * Creates a new instance of StyleNotDefinedException
      */
-    public void writeImage(ArrayList<BufferedImage> frames, OutputStream out) throws IOException
+    public StyleNotDefinedException(String message)
     {
-        String imageType = this.mimeType.split("/")[1];
-        ImageIO.write(frames.get(0), imageType, out);
+        super(message);
     }
+    
 }
