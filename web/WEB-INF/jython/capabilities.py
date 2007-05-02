@@ -178,6 +178,12 @@ def getCapabilities(req, params, config):
                         output.write(wmsUtils.secondsToISOString(t))
                     output.write("</Dimension>")
 
+                # Add the styles
+                for style in vars[vid].supportedStyles:
+                    # TODO: add abstracts, legends etc for the style and
+                    # create a human-readable title
+                    output.write("<Style><Name>%s</Name><Title>%s</Title></Style>" % (style, style))
+
                 output.write("</Layer>") # end of variable Layer
             output.write("</Layer>") # end of dataset layer
     

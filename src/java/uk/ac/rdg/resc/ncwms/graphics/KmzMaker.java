@@ -28,13 +28,9 @@
 
 package uk.ac.rdg.resc.ncwms.graphics;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.zip.ZipEntry;
@@ -57,12 +53,15 @@ public class KmzMaker extends PicMaker
     
     private static final String PICNAME = "frame";
     private static final String PICEXT  = "png";
-    private static final String COLOUR_SCALE_FILENAME = "colourscale.png";
+    private static final String COLOUR_SCALE_FILENAME = "legend.png";
     
-    private static DecimalFormat DECIMAL_FORMATTER = new DecimalFormat("0.#####");
-    private static DecimalFormat SCIENTIFIC_FORMATTER = new DecimalFormat("0.###E0");
+    public boolean needsLegend()
+    {
+        return true;
+    }
 
-    public void writeImage(ArrayList<BufferedImage> frames, OutputStream out) throws IOException
+    public void writeImage(ArrayList<BufferedImage> frames,
+        OutputStream out) throws IOException
     {
         StringBuffer kml = new StringBuffer();
         
@@ -96,20 +95,20 @@ public class KmzMaker extends PicMaker
             kml.append("<GroundOverlay>");
             String timestamp = null;
             String z = null;
-            if (tValue != null && !tValue.equals(""))
+            if (this.tValues[frameIndex] != null && !this.tValues[frameIndex].equals(""))
             {
                 // We must make sure the ISO8601 timestamp is full and includes
                 // seconds, otherwise Google Earth gets confused.  This is why we
                 // convert to a Date and back again.
-                Date date = VariableMetadata.dateFormatter.getISODate(tValue);
+                Date date = VariableMetadata.dateFormatter.getISODate(this.tValues[frameIndex]);
                 timestamp = VariableMetadata.dateFormatter.toDateTimeStringISO(date);
                 kml.append("<TimeStamp><when>" + timestamp + "</when></TimeStamp>");
             }
-            if (zValue != null && !zValue.equals("") && this.var.getZvalues() != null)
+            if (this.zValue != null && !this.zValue.equals("") && this.var.getZvalues() != null)
             {
                 z = "";
                 if (timestamp != null) z += "<br />";
-                z += "Elevation: " + zValue + " " + this.var.getZunits();
+                z += "Elevation: " + this.zValue + " " + this.var.getZunits();
             }
             kml.append("<name>");
             if (timestamp == null && z == null)
@@ -135,10 +134,10 @@ public class KmzMaker extends PicMaker
             kml.append("<Icon><href>" + getPicFileName(frameIndex) + "</href></Icon>");
 
             kml.append("<LatLonBox id=\"" + frameIndex + "\">");
-            kml.append("<west>"  + bbox[0] + "</west>");
-            kml.append("<south>" + bbox[1] + "</south>");
-            kml.append("<east>"  + bbox[2] + "</east>");
-            kml.append("<north>" + bbox[3] + "</north>");
+            kml.append("<west>"  + this.bbox[0] + "</west>");
+            kml.append("<south>" + this.bbox[1] + "</south>");
+            kml.append("<east>"  + this.bbox[2] + "</east>");
+            kml.append("<north>" + this.bbox[3] + "</north>");
             kml.append("<rotation>0</rotation>");
             kml.append("</LatLonBox>");
             kml.append("</GroundOverlay>");
@@ -170,75 +169,15 @@ public class KmzMaker extends PicMaker
         }
         
         // Finally, write the colour scale
-        // TODO: all dimensions are hard-coded here.  Should be more flexible.
         logger.debug("Constructing colour scale image");
         ZipEntry scaleEntry = new ZipEntry(COLOUR_SCALE_FILENAME);
         zipOut.putNextEntry(scaleEntry);
-        BufferedImage colourScale = new BufferedImage(110, 264, BufferedImage.TYPE_3BYTE_BGR);
-        Graphics2D gfx = colourScale.createGraphics();
-        
-        // Create the colour scale itself
-        Color[] palette = this.getColorPalette();
-        for (int i = 5; i < 259; i++)
-        {
-            gfx.setColor(palette[260 - i]);
-            gfx.drawLine(2, i, 25, i);
-        }
-        logger.debug("Created palette");
-        
-        // Draw the text items
-        gfx.setColor(Color.WHITE);
-        // Add the scale values
-        double quarter = 0.25 * (this.getScaleMax() - this.getScaleMin());
-        String scaleMin          = format(this.getScaleMin());
-        String scaleQuarter      = format(this.getScaleMin() + quarter);
-        String scaleMid          = format(this.getScaleMin() + 2 * quarter);
-        String scaleThreeQuarter = format(this.getScaleMin() + 3 * quarter);
-        String scaleMax          = format(this.getScaleMax());
-        logger.debug("Writing scale ({}, {}, {}) to colour scale image",
-            new Object[]{scaleMin, scaleMid, scaleMax});
-        gfx.drawString(scaleMax, 27, 10);
-        gfx.drawString(scaleThreeQuarter, 27, 73);
-        gfx.drawString(scaleMid, 27, 137);
-        gfx.drawString(scaleQuarter, 27, 201);
-        gfx.drawString(scaleMin, 27, 264);
-        // Add the title as rotated text
-        logger.debug("Writing rotated title to colour scale image");
-        AffineTransform trans = new AffineTransform();
-        trans.setToTranslation(90, 0);
-        AffineTransform rot = new AffineTransform();
-        rot.setToRotation(Math.PI / 2.0);
-        trans.concatenate(rot);
-        gfx.setTransform(trans);
-        String title = this.var.getTitle();
-        if (this.var.getUnits() != null)
-        {
-            title += " (" + this.var.getUnits() + ")";
-        }
-        gfx.drawString(title, 5, 0);
-        
+        // TODO: need handle to the Style object
         // Write the colour scale bar to the KMZ file
         logger.debug("Writing colour scale image to KMZ file");
-        ImageIO.write(colourScale, "png", zipOut);
+        ImageIO.write(this.getLegend(), PICEXT, zipOut);
         
         zipOut.close();
-    }
-    
-    /**
-     * Formats a number to a limited number of d.p., using scientific notation
-     * if necessary
-     */
-    private static String format(double d)
-    {
-        // Try decimal format first
-        String dec = DECIMAL_FORMATTER.format(d);
-        // See if we have at least 3 s.f.:
-        if (dec.length() > 4 && dec.charAt(0) == '0' && dec.charAt(2) == '0'
-            && dec.charAt(3) == '0' && dec.charAt(4) == '0')
-        {
-            return SCIENTIFIC_FORMATTER.format(d);
-        }
-        return dec;
     }
     
     /**

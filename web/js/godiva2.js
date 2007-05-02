@@ -644,12 +644,12 @@ function updateMap()
         // size to viewport size with "{buffer: 1, ratio: 1.5}"
         essc_wms = new OpenLayers.Layer.WMS1_3("ESSC WMS",
             baseURL + '/WMS.py', {layers: layerName, elevation: getZValue(), time: tValue,
-            transparent: 'true', scale: scaleMinVal + "," + scaleMaxVal,
-            opacity: opacity}, {buffer: 1, ratio: 1.5});
+            transparent: 'true', styles: 'boxfill;scale:' + scaleMinVal + ':' + scaleMaxVal +
+            ';opacity:' + opacity}, {buffer: 1, ratio: 1.5});
         map.addLayers([essc_wms]);
     } else {
         essc_wms.mergeNewParams({layers: layerName, elevation: getZValue(), time: tValue,
-            scale: scaleMinVal + "," + scaleMaxVal, opacity: opacity});
+            styles: 'boxfill;scale:' + scaleMinVal + ':' + scaleMaxVal + ';opacity:' + opacity});
     }
     
     $('featureInfo').innerHTML = "Click on the map to get more information";

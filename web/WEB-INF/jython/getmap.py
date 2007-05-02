@@ -50,15 +50,17 @@ def getMap(req, params, config, cache):
     styles = params.getParamValue("styles").split(",")
     # We must either have one style per layer or else an empty parameter: "STYLES="
     if len(styles) != len(layers) and styles != ['']:
-            raise WMSException("You must request exactly one STYLE per layer, or use"
+        raise WMSException("You must request exactly one STYLE per layer, or use"
            + " the default style for each layer with STYLES=")
-    for style in styles:
-        if style != "":
-            # TODO: handle styles properly
-            raise StyleNotDefined(style)
+
     # Get a Style object that turns data arrays into arrays of pixels:
     # these pixels will be formatted into images using a Format object
-    style = graphics.getStyle(styles[0]) 
+    # This will throw a StyleNotDefined exception if the style is not supported
+    # TODO: handle multiple layers simultaneously
+    if styles[0] == "":
+        style = graphics.getStyle(var.supportedStyles[0]) # the default style
+    else:
+        style = graphics.getStyle(styles[0]) 
     
     # RequestParser replaces pluses with spaces: we must change back
     # to parse the format correctly
@@ -72,8 +74,6 @@ def getMap(req, params, config, cache):
         raise InvalidFormat("exception", exception_format, "GetMap")
 
     zValue = _getZValue(params)
-
-    picMaker.var = var # This is used to create descriptions in the KML
 
     # Get the requested indices along the time axis
     tIndices = _getTIndices(var, params)
@@ -95,18 +95,6 @@ def getMap(req, params, config, cache):
     except:
         raise WMSException("Invalid format for BGCOLOR")
 
-    # Get the extremes of the colour scale
-    # SCALE is now handled as part of the STYLE specification
-    #picMaker.scaleMin, picMaker.scaleMax = _getScale(params)
-
-    # Get the percentage opacity of the map layer: another WMS extension
-    # Opacity is now handled as part of the STYLE specification
-    #opa = params.getParamValue("opacity", "100")
-    #try:
-    #    picMaker.opacity = int(opa)
-    #except:
-    #    raise WMSException("The OPACITY parameter must be a valid number in the range 0 to 100 inclusive")
-
     # Generate a grid of lon,lat points, one for each image pixel
     bbox = _getBbox(params)
     grid = _getGrid(params, bbox, config)
@@ -114,7 +102,7 @@ def getMap(req, params, config, cache):
     style.fillValue = _getFillValue()
 
     # Read the data for the image frames
-    isanimation = len(tIndices) > 1
+    tValues = []
     for tIndex in tIndices:
         picData = [] # Contains one (scalar) or two (vector) components
         if var.vector:
@@ -123,19 +111,34 @@ def getMap(req, params, config, cache):
         else:
             picData.append(readPicData(dataset, var, params.getParamValue("crs"), layers[0], bbox, grid, zValue, tIndex, cache))
 
-        if len(var.tvalues) == 0:
-            tValue = ""
-        else:
+        # Only add a label if this is part of an animation
+        if len(var.tvalues) > 0 and len(tIndices) > 1:
             tValue = wmsUtils.secondsToISOString(var.tvalues[tIndex])
+        else:
+            tValue = ""
+        tValues.append(tValue)
         # TODO: deal with vectors properly
         style.addFrame(picData[0], tValue) # the tValue is the label for the image
+
     # Write the image to the client
     req.content_type = picMaker.mimeType
     # If this is a KMZ file give it a sensible filename
     if picMaker.mimeType == "application/vnd.google-earth.kmz":
         req.headers_out["Content-Disposition"] = "inline; filename=%s_%s.kmz" % (dataset.id, varID)
-    picMaker.renderedFrames = style.renderedFrames
-    graphics.writePicture(req, picMaker)
+
+    # We write some of the request elements to the picMaker - this is
+    # used to create labels and metadata, e.g. in KMZ.
+    picMaker.var = var
+    picMaker.tvalues = tValues
+    picMaker.zvalue = zValue
+    picMaker.bbox = bbox
+    # Set the legend if we need one (required for KMZ files, for instance)
+    if picMaker.needsLegend():
+        picMaker.legend = style.getLegend(var)
+    
+    # Send the images to the picMaker and write to the output
+    graphics.writePicture(req, picMaker, style)
+    # TODO set the HTTP status code
 
     return
 
@@ -181,21 +184,6 @@ def _getGrid(params, bbox, config):
         return GridClass(bbox, width, height)
     else:
         raise InvalidCRS(crs)
-
-def _getScale(params):
-    # Get the scale for colouring the map: this is an extension to the
-    # WMS specification
-    scale = params.getParamValue("scale", "0,0") # 0,0 signals auto-scale
-    if len(scale.split(",")) == 2:
-        try:
-            scaleMin, scaleMax = [float(x) for x in scale.split(",")]
-            if (scaleMin != 0 or scaleMax != 0) and scaleMin >= scaleMax:
-                raise WMSException("SCALE min value must be less than max value")
-            return scaleMin, scaleMax
-        except ValueError:
-            raise WMSException("Invalid number in SCALE parameter")
-    else:     
-        raise WMSException("The SCALE parameter must be of the form SCALEMIN,SCALEMAX")
 
 def _getDatasetAndVariableID(layers, datasets):
     """ Returns a (dataset, varID) tuple containing the dataset and

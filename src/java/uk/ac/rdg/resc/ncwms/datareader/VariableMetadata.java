@@ -35,6 +35,7 @@ import java.util.Vector;
 import ucar.nc2.units.DateFormatter;
 import uk.ac.rdg.resc.ncwms.config.Dataset;
 import uk.ac.rdg.resc.ncwms.exceptions.InvalidDimensionValueException;
+import uk.ac.rdg.resc.ncwms.styles.AbstractStyle;
 
 /**
  * Stores the metadata for a {@link GeoGrid}: saves reading in the metadata every
@@ -64,6 +65,7 @@ public class VariableMetadata
     private EnhancedCoordAxis yaxis;
     private Dataset dataset;
     private Hashtable<Date, TimestepInfo> timesteps;
+    private String[] supportedStyles; // Names of styles that are appropriate to this variable
     
     // If this is a vector quantity, these values will be the northward and
     // eastward components
@@ -84,6 +86,7 @@ public class VariableMetadata
         this.timesteps = new Hashtable<Date, TimestepInfo>();
         this.eastward = null;
         this.northward = null;
+        this.supportedStyles = new String[]{AbstractStyle.BOXFILL};
     }
     
     /**
@@ -103,6 +106,9 @@ public class VariableMetadata
         this.yaxis = eastward.yaxis;
         this.dataset = eastward.dataset;
         this.timesteps = eastward.timesteps;
+        // Vector is the default style, but we can also render as a boxfill
+        // (magnitude only)
+        this.supportedStyles = new String[]{AbstractStyle.VECTOR, AbstractStyle.BOXFILL};
         
         this.eastward = eastward;
         this.northward = northward;
@@ -438,6 +444,11 @@ public class VariableMetadata
     public VariableMetadata getNorthwardComponent()
     {
         return this.northward;
+    }
+
+    public String[] getSupportedStyles()
+    {
+        return this.supportedStyles;
     }
     
 }

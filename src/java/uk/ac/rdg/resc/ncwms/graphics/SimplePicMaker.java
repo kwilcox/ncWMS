@@ -36,17 +36,16 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 /**
- * Makes a picture from an array of raw data, using a rainbow colour model.
- * Fill values are represented as transparent pixels and out-of-range values
- * are represented as black pixels.
- *
- * Supports any output format that is supported by ImageIO class
+ * Writes images using the ImageIO class.  Will only write the first frame of
+ * an animation: Use GifMaker or KmzMaker to make animations.
+ * Supports any output format that is supported by ImageIO class.
  * @author jdb
  */
 public class SimplePicMaker extends PicMaker
 {
     /**
-     * This just writes the first frame as the image
+     * This just writes the first frame as the image.  The transparentColor is
+     * not used because this class understands the alpha channel.
      */
     public void writeImage(ArrayList<BufferedImage> frames, OutputStream out) throws IOException
     {

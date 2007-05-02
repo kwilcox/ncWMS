@@ -30,6 +30,7 @@ package uk.ac.rdg.resc.ncwms.styles;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.awt.image.DataBufferByte;
@@ -38,7 +39,10 @@ import java.awt.image.Raster;
 import java.awt.image.SampleModel;
 import java.awt.image.SinglePixelPackedSampleModel;
 import java.awt.image.WritableRaster;
-import java.util.ArrayList;
+import java.text.DecimalFormat;
+import org.apache.log4j.Logger;
+import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
+import uk.ac.rdg.resc.ncwms.exceptions.StyleNotDefinedException;
 
 /**
  * Renders an image using a boxfill style (i.e. solid regions of colour)
@@ -50,6 +54,11 @@ import java.util.ArrayList;
  */
 public class BoxFillStyle extends AbstractStyle
 {
+    private static final Logger logger = Logger.getLogger(BoxFillStyle.class);
+    
+    private static DecimalFormat DECIMAL_FORMATTER = new DecimalFormat("0.#####");
+    private static DecimalFormat SCIENTIFIC_FORMATTER = new DecimalFormat("0.###E0");
+    
     // Scale range of the picture
     private float scaleMin;
     private float scaleMax;
@@ -99,23 +108,34 @@ public class BoxFillStyle extends AbstractStyle
      * this style are "opacity" and "scale".
      * @todo error handling and reporting
      */
-    public void setAttribute(String attName, String value)
+    public void setAttribute(String attName, String[] values)
+        throws StyleNotDefinedException
     {
         if (attName.trim().equalsIgnoreCase("opacity"))
         {
-            int opVal = Integer.parseInt(value);
-            if (opacity < 0 || opacity > 100)
+            if (values.length != 1)
+            {
+                throw new StyleNotDefinedException("Format error for OPACITY attribute of BOXFILL style");
+            }
+            int opVal = Integer.parseInt(values[0]);
+            if (opVal < 0 || opVal > 100)
             {
                 throw new IllegalArgumentException("Opacity must be in the range 0 to 100");
             }
             this.opacity = opVal;
+            logger.debug("Set OPACITY to {}", this.opacity);
         }
         else if (attName.trim().equalsIgnoreCase("scale"))
         {
-            String[] scVals = value.trim().split(":");
-            this.scaleMin = Float.parseFloat(scVals[0]);
-            this.scaleMax = Float.parseFloat(scVals[1]);
+            if (values.length != 2)
+            {
+                throw new StyleNotDefinedException("Format error for SCALE attribute of BOXFILL style");
+            }
+            this.scaleMin = Float.parseFloat(values[0]);
+            this.scaleMax = Float.parseFloat(values[1]);
+            logger.debug("Set SCALE to {},{}", this.scaleMin, this.scaleMax);
         }
+        // TODO: set the palette ("rainbow", etc)
         else
         {
             // TODO: do something here
@@ -155,11 +175,6 @@ public class BoxFillStyle extends AbstractStyle
         }
         
         this.renderedFrames.add(image);
-    }
-
-    public ArrayList<BufferedImage> getRenderedFrames()
-    {
-        return this.renderedFrames;
     }
     
     /**
@@ -214,25 +229,6 @@ public class BoxFillStyle extends AbstractStyle
     }
     
     /**
-     * @return the colour palette as an array of 256 * 3 bytes, i.e. 256 colours
-     * in RGB order
-     */
-    protected byte[] getRGBPalette()
-    {
-        Color[] colors = this.getColorPalette();
-        byte[] palette = new byte[colors.length * 3];
-        
-        for (int i = 0; i < colors.length; i++)
-        {
-            palette[3*i]   = (byte)colors[i].getRed();
-            palette[3*i+1] = (byte)colors[i].getGreen();
-            palette[3*i+2] = (byte)colors[i].getBlue();
-        }
-        
-        return palette;
-    }
-    
-    /**
      * @return a rainbow colour map for this PicMaker's opacity and transparency
      * @todo To avoid multiplicity of objects, could statically create color models
      * for opacity=100 and transparency=true/false.
@@ -282,7 +278,7 @@ public class BoxFillStyle extends AbstractStyle
             alpha = (int)(2.55 * this.opacity);
         }
         
-        // Use the supplied background color
+        // Use the supplied background color or set transparent
         Color bg = new Color(this.bgColor);
         colors[0] = new Color(bg.getRed(), bg.getGreen(), bg.getBlue(),
             this.transparent ? 0 : alpha);
@@ -313,4 +309,72 @@ public class BoxFillStyle extends AbstractStyle
         return colors;
     }
     
+    /**
+     * Creates and returns a BufferedImage representing the legend for this 
+     * Style instance
+     * @param var The VariableMetadata object for which this legend is being 
+     * created (needed for title and units strings)
+     */
+    public BufferedImage createLegend(VariableMetadata var)
+    {
+        BufferedImage colourScale = new BufferedImage(110, 264, BufferedImage.TYPE_3BYTE_BGR);
+        Graphics2D gfx = colourScale.createGraphics();
+        
+        // Create the colour scale itself
+        Color[] palette = this.getColorPalette();
+        for (int i = 5; i < 259; i++)
+        {
+            gfx.setColor(palette[260 - i]);
+            gfx.drawLine(2, i, 25, i);
+        }
+        
+        // Draw the text items
+        gfx.setColor(Color.WHITE);
+        // Add the scale values
+        double quarter = 0.25 * (this.scaleMax - this.scaleMin);
+        String scaleMin          = format(this.scaleMin);
+        String scaleQuarter      = format(this.scaleMin + quarter);
+        String scaleMid          = format(this.scaleMin + 2 * quarter);
+        String scaleThreeQuarter = format(this.scaleMin + 3 * quarter);
+        String scaleMax          = format(this.scaleMax);        
+        gfx.drawString(scaleMax, 27, 10);
+        gfx.drawString(scaleThreeQuarter, 27, 73);
+        gfx.drawString(scaleMid, 27, 137);
+        gfx.drawString(scaleQuarter, 27, 201);
+        gfx.drawString(scaleMin, 27, 264);
+        
+        // Add the title as rotated text        
+        AffineTransform trans = new AffineTransform();
+        trans.setToTranslation(90, 0);
+        AffineTransform rot = new AffineTransform();
+        rot.setToRotation(Math.PI / 2.0);
+        trans.concatenate(rot);
+        gfx.setTransform(trans);
+        String title = var.getTitle();
+        if (var.getUnits() != null)
+        {
+            title += " (" + var.getUnits() + ")";
+        }
+        gfx.drawString(title, 5, 0);
+        
+        return colourScale;
+    }
+    
+    
+    /**
+     * Formats a number to a limited number of d.p., using scientific notation
+     * if necessary
+     */
+    private static String format(double d)
+    {
+        // Try decimal format first
+        String dec = DECIMAL_FORMATTER.format(d);
+        // See if we have at least 3 s.f.:
+        if (dec.length() > 4 && dec.charAt(0) == '0' && dec.charAt(2) == '0'
+            && dec.charAt(3) == '0' && dec.charAt(4) == '0')
+        {
+            return SCIENTIFIC_FORMATTER.format(d);
+        }
+        return dec;
+    }
 }

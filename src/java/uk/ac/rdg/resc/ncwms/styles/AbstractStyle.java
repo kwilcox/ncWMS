@@ -31,6 +31,7 @@ package uk.ac.rdg.resc.ncwms.styles;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import org.apache.log4j.Logger;
+import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
 import uk.ac.rdg.resc.ncwms.exceptions.StyleNotDefinedException;
 
 /**
@@ -44,6 +45,10 @@ import uk.ac.rdg.resc.ncwms.exceptions.StyleNotDefinedException;
 public abstract class AbstractStyle
 {
     private static final Logger logger = Logger.getLogger(AbstractStyle.class);
+    
+    public static final String BOXFILL = "boxfill";
+    public static final String VECTOR = "vector";
+    public static final String CONTOUR = "contour";
     
     protected String name;
     // Width and height of the resulting picture
@@ -82,11 +87,11 @@ public abstract class AbstractStyle
     {
         AbstractStyle style = null;
         String[] els = styleSpec.split(";");
-        if (els[0].equalsIgnoreCase("boxfill"))
+        if (els[0].equalsIgnoreCase(BOXFILL))
         {
             style = new BoxFillStyle();
         }
-        else if (els[0].equalsIgnoreCase("vector"))
+        else if (els[0].equalsIgnoreCase(VECTOR))
         {
             // TODO
         }
@@ -97,12 +102,15 @@ public abstract class AbstractStyle
         // Set the attributes of the AbstractStyle
         for (int i = 1; i < els.length; i++)
         {
-            String[] keyAndValue = els[i].split("=");
-            if (keyAndValue.length != 2)
+            String[] keyAndValues = els[i].split(":");
+            if (keyAndValues.length < 2)
             {
                 throw new StyleNotDefinedException("STYLE specification format error");
             }
-            style.setAttribute(keyAndValue[0], keyAndValue[1]);
+            // Get the array of values for this attribute
+            String[] vals = new String[keyAndValues.length - 1];
+            System.arraycopy(keyAndValues, 1, vals, 0, vals.length);
+            style.setAttribute(keyAndValues[0], vals);
         }
         logger.debug("Style object of type {} created from styleSpec {}",
             style.getClass(), styleSpec);
@@ -185,9 +193,11 @@ public abstract class AbstractStyle
     /**
      * Sets an attribute of this Style
      * @param attName The name of the attribute (e.g. "fgcolor")
-     * @param value The value for the attribute
+     * @param values The value(s) for the attribute
+     * @throws StyleNotDefinedException if there is an error with the attribute
      */
-    public abstract void setAttribute(String attName, String value);
+    public abstract void setAttribute(String attName, String[] values) 
+        throws StyleNotDefinedException;
     
     /**
      * Adds a frame of data to this Style.  If the data cannot yet be rendered 
@@ -195,8 +205,10 @@ public abstract class AbstractStyle
      */
     public void addFrame(float[] data, String label)
     {
+        logger.debug("Adding frame with label {}", label);
         if (this.isAutoScale())
         {
+            logger.debug("Auto-scaling, so caching frame");
             if (this.frameData == null)
             {
                 this.frameData = new ArrayList<float[]>();
@@ -207,6 +219,7 @@ public abstract class AbstractStyle
         }
         else
         {
+            logger.debug("Scale is set, so rendering image");
             this.createImage(data, label);
         }
     }
@@ -231,6 +244,29 @@ public abstract class AbstractStyle
      * <code>isAutoScale() == true</code>.
      */
     protected abstract void adjustScaleForFrame(float[] data);
+    
+    /**
+     * Creates and returns a BufferedImage representing the legend for this 
+     * Style instance.  Sets the colour scale if we need to.
+     * @param var The VariableMetadata object for which this legend is being 
+     * created (needed for title and units strings)
+     * @todo Allow setting of width and height of legend
+     */
+    public BufferedImage getLegend(VariableMetadata var)
+    {
+        this.setScale();
+        return this.createLegend(var);
+    }
+    
+    /**
+     * Creates and returns a BufferedImage representing the legend for this 
+     * Style instance.  The colour scale will already have been set before this
+     * is called.
+     * @param var The VariableMetadata object for which this legend is being 
+     * created (needed for title and units strings)
+     * @todo Allow setting of width and height of legend
+     */
+    protected abstract BufferedImage createLegend(VariableMetadata var);
 
     /**
      * Gets the frames as BufferedImages, ready to be turned into a picture or
@@ -242,18 +278,11 @@ public abstract class AbstractStyle
      */
     public ArrayList<BufferedImage> getRenderedFrames()
     {
-        if (this.isAutoScale())
+        this.setScale(); // Make sure the colour scale is set before proceeding
+        // We render the frames if we have not done so already
+        if (this.frameData != null)
         {
-            // Now we can set the colour scale and generate the frames
-            logger.debug("  ... we must set the colour scale");
-            // We have a cache of image data, which we need to turn into images
-            // First we set the colour scale correctly
-            for (float[] data : this.frameData)
-            {
-                this.adjustScaleForFrame(data);
-            }
-            logger.debug("  ... colour scale set, rendering stored frames...");
-            // Now we render the frames
+            logger.debug("Rendering image frames...");
             for (int i = 0; i < this.frameData.size(); i++)
             {
                 logger.debug("    ... rendering frame {}", i);
@@ -261,6 +290,24 @@ public abstract class AbstractStyle
             }
         }
         return this.renderedFrames;
+    }
+    
+    /**
+     * Makes sure that the scale is set: if we are auto-scaling, this reads all
+     * of the data we have stored to find the extremes.  If the scale has
+     * already been set, this does nothing
+     */
+    protected void setScale()
+    {
+        if (this.isAutoScale())
+        {
+            logger.debug("Setting the colour scale automatically");
+            // We have a cache of image data, which we use to generate the colour scale
+            for (float[] data : this.frameData)
+            {
+                this.adjustScaleForFrame(data);
+            }
+        }
     }
     
 }

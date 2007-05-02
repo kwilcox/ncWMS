@@ -28,8 +28,10 @@
 
 package uk.ac.rdg.resc.ncwms.graphics;
 
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
+import java.awt.image.IndexColorModel;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -66,24 +68,49 @@ public class GifMaker extends PicMaker
             e.setRepeat(0);
             e.setDelay(150); // delay between frames in milliseconds
         }
-        boolean firstTime = true;
+        byte[] rgbPalette = null;
+        IndexColorModel icm = null;
         for (BufferedImage frame : frames)
         {
-            if (firstTime)
+            if (rgbPalette == null)
             {
+                // This is the first frame
                 e.setSize(frame.getWidth(), frame.getHeight());
-                firstTime = false;
+                // Get the colour palette.  We assume that we have used an IndexColorModel
+                // that is the same for all frames
+                // We assume we are always using an IndexColorModel
+                icm = (IndexColorModel)frame.getColorModel();
+                rgbPalette = getRGBPalette(icm);
             }
             // Get the indices of each pixel in the image.  We do this after the
             // frames have been created because we might have added a label to
             // the image.
             byte[] indices = ((DataBufferByte)frame.getRaster().getDataBuffer()).getData();
-            // The index of the transparent colour is 0 (if transparent=true)
-            // TODO - how do we get the RGBPalette cleanly?
-            //e.addFrame(this.getRGBPalette(), indices, this.transparent ? 0 : -1);
+            e.addFrame(rgbPalette, indices, icm.getTransparentPixel());
         }
         e.finish();
         logger.debug("  ... written.");
+    }
+    
+    /**
+     * Gets the RGB palette as an array of n*3 bytes (i.e. n colours in RGB order)
+     */
+    private static byte[] getRGBPalette(IndexColorModel icm)
+    {
+        byte[] reds = new byte[icm.getMapSize()];
+        byte[] greens = new byte[icm.getMapSize()];
+        byte[] blues = new byte[icm.getMapSize()];
+        icm.getReds(reds);
+        icm.getGreens(greens);
+        icm.getBlues(blues);
+        byte[] palette = new byte[icm.getMapSize() * 3];
+        for (int i = 0; i < icm.getMapSize(); i++)
+        {
+            palette[i * 3]     = reds[i];
+            palette[i * 3 + 1] = greens[i];
+            palette[i * 3 + 2] = blues[i];
+        }
+        return palette;
     }
     
 }

@@ -1,6 +1,7 @@
 # Jython code for generating images for GetMap
 from uk.ac.rdg.resc.ncwms.graphics import PicMaker
-from uk.ac.rdg.resc.ncwms.exceptions import InvalidFormatException
+from uk.ac.rdg.resc.ncwms.styles import AbstractStyle
+from uk.ac.rdg.resc.ncwms.exceptions import InvalidFormatException, StyleNotDefinedException
 from wmsExceptions import InvalidFormat, StyleNotDefined
 
 def getSupportedImageFormats():
@@ -20,8 +21,8 @@ def getStyle(styleSpec):
     try:
         return AbstractStyle.createStyle(styleSpec)
     except StyleNotDefinedException, e:
-        raise StyleNotDefined(e.getMessage())
+        raise StyleNotDefined(e.message)
 
-def writePicture(req, style, picMaker):
+def writePicture(req, picMaker, style):
     """ Writes the picture back to the client """
-    picMaker.writeImage(req.getOutputStream())
+    picMaker.writeImage(style.renderedFrames, req.getOutputStream())

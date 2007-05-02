@@ -65,11 +65,15 @@ public abstract class PicMaker
     // The variable metadata from which this picture was created
     protected VariableMetadata var;
     
+    protected String[] tValues; // Array of time values, one for each frame
+    protected String zValue;
+    protected float[] bbox;
+    protected BufferedImage legend; // If we need a legend, it will be stored here    
+    
     static
     {
         picMakers = new Hashtable<String, Class>();
         picMakers.put("image/png", SimplePicMaker.class);
-        picMakers.put("image/jpeg", SimplePicMaker.class);
         picMakers.put("image/gif", GifMaker.class);
         picMakers.put("application/vnd.google-earth.kmz", KmzMaker.class);
     }
@@ -90,7 +94,7 @@ public abstract class PicMaker
      * @return A PicMaker object
      * @throws a {@link InvalidFormatException} if there isn't a PicMaker for
      * the given MIME type
-     * @throws an {@link WMSExceptionInJava} if the PicMaker could not be created
+     * @throws a {@link WMSExceptionInJava} if the PicMaker could not be created
      */
     public static PicMaker createPicMaker(String mimeType)
         throws InvalidFormatException, WMSExceptionInJava
@@ -135,12 +139,65 @@ public abstract class PicMaker
     }
     
     /**
+     * @return true if this PicMaker needs a legend: if this is true then
+     * AbstractStyle.createLegend() will be called.  This default implementation
+     * returns false: subclasses must override if they want to provide a legend
+     * (e.g. KmzMaker)
+     */
+    public boolean needsLegend()
+    {
+        return false;
+    }
+    
+    /**
      * Encodes and writes the frames to the given OutputStream
      * @param frames The arrays of pixels that will be rendered
+     * @param transparentColor The Color that is to be rendered transparent
+     * (may be ignored in subclasses that understand the alpha channel)
      * @param out The {@link OutputStream} to which the image will be written
      * @throws IOException if there was an error writing the data
      */
-    public abstract void writeImage(ArrayList<BufferedImage> frames, OutputStream out)
-        throws IOException;
+    public abstract void writeImage(ArrayList<BufferedImage> frames, 
+        OutputStream out) throws IOException;
+
+    public String[] getTvalues()
+    {
+        return tValues;
+    }
+
+    public void setTvalues(String[] tValues)
+    {
+        this.tValues = tValues;
+    }
+
+    public String getZvalue()
+    {
+        return zValue;
+    }
+
+    public void setZvalue(String zValue)
+    {
+        this.zValue = zValue;
+    }
+
+    public float[] getBbox()
+    {
+        return bbox;
+    }
+
+    public void setBbox(float[] bbox)
+    {
+        this.bbox = bbox;
+    }
+
+    public BufferedImage getLegend()
+    {
+        return legend;
+    }
+
+    public void setLegend(BufferedImage legend)
+    {
+        this.legend = legend;
+    }
     
 }

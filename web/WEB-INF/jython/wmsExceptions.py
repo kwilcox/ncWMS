@@ -43,9 +43,8 @@ class InvalidCRS(WMSException):
 class StyleNotDefined(WMSException):
     """ Exception that is raised when a client requests an unsupported
        style """
-    def __init__(self, style):
-        WMSException.__init__(self, "The style \"" + style + "\" is not supported by this server",
-            "StyleNotDefined")
+    def __init__(self, message):
+        WMSException.__init__(self, message, "StyleNotDefined")
 
 class InvalidFormat(WMSException):
     """ Exception that is raised when a client requests an unsupported
