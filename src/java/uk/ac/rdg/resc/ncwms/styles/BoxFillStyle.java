@@ -40,6 +40,7 @@ import java.awt.image.SampleModel;
 import java.awt.image.SinglePixelPackedSampleModel;
 import java.awt.image.WritableRaster;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import org.apache.log4j.Logger;
 import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
 import uk.ac.rdg.resc.ncwms.exceptions.StyleNotDefinedException;
@@ -143,17 +144,43 @@ public class BoxFillStyle extends AbstractStyle
     }
     
     /**
+     * Calculates the magnitude of the data in-place, replacing data[0] with the
+     * magnitude of the data.
+     */
+    public void processData(float[][] data)
+    {
+        logger.debug("Calculating the magnitude of {} components", data.length);
+        if (data.length == 1)
+        {
+            return;
+        }
+        for (int i = 0; i < data[0].length; i++)
+        {
+            if (data[0][i] != this.fillValue)
+            {
+                double sumsq = data[0][i] * data[0][i];
+                for (int j = 1; j < data.length; j++)
+                {
+                    sumsq += data[j][i] * data[j][i];
+                }
+                data[0][i] = (float)Math.sqrt(sumsq);
+            }
+        }
+    }
+    
+    /**
      * Creates and returns a single frame as an Image, based on the given data.
      * Adds the label if one has been set.  The scale must be set before
      * calling this method.
      */
-    public void createImage(float[] data, String label)
+    public void createImage(float[][] data, String label)
     {
         // Create the pixel array for the frame
         byte[] pixels = new byte[this.picWidth * this.picHeight];
+        // We only use the first of the data arrays: this is a Style for scalars
         for (int i = 0; i < pixels.length; i++)
         {
-            pixels[i] = getColourIndex(data[i]);
+            pixels[i] = getColourIndex(data[0][i]);
         }
         
         // Create the Image
@@ -189,22 +216,17 @@ public class BoxFillStyle extends AbstractStyle
     /**
      * Adjusts the colour scale to accommodate the given frame.
      */
-    protected void adjustScaleForFrame(float[] data)
+    protected void adjustScaleForFrame(float[][] data)
     {
+        // We only use the first data array: this is a Style for scalars
         this.scaleMin = Float.MAX_VALUE;
         this.scaleMax = -Float.MAX_VALUE;
-        for (int i = 0; i < data.length; i++)
+        for (float val : data[0])
         {
-            if (data[i] != this.fillValue)
+            if (val != this.fillValue)
             {
-                if (data[i] < this.scaleMin)
-                {
-                    this.scaleMin = data[i];
-                }
-                if (data[i] > this.scaleMax)
-                {
-                    this.scaleMax = data[i];
-                }
+                if (val < this.scaleMin) this.scaleMin = val;
+                if (val > this.scaleMax) this.scaleMax = val;
             }
         }
     }

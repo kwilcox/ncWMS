@@ -118,7 +118,7 @@ def getMap(req, params, config, cache):
             tValue = ""
         tValues.append(tValue)
         # TODO: deal with vectors properly
-        style.addFrame(picData[0], tValue) # the tValue is the label for the image
+        style.addFrame(picData, tValue) # the tValue is the label for the image
 
     # Write the image to the client
     req.content_type = picMaker.mimeType

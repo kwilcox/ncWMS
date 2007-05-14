@@ -63,7 +63,7 @@ public abstract class AbstractStyle
     protected ArrayList<BufferedImage> renderedFrames;
     // If we need to cache the frame data and associated labels (we do this if
     // we have to auto-scale the image) this is where we put them.
-    protected ArrayList<float[]> frameData;
+    protected ArrayList<float[][]> frameData;
     protected ArrayList<String> labels;
     
     /**
@@ -203,15 +203,16 @@ public abstract class AbstractStyle
      * Adds a frame of data to this Style.  If the data cannot yet be rendered 
      * into a BufferedImage, the data and label are stored.
      */
-    public void addFrame(float[] data, String label)
+    public void addFrame(float[][] data, String label)
     {
         logger.debug("Adding frame with label {}", label);
+        this.processData(data);
         if (this.isAutoScale())
         {
             logger.debug("Auto-scaling, so caching frame");
             if (this.frameData == null)
             {
-                this.frameData = new ArrayList<float[]>();
+                this.frameData = new ArrayList<float[][]>();
                 this.labels = new ArrayList<String>();
             }
             this.frameData.add(data);
@@ -225,13 +226,22 @@ public abstract class AbstractStyle
     }
     
     /**
+     * Processes the data (e.g. calculates magnitude of vector components).
+     * Does so in-place.  This implementation does nothing: subclasses
+     * can override.
+     */
+    protected void processData(float[][] data)
+    {
+    }
+    
+    /**
      * Creates a single image in this style and adds to the internal store
      * of BufferedImages.  This is only called when the scale information has been
      * set, so all info should be present for creating the image.
-     * @param data The data to be rendered into an image
+     * @param data The data to be rendered into an image.
      * @param label Label to add to the image (ignored if null or the empty string)
      */
-    protected abstract void createImage(float[] data, String label);
+    protected abstract void createImage(float[][] data, String label);
     
     /**
      * @return true if this image is to be auto-scaled (meaning we have to collect
@@ -243,7 +253,7 @@ public abstract class AbstractStyle
      * Adjusts the colour scale of the image based on the given data.  Used if
      * <code>isAutoScale() == true</code>.
      */
-    protected abstract void adjustScaleForFrame(float[] data);
+    protected abstract void adjustScaleForFrame(float[][] data);
     
     /**
      * Creates and returns a BufferedImage representing the legend for this 
@@ -303,7 +313,7 @@ public abstract class AbstractStyle
         {
             logger.debug("Setting the colour scale automatically");
             // We have a cache of image data, which we use to generate the colour scale
-            for (float[] data : this.frameData)
+            for (float[][] data : this.frameData)
             {
                 this.adjustScaleForFrame(data);
             }
