@@ -99,7 +99,7 @@ def doWms(req, config, cache=None):
     elif request == "GetMetadata":
         # This is a convenience extension to WMS for reading smaller
         # chunks of metadata
-        getMetadata(req, config)
+        getMetadata(req, config, cache)
     elif request == "GetKML":
         # Used to get the top-level KML document
         doGEarth2(req, params, config)

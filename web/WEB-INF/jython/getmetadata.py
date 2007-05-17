@@ -14,7 +14,7 @@ else:
 import wmsUtils
 import getmap, getfeatureinfo
 
-def getMetadata(req, config):
+def getMetadata(req, config, cache):
     """ Processes a request for metadata from the Godiva2 web interface """
     params = wmsUtils.RequestParser(req.args)
     metadataItem = params.getParamValue("item", "frontpage")
@@ -47,7 +47,7 @@ def getMetadata(req, config):
         req.write(getTimesteps(config, dataset, varID, tIndex))
     elif metadataItem == "minmax":
         req.content_type = "text/xml"
-        req.write(getMinMax(config, params))        
+        req.write(getMinMax(config, params, cache))        
 
 def getFrontPage(config):
     """ Returns a front page for the WMS, containing example links """
@@ -74,7 +74,7 @@ def getFrontPage(config):
             for format in getmap.getSupportedImageFormats():
                 doc.write("<td>")
                 for varID in vars.keys():
-                    doc.write("<a href=\"%s?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&STYLES=&CRS=CRS:84&WIDTH=256&HEIGHT=256&FORMAT=%s&TRANSPARENT=true" % (prefix, format))
+                    doc.write("<a href=\"%s?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&STYLES=boxfill&CRS=CRS:84&WIDTH=256&HEIGHT=256&FORMAT=%s&TRANSPARENT=true" % (prefix, format))
                     doc.write("&LAYERS=%s%s%s" % (ds, wmsUtils.getLayerSeparator(), varID))
                     bbox = vars[varID].bbox
                     doc.write("&BBOX=%s,%s,%s,%s" % tuple([str(b) for b in bbox]))
@@ -343,7 +343,7 @@ def _compareDays(d1, d2):
         else:
             return 1
 
-def getMinMax(config, params):
+def getMinMax(config, params, cache):
     """ Gets the minimum and maximum data values for a certain tile.
         The client makes a call very similar to GetMap """
     # TODO: should this be an output format of GetMap?
@@ -356,17 +356,28 @@ def getMinMax(config, params):
     grid = getmap._getGrid(params, bbox, config)
     fillvalue = getmap._getFillValue()
     # Now read the data
-    picData = dataset.read(var, tIndex, zValue, grid.latValues, grid.lonValues, fillvalue)
-    # Now find the minimum and maximum values
+
+    picData = [] # Contains one (scalar) or two (vector) components
+    if var.vector:
+        picData.append(getmap.readPicData(dataset, var.eastwardComponent, params.getParamValue("crs"), layers[0], bbox, grid, zValue, tIndex, cache))
+        picData.append(getmap.readPicData(dataset, var.northwardComponent, params.getParamValue("crs"), layers[0], bbox, grid, zValue, tIndex, cache))
+    else:
+        picData.append(getmap.readPicData(dataset, var, params.getParamValue("crs"), layers[0], bbox, grid, zValue, tIndex, cache))
+
     min = 1e20
     max = -1e20
     allNone = 1
-    for val in picData:
-        v = getfeatureinfo._checkFillValue(val, fillvalue)
-        if v is not None:
+
+    # Now find the minimum and maximum values: for a vector this is the magnitude
+    for i in xrange(len(picData[0])):
+        val = picData[0][i]
+        if getfeatureinfo._checkFillValue(val, fillvalue) is not None:
             allNone = 0
-            if v < min: min = v
-            if v > max: max = v
+            if len(picData) == 2:
+                # This is a vector quantity: calculate the magnitude
+                val = math.sqrt(val * val + picData[1][i] * picData[1][i])
+            if val < min: min = val
+            if val > max: max = val
     if allNone:
         min, max = 0, 50 # All data values were "None". Make up some numbers
     str = StringIO()

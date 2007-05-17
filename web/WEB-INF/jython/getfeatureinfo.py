@@ -5,7 +5,7 @@
 # which seems to duplicate LAYERS from GetMap.  I can see no use
 # for GetMap's STYLES, FORMAT, TRANSPARENT or BGCOLOR parameters here.
 
-import sys
+import sys, math
 
 if sys.platform.startswith("java"):
     # We're running on Jython and we need a function to convert fill
@@ -94,10 +94,17 @@ def getFeatureInfo(req, params, config):
     var = dataset.variables[varID]
     tIndices = _getTIndices(var, params)
 
-    # Read the data points
-    datavalues = [dataset.read(var, t, zValue, [lat], [lon], _getFillValue())[0] for t in tIndices]
-    # Check for fill values, replacing with "None"
-    datavalues = [_checkFillValue(val, _getFillValue()) for val in datavalues]
+    # Read the data points, calculating the magnitude of vector components
+    datavalues = []
+    if var.vector:
+        east  = [dataset.read(var.eastwardComponent, t, zValue, [lat], [lon], _getFillValue())[0] for t in tIndices]
+        north = [dataset.read(var.northwardComponent, t, zValue, [lat], [lon], _getFillValue())[0] for t in tIndices]
+        # _getMag() checks for fill values, replacing with "None"
+        datavalues = [_getMag(east[i], north[i]) for i in xrange(len(east))]
+    else:
+        datavalues = [dataset.read(var, t, zValue, [lat], [lon], _getFillValue())[0] for t in tIndices]
+        # Check for fill values, replacing with "None"
+        datavalues = [_checkFillValue(val, _getFillValue()) for val in datavalues]
 
     req.content_type = info_format
 
@@ -139,3 +146,9 @@ def getFeatureInfo(req, params, config):
         ChartUtilities.writeChartAsPNG(req.getOutputStream(), chart, 400, 300)
 
     return
+
+def _getMag(east, north):
+    """ Gets the magnitude of two vector components, checking for fill values """
+    e = _checkFillValue(east, _getFillValue())
+    if e is None: return e
+    return math.sqrt(east * east + north * north)

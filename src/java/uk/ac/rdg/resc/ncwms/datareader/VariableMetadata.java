@@ -105,6 +105,7 @@ public class VariableMetadata
         this.xaxis = eastward.xaxis;
         this.yaxis = eastward.yaxis;
         this.dataset = eastward.dataset;
+        this.units = eastward.units;
         this.timesteps = eastward.timesteps;
         // Vector is the default style, but we can also render as a boxfill
         // (magnitude only)
