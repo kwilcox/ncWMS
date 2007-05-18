@@ -98,7 +98,8 @@ public class VariableMetadata
         // Copy the metadata from the eastward component
         // TODO: check that the two components match
         this.title = title;
-        this.abstr = "Description goes here"; // TODO
+        this.abstr = "Automatically-generated vector field, composed of the fields "
+            + eastward.title + " and " + northward.title;
         this.zUnits = eastward.zUnits;
         this.zValues = eastward.zValues;
         this.bbox = eastward.bbox;
