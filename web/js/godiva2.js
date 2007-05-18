@@ -643,13 +643,24 @@ function updateMap()
         // If this were an Untiled layer we could control the ratio of image
         // size to viewport size with "{buffer: 1, ratio: 1.5}"
         essc_wms = new OpenLayers.Layer.WMS1_3("ESSC WMS",
-            baseURL + '/WMS.py', {layers: layerName, elevation: getZValue(), time: tValue,
-            transparent: 'true', styles: 'boxfill;scale:' + scaleMinVal + ':' + scaleMaxVal +
-            ';opacity:' + opacity}, {buffer: 1, ratio: 1.5});
+            baseURL + '/WMS.py', {
+            layers: layerName,
+            elevation: getZValue(),
+            time: tValue,
+            transparent: 'true',
+            // Temporarily commented out to allow default style to be used.
+            // TODO: provide option to choose STYLE on web interface.
+            /*styles: 'boxfill;scale:' + scaleMinVal + ':' + scaleMaxVal + ';opacity:' + opacity*/},
+            {buffer: 1, ratio: 1.5}
+        );
         map.addLayers([essc_wms]);
     } else {
-        essc_wms.mergeNewParams({layers: layerName, elevation: getZValue(), time: tValue,
-            styles: 'boxfill;scale:' + scaleMinVal + ':' + scaleMaxVal + ';opacity:' + opacity});
+        essc_wms.mergeNewParams({
+            layers: layerName,
+            elevation: getZValue(),
+            time: tValue,
+            /*styles: 'boxfill;scale:' + scaleMinVal + ':' + scaleMaxVal + ';opacity:' + opacity*/}
+        );
     }
     
     $('featureInfo').innerHTML = "Click on the map to get more information";

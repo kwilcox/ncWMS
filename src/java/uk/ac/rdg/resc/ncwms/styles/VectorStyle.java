@@ -104,37 +104,48 @@ public class VectorStyle extends AbstractStyle
                 + "for fields with two components");
         }
         // Find the longest arrow in the units of the data
-        double longest = Double.MIN_VALUE;
-        for (int i = 0; i < data[0].length; i++)
+        double longest = -1.0;        
+        for (int i = 0; i < this.picWidth; i += MAX_ARROW_LENGTH)
         {
-            if (data[0][i] != this.fillValue)
+            for (int j = 0; j < this.picHeight; j += MAX_ARROW_LENGTH)
             {
-                double len = Math.sqrt(data[0][i] * data[0][i] + data[1][i] * data[1][i]);
-                if (len > longest) longest = len;
+                int di = j * this.picWidth + i;
+                if (data[0][di] != this.fillValue && data[1][di] != this.fillValue)
+                {
+                    double len = Math.sqrt(data[0][di] * data[0][di] + data[1][di] * data[1][di]);
+                    if (len > longest) longest = len;
+                }
             }
         }
-        this.unitsPerPixel = (float)longest / MAX_ARROW_LENGTH;
+        logger.debug("longest arrow = {}", longest);
+        if (longest >= 0.0) this.unitsPerPixel = (float)longest / MAX_ARROW_LENGTH;
     }
 
     protected void createImage(float[][] data, String label)
     {
+        if (data.length != 2)
+        {
+            // Shouldn't happen: defensive programming
+            throw new IllegalStateException("A vector style is only appropriate "
+                + "for fields with two components");
+        }
+        
         // TODO: IE can't display these image types - use indexed color model
         // Also doesn't work with GifMaker!!
         BufferedImage image = new BufferedImage(this.picWidth, this.picHeight,
             BufferedImage.TYPE_INT_ARGB);
         
         Graphics2D g = image.createGraphics();
-        // TODO: control the colour of the arrows
+        // TODO: control the colour of the arrows with an attribute
         g.setColor(Color.RED);
         
-        // Take every twentieth pixel in each direction
         logger.debug("Drawing vectors, unitsPerPixel = {}", this.unitsPerPixel);
         for (int i = 0; i < this.picWidth; i += MAX_ARROW_LENGTH)
         {
             for (int j = 0; j < this.picHeight; j += MAX_ARROW_LENGTH)
             {
                 int dataIndex = j * this.picWidth + i;
-                if (data[0][dataIndex] != this.fillValue)
+                if (data[0][dataIndex] != this.fillValue && data[1][dataIndex] != this.fillValue)
                 {
                     // Calculate the end point of the arrow
                     float iEnd = i + data[0][dataIndex] / this.unitsPerPixel;
