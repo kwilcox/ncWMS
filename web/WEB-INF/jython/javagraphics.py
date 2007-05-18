@@ -25,4 +25,4 @@ def getStyle(styleSpec):
 
 def writePicture(req, picMaker, style):
     """ Writes the picture back to the client """
-    picMaker.writeImage(style.renderedFrames, req.getOutputStream())
+    picMaker.writeImage(style.renderedFrames, req.outputStream)

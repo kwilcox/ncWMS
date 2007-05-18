@@ -27,6 +27,7 @@ class FakeModPythonRequestObject:
 
     def __init__(self, request, response):
         self._response = response
+        self.outputStream = response.getOutputStream() # Can only call getOutputStream() once
         self.args = request.getQueryString()
         # We would like content_type to be a class property but this is
         # not supported in Python 2.1
@@ -49,12 +50,7 @@ class FakeModPythonRequestObject:
     def write(self, str):
         """ Writes data to the client."""
         self._setHeaders()
-        self._response.getWriter().write(str)
-
-    def getOutputStream(self):
-        """ Gets an OutputStream for writing binary data. """
-        self._setHeaders()
-        return self._response.getOutputStream()
+        self.outputStream.write(str)
 
 # Entry point for the Jython WMS servlet
 class WMS (HttpServlet):

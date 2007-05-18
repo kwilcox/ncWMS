@@ -50,7 +50,8 @@ public class ImageTileKeyBinding extends TupleBinding
     public void objectToEntry(Object obj, TupleOutput to)
     {
         ImageTileKey key = (ImageTileKey)obj;
-        to.writeString(key.getLayer());
+        to.writeString(key.getDatasetId());
+        to.writeString(key.getVariableId());
         to.writeString(key.getCrs());
         to.writeUnsignedByte(key.getBbox().length);
         for (float el : key.getBbox())
@@ -66,7 +67,8 @@ public class ImageTileKeyBinding extends TupleBinding
     public Object entryToObject(TupleInput ti)
     {
         ImageTileKey key = new ImageTileKey();
-        key.setLayer(ti.readString());
+        key.setDatasetId(ti.readString());
+        key.setVariableId(ti.readString());
         key.setCrs(ti.readString());
         float[] bbox = new float[ti.readUnsignedByte()];
         for (int i = 0; i < bbox.length; i++)

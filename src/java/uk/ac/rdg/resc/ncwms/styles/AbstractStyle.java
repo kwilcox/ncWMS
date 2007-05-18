@@ -93,7 +93,7 @@ public abstract class AbstractStyle
         }
         else if (els[0].equalsIgnoreCase(VECTOR))
         {
-            // TODO
+            style = new VectorStyle();
         }
         if (style == null)
         {
@@ -311,7 +311,7 @@ public abstract class AbstractStyle
     {
         if (this.isAutoScale())
         {
-            logger.debug("Setting the colour scale automatically");
+            logger.debug("Setting the scale automatically");
             // We have a cache of image data, which we use to generate the colour scale
             for (float[][] data : this.frameData)
             {

@@ -39,7 +39,8 @@ package uk.ac.rdg.resc.ncwms.cache;
  */
 public class ImageTileKey
 {
-    private String layer;        // The name of the layer
+    private String datasetId;    // The identifier of the dataset
+    private String variableId;   // The identifier of the variable
     private String crs;          // The CRS used for this tile
     private float[] bbox;        // Bounding box as [minX, minY, maxX, maxY]
     private int width;           // Width of tile in pixels
@@ -66,16 +67,6 @@ public class ImageTileKey
     public void setCrs(String crs)
     {
         this.crs = crs;
-    }
-
-    public String getLayer()
-    {
-        return layer;
-    }
-
-    public void setLayer(String layer)
-    {
-        this.layer = layer;
     }
 
     public float[] getBbox()
@@ -130,7 +121,9 @@ public class ImageTileKey
     
     public String toString()
     {
-        StringBuffer buf = new StringBuffer(this.layer);
+        StringBuffer buf = new StringBuffer(this.getDatasetId());
+        buf.append("/");
+        buf.append(this.getVariableId());
         buf.append(", ");
         buf.append(this.crs);
         buf.append(", [");
@@ -148,6 +141,26 @@ public class ImageTileKey
         buf.append(", ");
         buf.append(this.elevation);
         return buf.toString();
+    }
+
+    public String getDatasetId()
+    {
+        return datasetId;
+    }
+
+    public void setDatasetId(String datasetId)
+    {
+        this.datasetId = datasetId;
+    }
+
+    public String getVariableId()
+    {
+        return variableId;
+    }
+
+    public void setVariableId(String variableId)
+    {
+        this.variableId = variableId;
     }
     
 }

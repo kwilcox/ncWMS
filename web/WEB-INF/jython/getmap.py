@@ -106,10 +106,10 @@ def getMap(req, params, config, cache):
     for tIndex in tIndices:
         picData = [] # Contains one (scalar) or two (vector) components
         if var.vector:
-            picData.append(readPicData(dataset, var.eastwardComponent, params.getParamValue("crs"), layers[0], bbox, grid, zValue, tIndex, cache))
-            picData.append(readPicData(dataset, var.northwardComponent, params.getParamValue("crs"), layers[0], bbox, grid, zValue, tIndex, cache))
+            picData.append(readPicData(dataset, var.eastwardComponent, params.getParamValue("crs"), bbox, grid, zValue, tIndex, cache))
+            picData.append(readPicData(dataset, var.northwardComponent, params.getParamValue("crs"), bbox, grid, zValue, tIndex, cache))
         else:
-            picData.append(readPicData(dataset, var, params.getParamValue("crs"), layers[0], bbox, grid, zValue, tIndex, cache))
+            picData.append(readPicData(dataset, var, params.getParamValue("crs"), bbox, grid, zValue, tIndex, cache))
 
         # Only add a label if this is part of an animation
         if len(var.tvalues) > 0 and len(tIndices) > 1:
@@ -246,7 +246,7 @@ def _getFillValue():
         not portable across Python versions or Jython """
     return 1.0e20
 
-def readPicData(dataset, var, crs, layer, bbox, grid, zValue, tIndex, cache):
+def readPicData(dataset, var, crs, bbox, grid, zValue, tIndex, cache):
     """ Reads the data for the given variable"""
 
     picData = None
@@ -255,8 +255,9 @@ def readPicData(dataset, var, crs, layer, bbox, grid, zValue, tIndex, cache):
         # See if we already have this data array in cache
         # Create the key for this data array
         key = ImageTileKey()
+        key.datasetId = var.dataset.id
+        key.variableId = var.id
         key.crs = crs
-        key.layer = layer
         key.bbox = bbox
         key.width, key.height = grid.width, grid.height
         if zValue.strip() == "":

@@ -118,7 +118,7 @@ public class BoxFillStyle extends AbstractStyle
             {
                 throw new StyleNotDefinedException("Format error for OPACITY attribute of BOXFILL style");
             }
-            int opVal = Integer.parseInt(values[0]);
+            int opVal = Integer.parseInt(values[0]); // TODO: trap number format errors
             if (opVal < 0 || opVal > 100)
             {
                 throw new IllegalArgumentException("Opacity must be in the range 0 to 100");
@@ -132,14 +132,15 @@ public class BoxFillStyle extends AbstractStyle
             {
                 throw new StyleNotDefinedException("Format error for SCALE attribute of BOXFILL style");
             }
-            this.scaleMin = Float.parseFloat(values[0]);
+            this.scaleMin = Float.parseFloat(values[0]); // TODO: trap number format errors
             this.scaleMax = Float.parseFloat(values[1]);
             logger.debug("Set SCALE to {},{}", this.scaleMin, this.scaleMax);
         }
         // TODO: set the palette ("rainbow", etc)
         else
         {
-            // TODO: do something here
+            throw new StyleNotDefinedException("Attribute " + attName + 
+                " is not supported by the " + this.name + " style");
         }
     }
     

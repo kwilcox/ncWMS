@@ -74,7 +74,7 @@ def getFrontPage(config):
             for format in getmap.getSupportedImageFormats():
                 doc.write("<td>")
                 for varID in vars.keys():
-                    doc.write("<a href=\"%s?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&STYLES=boxfill&CRS=CRS:84&WIDTH=256&HEIGHT=256&FORMAT=%s&TRANSPARENT=true" % (prefix, format))
+                    doc.write("<a href=\"%s?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&STYLES=&CRS=CRS:84&WIDTH=256&HEIGHT=256&FORMAT=%s&TRANSPARENT=true" % (prefix, format))
                     doc.write("&LAYERS=%s%s%s" % (ds, wmsUtils.getLayerSeparator(), varID))
                     bbox = vars[varID].bbox
                     doc.write("&BBOX=%s,%s,%s,%s" % tuple([str(b) for b in bbox]))
@@ -359,10 +359,10 @@ def getMinMax(config, params, cache):
 
     picData = [] # Contains one (scalar) or two (vector) components
     if var.vector:
-        picData.append(getmap.readPicData(dataset, var.eastwardComponent, params.getParamValue("crs"), layers[0], bbox, grid, zValue, tIndex, cache))
-        picData.append(getmap.readPicData(dataset, var.northwardComponent, params.getParamValue("crs"), layers[0], bbox, grid, zValue, tIndex, cache))
+        picData.append(getmap.readPicData(dataset, var.eastwardComponent, params.getParamValue("crs"), bbox, grid, zValue, tIndex, cache))
+        picData.append(getmap.readPicData(dataset, var.northwardComponent, params.getParamValue("crs"), bbox, grid, zValue, tIndex, cache))
     else:
-        picData.append(getmap.readPicData(dataset, var, params.getParamValue("crs"), layers[0], bbox, grid, zValue, tIndex, cache))
+        picData.append(getmap.readPicData(dataset, var, params.getParamValue("crs"), bbox, grid, zValue, tIndex, cache))
 
     min = 1e20
     max = -1e20
