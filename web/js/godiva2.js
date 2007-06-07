@@ -650,7 +650,7 @@ function updateMap()
             transparent: 'true',
             // Temporarily commented out to allow default style to be used.
             // TODO: provide option to choose STYLE on web interface.
-            /*styles: 'boxfill;scale:' + scaleMinVal + ':' + scaleMaxVal + ';opacity:' + opacity*/},
+            styles: 'boxfill;scale:' + scaleMinVal + ':' + scaleMaxVal + ';opacity:' + opacity},
             {buffer: 1, ratio: 1.5}
         );
         map.addLayers([essc_wms]);
@@ -659,7 +659,7 @@ function updateMap()
             layers: layerName,
             elevation: getZValue(),
             time: tValue,
-            /*styles: 'boxfill;scale:' + scaleMinVal + ':' + scaleMaxVal + ';opacity:' + opacity*/}
+            styles: 'boxfill;scale:' + scaleMinVal + ':' + scaleMaxVal + ';opacity:' + opacity}
         );
     }
     

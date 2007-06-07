@@ -138,7 +138,7 @@ public class LUTCoordAxis extends EnhancedCoordAxis
             {
                 line = reader.readLine();
                 // Ignore comment lines
-                if (line != null && !line.startsWith("#"))
+                if (line != null && !line.trim().startsWith("#"))
                 {
                     StringTokenizer tok = new StringTokenizer(line);
                     if (tok.countTokens() != 2)
@@ -180,7 +180,7 @@ public class LUTCoordAxis extends EnhancedCoordAxis
             {
                 line = reader.readLine();
                 // Ignore comment lines that start with #
-                if (line != null && !line.startsWith("#"))
+                if (line != null && !line.trim().startsWith("#"))
                 {
                     StringTokenizer tok = new StringTokenizer(line);
                     while(tok.hasMoreTokens())
