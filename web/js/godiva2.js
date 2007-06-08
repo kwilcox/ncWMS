@@ -138,6 +138,12 @@ window.onload = function()
                         $('jcommlogo').width = 133;
                         $('jcommlogo').height = 30;
                         $('jcommlink').href = 'http://www.mersea.eu.org/';
+                    } else if (filter == 'ECOOP') {
+                        $('jcommlogo').src = 'http://www.ecoop.eu/transp.jpg';
+                        $('jcommlogo').alt = 'ECOOP logo';
+                        $('jcommlogo').width = 200;
+                        $('jcommlogo').height = 60;
+                        $('jcommlink').href = 'http://www.ecoop.eu';
                     }
                 }
             }
