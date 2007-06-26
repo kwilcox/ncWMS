@@ -131,13 +131,14 @@ window.onload = function()
                     // certain datasets)
                     filter = keyAndVal[1];
                     if (filter == 'MERSEA') {
-                        // Hack to change the logo from JCOMM to MERSEA
-                        // TODO: make more general (e.g. with CSS)
-                        $('jcommlogo').src = 'http://w3.mersea.eu.org/images/general/smallTitre.jpg';
-                        $('jcommlogo').alt = 'MERSEA logo';
+                        // If we're viewing through the MERSEA page, the logo
+                        // is displayed in the header and footer so we blank it
+                        // out here.
+                        $('jcommlogo').src = 'images/blank.png';
+                        $('jcommlogo').alt = '';
                         $('jcommlogo').width = 133;
                         $('jcommlogo').height = 30;
-                        $('jcommlink').href = 'http://www.mersea.eu.org/';
+                        $('jcommlink').href = '';
                     } else if (filter == 'ECOOP') {
                         $('jcommlogo').src = 'http://www.ecoop.eu/transp.jpg';
                         $('jcommlogo').alt = 'ECOOP logo';
