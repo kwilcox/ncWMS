@@ -130,8 +130,8 @@ window.onload = function()
                     // we must adapt the site for this brand (e.g. by showing only
                     // certain datasets)
                     filter = keyAndVal[1];
-                    if (filter == 'MERSEA') {
-                        // If we're viewing through the MERSEA page, the logo
+                    if (filter == 'MERSEA' || filter == 'ECOOP') {
+                        // If we're viewing through the MERSEA or ECOOPpage, the logo
                         // is displayed in the header and footer so we blank it
                         // out here.
                         $('jcommlogo').src = 'images/blank.png';
@@ -139,12 +139,6 @@ window.onload = function()
                         $('jcommlogo').width = 133;
                         $('jcommlogo').height = 30;
                         $('jcommlink').href = '';
-                    } else if (filter == 'ECOOP') {
-                        $('jcommlogo').src = 'http://www.ecoop.eu/transp.jpg';
-                        $('jcommlogo').alt = 'ECOOP logo';
-                        $('jcommlogo').width = 200;
-                        $('jcommlogo').height = 60;
-                        $('jcommlink').href = 'http://www.ecoop.eu';
                     }
                 }
             }
