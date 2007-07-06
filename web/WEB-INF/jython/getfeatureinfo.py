@@ -143,7 +143,7 @@ def getFeatureInfo(req, params, config):
         yLabel = "%s (%s)" % (var.title, var.units)
         chart = ChartFactory.createTimeSeriesChart(title, "Date / time", yLabel, xydataset, 0, 0, 0)
         # Output the chart. TODO: control the plot size
-        ChartUtilities.writeChartAsPNG(req.getOutputStream(), chart, 400, 300)
+        ChartUtilities.writeChartAsPNG(req.outputStream, chart, 400, 300)
 
     return
 
