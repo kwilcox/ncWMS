@@ -81,15 +81,23 @@ public class USGSDataReader extends DefaultDataReader
         int tIndex, int zIndex, float[] latValues, float[] lonValues,
         float fillValue) throws WMSExceptionInJava
     {
-        // TODO: allow for aggregated dataset - see DefaultDataReader.
-        // This assumes that the whole dataset is one NetCDF or NcML file
+        // TODO: this repeats code in DefaultDataReader: refactor
+        VariableMetadata.TimestepInfo tInfo = vm.getTimestepInfo(tIndex);
+        int tIndexInFile = 0;
+        String filename = location;
+        if (tInfo != null)
+        {
+            tIndexInFile = tInfo.getIndexInFile();
+            filename = tInfo.getFilename();
+        }
+        
         NetcdfDataset nc = null;
         try
         {
             // Get the metadata from the cache
             long start = System.currentTimeMillis();
             
-            Range tRange = new Range(tIndex, tIndex);
+            Range tRange = new Range(tIndexInFile, tIndexInFile);
             Range zRange = new Range(zIndex, zIndex);
             
             // Create an array to hold the data
@@ -134,7 +142,7 @@ public class USGSDataReader extends DefaultDataReader
             start = System.currentTimeMillis();
 
             // Now build the picture
-            nc = getDataset(location);
+            nc = getDataset(filename);
             Variable var = nc.findVariable(vm.getId());
             
             float scaleFactor = 1.0f;
