@@ -10,18 +10,9 @@
             <param-value>WEB-INF/conf/log4j.properties</param-value>
         </init-param>
     </filter>
-    <filter>
-        <description>Filters access to admin web application</description>
-        <filter-name>LoginFilter</filter-name>
-        <filter-class>uk.ac.rdg.resc.ncwms.filters.LoginFilter</filter-class>
-    </filter>
     <filter-mapping>
         <filter-name>WMSFilter</filter-name>
         <servlet-name>PyServlet</servlet-name>
-    </filter-mapping>
-    <filter-mapping>
-        <filter-name>LoginFilter</filter-name>
-        <url-pattern>/admin/index.jsp</url-pattern>
     </filter-mapping>
     <servlet>
         <servlet-name>PyServlet</servlet-name>
@@ -32,6 +23,23 @@
         <servlet-name>PyServlet</servlet-name>
         <url-pattern>*.py</url-pattern>
     </servlet-mapping>
+    <listener>
+        <description>Required by Spring to integrate with Acegi</description>
+        <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+    </listener>
+    <filter>
+        <description>Acegi Security filter, applies to admin URLs</description>
+        <filter-name>Acegi Filter Chain Proxy</filter-name>
+        <filter-class>org.acegisecurity.util.FilterToBeanProxy</filter-class>
+        <init-param>
+            <param-name>targetClass</param-name>
+            <param-value>org.acegisecurity.util.FilterChainProxy</param-value>
+        </init-param>
+    </filter>
+    <filter-mapping>
+        <filter-name>Acegi Filter Chain Proxy</filter-name>
+        <url-pattern>/admin/*</url-pattern>
+    </filter-mapping>
     <session-config>
         <session-timeout>
             30

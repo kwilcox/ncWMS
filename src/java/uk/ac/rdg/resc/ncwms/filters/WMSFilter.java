@@ -77,7 +77,7 @@ public class WMSFilter implements Filter
         {
             // Create the directory structure in the user's home space
             File userHome = new File(System.getProperty("user.home"));
-            File ncWMSDir = new File(userHome, ".ncWMS");
+            File ncWMSDir = new File(userHome, ".ncWMS-Spring");
             mkdir(ncWMSDir);
             File logDir = new File(ncWMSDir, "log");
             mkdir(logDir);
