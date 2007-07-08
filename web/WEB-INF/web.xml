@@ -19,6 +19,11 @@
         <servlet-class>org.python.util.PyServlet</servlet-class>
         <load-on-startup>1</load-on-startup>
     </servlet>
+    <servlet>
+        <description>Entry point for the WMS, configured by WMS-Servlet.xml</description>
+        <servlet-name>WMS</servlet-name>
+        <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+    </servlet>
     <servlet-mapping>
         <servlet-name>PyServlet</servlet-name>
         <url-pattern>*.py</url-pattern>
@@ -40,6 +45,10 @@
         <filter-name>Acegi Filter Chain Proxy</filter-name>
         <url-pattern>/admin/*</url-pattern>
     </filter-mapping>
+    <servlet-mapping>
+        <servlet-name>WMS</servlet-name>
+        <url-pattern>/WMS</url-pattern>
+    </servlet-mapping>
     <session-config>
         <session-timeout>
             30
