@@ -31,7 +31,7 @@ package uk.ac.rdg.resc.ncwms.datareader;
 import java.io.IOException;
 import java.util.Hashtable;
 import org.apache.log4j.Logger;
-import uk.ac.rdg.resc.ncwms.exceptions.WMSExceptionInJava;
+import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
 
 /**
  * Abstract superclass for classes that read data and metadata from NetCDF datasets.
@@ -58,15 +58,16 @@ public abstract class DataReader
     /**
      * Gets a DataReader object.  <b>Only one</b> object of each class will be
      * created (hence methods have to be thread-safe).
+     * 
      * @param className Name of the class to generate
      * @param the location of the dataset: used to detect OPeNDAP URLs
      * @return a DataReader object of the given class, or {@link DefaultDataReader}
      * or {@link OpendapDataReader} (depending on whether the location starts with
      * "http://" or "dods://") if <code>className</code> is null or the empty string
-     * @throws a {@link WMSExceptionInJava} if the DataReader could not be created
+     * @throws a {@link WmsException} if the DataReader could not be created
      */
     public static DataReader getDataReader(String className, String location)
-        throws WMSExceptionInJava
+        throws WmsException
     {
         String clazz = DefaultDataReader.class.getName();
         if (isOpendapLocation(location))
@@ -91,19 +92,19 @@ public abstract class DataReader
         catch(ClassNotFoundException cnfe)
         {
             logger.error("Class not found: " + clazz, cnfe);
-            throw new WMSExceptionInJava("Internal error: class " + clazz +
+            throw new WmsException("Internal error: class " + clazz +
                 " not found");
         }
         catch(InstantiationException ie)
         {
             logger.error("Instantiation error for class: " + clazz, ie);
-            throw new WMSExceptionInJava("Internal error: class " + clazz +
+            throw new WmsException("Internal error: class " + clazz +
                 " could not be instantiated");
         }
         catch(IllegalAccessException iae)
         {
             logger.error("Illegal access error for class: " + clazz, iae);
-            throw new WMSExceptionInJava("Internal error: constructor for " + clazz +
+            throw new WmsException("Internal error: constructor for " + clazz +
                 " could not be accessed");
         }
     }
@@ -117,6 +118,7 @@ public abstract class DataReader
     /**
      * Reads an array of data from a NetCDF file and projects onto a rectangular
      * lat-lon grid.  Reads data for a single time index only.
+     * 
      * @param location Location of the dataset
      * @param vm {@link VariableMetadata} object representing the variable
      * @param tIndex The index along the time axis as found in getmap.py
@@ -125,11 +127,11 @@ public abstract class DataReader
      * @param lonValues Array of longitude values
      * @param fillValue Value to use for missing data
      * @return array of data values
-     * @throws WMSExceptionInJava if an error occurs
+     * @throws WmsException if an error occurs
      */
     public float[] read(String location, VariableMetadata vm,
         int tIndex, String zValue, float[] latValues, float[] lonValues,
-        float fillValue) throws WMSExceptionInJava
+        float fillValue) throws WmsException
     {
         try
         {
@@ -141,20 +143,21 @@ public abstract class DataReader
             }
             return this.read(location, vm, tIndex, zIndex, latValues, lonValues, fillValue);
         }
-        catch(WMSExceptionInJava wmeij)
+        catch(WmsException wmeij)
         {
             throw wmeij;
         }
         catch(Exception e)
         {
             logger.error(e.getMessage(), e);
-            throw new WMSExceptionInJava(e.getMessage());
+            throw new WmsException(e.getMessage());
         }
     }
     
     /**
      * Reads an array of data from a NetCDF file and projects onto a rectangular
      * lat-lon grid.  Reads data for a single time index only.
+     * 
      * @param location Location of the dataset
      * @param vm {@link VariableMetadata} object representing the variable
      * @param tIndex The index along the time axis as found in getmap.py
@@ -162,11 +165,11 @@ public abstract class DataReader
      * @param latValues Array of latitude values
      * @param lonValues Array of longitude values
      * @param fillValue Value to use for missing data
-     * @throws WMSExceptionInJava if an error occurs
+     * @throws WmsException if an error occurs
      */
     protected abstract float[] read(String location, VariableMetadata vm,
         int tIndex, int zIndex, float[] latValues, float[] lonValues,
-        float fillValue) throws WMSExceptionInJava;
+        float fillValue) throws WmsException;
     
     /**
      * Reads and returns the metadata for all the variables in the dataset

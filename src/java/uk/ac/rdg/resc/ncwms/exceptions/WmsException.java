@@ -29,24 +29,32 @@
 package uk.ac.rdg.resc.ncwms.exceptions;
 
 /**
- * Exception that is thrown when a user does not specify a value for a required axis
+ * Exception that will cause a ServiceException document to be returned to the
+ * client.  See WEB-INF/jsp/displayWmsException.jsp and WMS-servlet.xml.
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
  */
-public class MissingDimensionValueException extends WmsException
+public class WmsException extends Exception
 {
+    private String code = null;
     
-    /**
-     * Creates a new instance of MissingDimensionValueException
-     * @param dimName The name of the dimension for which the value is missing
-     */
-    public MissingDimensionValueException(String dimName)
+    public WmsException(String message)
     {
-        super("You must provide a value for the " +
-            dimName.toUpperCase() + " dimension", "MissingDimensionValue");
+        super(message);
+    }
+    
+    public WmsException(String message, String code)
+    {
+        super(message);
+        this.code = code;
+    }
+
+    public String getCode()
+    {
+        return code;
     }
     
 }

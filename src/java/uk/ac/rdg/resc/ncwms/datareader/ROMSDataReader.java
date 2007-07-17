@@ -50,7 +50,7 @@ import ucar.nc2.dataset.grid.GridDataset;
 import ucar.unidata.geoloc.LatLonPoint;
 import ucar.unidata.geoloc.LatLonPointImpl;
 import ucar.unidata.geoloc.LatLonRect;
-import uk.ac.rdg.resc.ncwms.exceptions.WMSExceptionInJava;
+import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
 
 /**
  * DataReader for ROMS data from Damian Smyth (damian.smyth@marine.ie)

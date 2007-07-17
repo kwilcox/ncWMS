@@ -12,41 +12,23 @@
        xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
        xsi:schemaLocation='http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd'>
     
+    <!-- Need beans for the tile cache, ?logging framework? -->
+    
     <!-- Defines a configuration object that is used to configure this server.
-         This object is created via GRexConfig.readConfig(), a static factory method -->
-    <bean id="grexConfig" class="uk.ac.rdg.resc.grex.config.GRexConfig"
-          factory-method="readConfig">
-        <!-- G-Rex will look for the config file in the CLASSPATH unless you
-             uncomment the line below and set the full path to the config file -->
-        <!--<constructor-arg><value>/path/to/GRexConfig.xml</value></constructor-arg>-->
-    </bean>
+         This object is created via Config.readConfig(), a static factory method.
+         If a configuration file does not already exist in the default location
+         ($HOME/.ncwms/config.xml) it will be created. -->
+    <bean id="ncwmsConfig" class="uk.ac.rdg.resc.ncwms.config.Config"
+          factory-method="readConfig"/>
     
-    <!-- Need beans for the config object, tile cache, ?logging framework? -->
-    
-    <!-- This is a MultiActionController that will handle all the GET methods
-         (i.e. all requests for information that do not change the state of 
-         the server) -->
-    <bean id="getOperationsController" class="uk.ac.rdg.resc.grex.controllers.GetOperationsController">
+    <!-- This Controller will handle all the requests to the WMS -->
+    <bean id="wmsController" class="uk.ac.rdg.resc.ncwms.controller.WmsController">
         <property name="supportedMethods" value="GET"/>
-        <!-- Inject the configuration object into this controller -->
-        <property name="grexConfig"><ref local="grexConfig"/></property>
-        <!-- Inject the store of instances into this controller -->
-        <property name="instancesStore"><ref local="instancesStore"/></property>
-        <property name="methodNameResolver"><ref local="propsResolverGet"/></property>
+        <property name="config"><ref local="ncwmsConfig"/></property>
     </bean>
-    <!-- This maps URL patterns to the methods of the multi-action controller -->
-    <bean id="propsResolverGet" class="org.springframework.web.servlet.mvc.multiaction.PropertiesMethodNameResolver">
-        <property name="mappings">
-            <value>
-                /welcome.html=showWelcomePage
-                /services.*=listServices
-                /*/instances.*=listInstancesForService
-                /*/config.*=showConfigForService
-                /*/instances/*.*=showServiceInstance
-                /*/instances/*/outputs/**=downloadOutputFile
-            </value>
-        </property>
-    </bean>
+    
+    <!-- This mapping ensures that all requests to "/wms*" are mapped to the WmsController -->
+    <bean id="controllermap" class="org.springframework.web.servlet.mvc.support.ControllerClassNameHandlerMapping"/>
     
     <!-- Each Controller will return the name of a View that maps to a certain JSP.
          For example, if a Controller returns a View name "hello_xml", the 
@@ -58,18 +40,18 @@
         <property name="suffix" value=".jsp"/>
     </bean>
     
-    <!-- Exception Handling: this ensures that all GRexExceptions are returned to 
-         the user as an XML document, created by displayGRexException.jsp.
+    <!-- Exception Handling: this ensures that all WmsExceptions are returned to 
+         the user as an XML document, created by displayWmsException.jsp.
          Note that we don't have to register this anywhere as an exception handler
          because Spring automagically detects it. -->
     <bean id="exceptionResolver" class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
         <property name="exceptionMappings">
             <props>
-                <prop key="uk.ac.rdg.resc.grex.exceptions.GRexException">displayGRexException</prop>
+                <prop key="uk.ac.rdg.resc.ncwms.exceptions.WmsException">displayWmsException</prop>
             </props>
         </property>
         <!-- If an unexpected error occurs (i.e. one that doesn't get expressed as
-             a GRexException) we will handle it using displayDefaultException.jsp -->
+             a WmsException) we will handle it using displayDefaultException.jsp -->
         <property name="defaultErrorView" value="displayDefaultException"/>
     </bean>
     

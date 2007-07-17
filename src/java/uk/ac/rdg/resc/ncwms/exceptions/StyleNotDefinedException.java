@@ -37,7 +37,7 @@ package uk.ac.rdg.resc.ncwms.exceptions;
  * $Date$
  * $Log$
  */
-public class StyleNotDefinedException extends WMSExceptionInJava
+public class StyleNotDefinedException extends WmsException
 {
     
     /**
@@ -45,7 +45,7 @@ public class StyleNotDefinedException extends WMSExceptionInJava
      */
     public StyleNotDefinedException(String message)
     {
-        super(message);
+        super(message, "StyleNotDefined");
     }
     
 }

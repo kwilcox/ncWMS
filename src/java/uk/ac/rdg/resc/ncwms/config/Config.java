@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 import org.apache.log4j.Logger;
 import simple.xml.Element;
@@ -72,7 +73,7 @@ public class Config
     /**
      * This contains the map of dataset IDs to Dataset objects
      */
-    private Hashtable<String, Dataset> datasets;
+    private Map<String, Dataset> datasets;
     
     /** Creates a new instance of Config */
     public Config()
@@ -85,15 +86,40 @@ public class Config
     }
     
     /**
-     * Reads configuration information from disk
+     * Reads the config information from the default location
+     * ($HOME/.ncWMS-Spring/config.xml).  If the configuration file
+     * does not exist in the given location it will be created.
+     */
+    public static Config readConfig() throws Exception
+    {
+        String homeDir = System.getProperty("user.home");
+        File ncWmsDir = new File(homeDir, ".ncWMS-Spring");
+        File configFile = new File(ncWmsDir, "config.xml");
+        return readConfig(configFile);
+    }
+    
+    /**
+     * Reads configuration information from disk.  If the configuration file
+     * does not exist in the given location it will be created.
      * @param configFile The configuration file
      * @throws Exception if there was an error reading the configuration
-     * @todo create a new object if the config file doesn't already exist
      */
     public static Config readConfig(File configFile) throws Exception
     {
-        Config config = new Persister().read(Config.class, configFile);
-        logger.debug("Loaded configuration from {}", configFile.getPath());
+        Config config;
+        if (configFile.exists())
+        {
+            config = new Persister().read(Config.class, configFile);
+            logger.debug("Loaded configuration from {}", configFile.getPath());
+        }
+        else
+        {
+            // We must make a new config file and save it
+            config = new Config();
+            config.saveConfig();
+            logger.debug("Created new configuration object and saved to {}",
+                configFile.getPath());
+        }
         config.setConfigFile(configFile);
         return config;
     }
@@ -199,7 +225,7 @@ public class Config
         this.configFile = configFile;
     }
     
-    public Hashtable<String, Dataset> getDatasets()
+    public Map<String, Dataset> getDatasets()
     {
         return this.datasets;
     }

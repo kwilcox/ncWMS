@@ -51,7 +51,7 @@ import ucar.nc2.dataset.grid.GridDataset;
 import ucar.unidata.geoloc.LatLonPoint;
 import ucar.unidata.geoloc.LatLonPointImpl;
 import ucar.unidata.geoloc.LatLonRect;
-import uk.ac.rdg.resc.ncwms.exceptions.WMSExceptionInJava;
+import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
 
 /**
  * Default data reading class for CF-compliant NetCDF datasets.
@@ -68,7 +68,8 @@ public class DefaultDataReader extends DataReader
     /**
      * Reads an array of data from a NetCDF file and projects onto a rectangular
      * lat-lon grid.  Reads data for a single time index only.
-     *
+     * 
+     * 
      * @param location Location of the NetCDF dataset (full file path, OPeNDAP URL etc)
      * @param vm {@link VariableMetadata} object representing the variable
      * @param tIndex The index along the time axis as found in getmap.py
@@ -76,11 +77,11 @@ public class DefaultDataReader extends DataReader
      * @param latValues Array of latitude values
      * @param lonValues Array of longitude values
      * @param fillValue Value to use for missing data
-     * @throws WMSExceptionInJava if an error occurs
+     * @throws WmsException if an error occurs
      */
     public float[] read(String location, VariableMetadata vm,
         int tIndex, int zIndex, float[] latValues, float[] lonValues,
-        float fillValue) throws WMSExceptionInJava
+        float fillValue) throws WmsException
     {
         // Firstly we need to figure out which file actually contains the data
         // for this timestep:  TODO: do this in DataReader?
@@ -191,12 +192,12 @@ public class DefaultDataReader extends DataReader
             {
                 logger.error("IOException reading from " + nc.getLocation(), e);
             }
-            throw new WMSExceptionInJava("IOException: " + e.getMessage());
+            throw new WmsException("IOException: " + e.getMessage());
         }
         catch(InvalidRangeException ire)
         {
             logger.error("InvalidRangeException reading from " + nc.getLocation(), ire);
-            throw new WMSExceptionInJava("InvalidRangeException: " + ire.getMessage());
+            throw new WmsException("InvalidRangeException: " + ire.getMessage());
         }
         finally
         {

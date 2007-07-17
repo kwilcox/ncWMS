@@ -36,7 +36,7 @@ import simple.xml.Attribute;
 import simple.xml.Root;
 import uk.ac.rdg.resc.ncwms.datareader.DataReader;
 import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
-import uk.ac.rdg.resc.ncwms.exceptions.WMSExceptionInJava;
+import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
 
 /**
  * A dataset Java bean: contains a number of VariableMetadata objects.
@@ -357,7 +357,8 @@ public class Dataset
      * Reads an array of data from a NetCDF file and projects onto a rectangular
      * lat-lon grid.  Reads data for a single time index only.  Delegates to 
      * the DataReader.
-     *
+     * 
+     * 
      * @param vm {@link VariableMetadata} object representing the variable
      * @param tIndex The index along the time axis as found in getmap.py
      * @param zValue The value of elevation as specified by the client
@@ -365,11 +366,11 @@ public class Dataset
      * @param lonValues Array of longitude values
      * @param fillValue Value to use for missing data
      * @return array of data values
-     * @throws WMSExceptionInJava if an error occurs
+     * @throws WmsException if an error occurs
      */
     public float[] read(VariableMetadata vm,
         int tIndex, String zValue, float[] latValues, float[] lonValues,
-        float fillValue) throws WMSExceptionInJava
+        float fillValue) throws WmsException
     {
         logger.debug("Getting data reader of type {}", this.dataReaderClass);
         DataReader dr = DataReader.getDataReader(this.dataReaderClass, this.location);

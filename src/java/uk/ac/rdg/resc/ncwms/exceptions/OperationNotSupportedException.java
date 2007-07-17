@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 The University of Reading
+ * Copyright (c) 2007 The University of Reading
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,24 +29,24 @@
 package uk.ac.rdg.resc.ncwms.exceptions;
 
 /**
- * Exception that is thrown when a user does not specify a value for a required axis
+ * Exception that is thrown when a client requests an operation that is not
+ * supported by this server.
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
  */
-public class MissingDimensionValueException extends WmsException
+public class OperationNotSupportedException extends WmsException
 {
     
     /**
-     * Creates a new instance of MissingDimensionValueException
-     * @param dimName The name of the dimension for which the value is missing
+     * Creates a new instance of OperationNotSupportedException
      */
-    public MissingDimensionValueException(String dimName)
+    public OperationNotSupportedException(String operation)
     {
-        super("You must provide a value for the " +
-            dimName.toUpperCase() + " dimension", "MissingDimensionValue");
+        super("The operation \"" + operation + "\" is not supported by this server",
+            "OperationNotSupported");
     }
     
 }

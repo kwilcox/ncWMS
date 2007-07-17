@@ -40,7 +40,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Hashtable;
 import org.apache.log4j.Logger;
-import uk.ac.rdg.resc.ncwms.exceptions.WMSExceptionInJava;
+import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
 
 /**
  * DataReader for NSIDC snow/water data
@@ -133,7 +133,7 @@ public class NSIDCSnowWaterDataReader extends DataReader
     
     protected float[] read(String location, VariableMetadata vm, int tIndex,
         int zIndex, float[] latValues, float[] lonValues, float fillValue)
-        throws WMSExceptionInJava
+        throws WmsException
     {
         // Find the file containing the data
         VariableMetadata.TimestepInfo tInfo = vm.getTimestepInfo(tIndex);
@@ -157,7 +157,7 @@ public class NSIDCSnowWaterDataReader extends DataReader
         catch(IOException ioe)
         {
             logger.error("IOException reading from " + tInfo.getFilename(), ioe);
-            throw new WMSExceptionInJava("Internal error: IOException reading from "
+            throw new WmsException("Internal error: IOException reading from "
                 + tInfo.getFilename() + ": " + ioe.getMessage());
         }
         finally

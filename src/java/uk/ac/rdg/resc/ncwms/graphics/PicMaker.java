@@ -37,7 +37,7 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
 import uk.ac.rdg.resc.ncwms.exceptions.InvalidFormatException;
-import uk.ac.rdg.resc.ncwms.exceptions.WMSExceptionInJava;
+import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
 
 /**
  * Abstract superclass of picture makers.  Subclasses must have a no-argument
@@ -90,14 +90,15 @@ public abstract class PicMaker
     /**
      * Creates a PicMaker object for the given mime type.  Creates a new PicMaker
      * object with each call.
+     * 
      * @param mimeType The MIME type of the image that is required
      * @return A PicMaker object
      * @throws a {@link InvalidFormatException} if there isn't a PicMaker for
      * the given MIME type
-     * @throws a {@link WMSExceptionInJava} if the PicMaker could not be created
+     * @throws a {@link WmsException} if the PicMaker could not be created
      */
     public static PicMaker createPicMaker(String mimeType)
-        throws InvalidFormatException, WMSExceptionInJava
+        throws InvalidFormatException, WmsException
     {
         Class clazz = picMakers.get(mimeType.trim());
         if (clazz == null)
@@ -113,12 +114,12 @@ public abstract class PicMaker
         }
         catch (InstantiationException ie)
         {
-            throw new WMSExceptionInJava("Internal error: could not create PicMaker "
+            throw new WmsException("Internal error: could not create PicMaker "
                 + "of type " + clazz.getName());
         }
         catch (IllegalAccessException iae)
         {
-            throw new WMSExceptionInJava("Internal error: IllegalAccessException" +
+            throw new WmsException("Internal error: IllegalAccessException" +
                 " when creating PicMaker of type " + clazz.getName());
         }
     }
