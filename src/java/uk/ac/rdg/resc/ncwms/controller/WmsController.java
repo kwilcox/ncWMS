@@ -28,6 +28,8 @@
 
 package uk.ac.rdg.resc.ncwms.controller;
 
+import java.util.HashMap;
+import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.springframework.web.servlet.ModelAndView;
@@ -35,6 +37,7 @@ import org.springframework.web.servlet.mvc.AbstractController;
 import uk.ac.rdg.resc.ncwms.config.Config;
 import uk.ac.rdg.resc.ncwms.exceptions.OperationNotSupportedException;
 import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
+import uk.ac.rdg.resc.ncwms.graphics.PicMakerFactory;
 
 /**
  * Entry point for the WMS.  Note that we cannot use a CommandController here
@@ -49,6 +52,7 @@ import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
 public class WmsController extends AbstractController
 {
     private Config config; // Will be injected by Spring
+    private PicMakerFactory picMakerFactory;
     
     /**
      * Entry point for all requests to the WMS
@@ -66,7 +70,7 @@ public class WmsController extends AbstractController
         String request = params.getMandatoryParamValue("request");
         if (request.equals("GetCapabilities"))
         {
-            return getCapabilities(params);
+            return getCapabilities(httpServletRequest, params);
         }
         else if (request.equals("GetMap"))
         {
@@ -89,7 +93,8 @@ public class WmsController extends AbstractController
      * display of the information.
      * @todo allow the display of certain layers, or groups of layers.
      */
-    private ModelAndView getCapabilities(RequestParams params) throws WmsException
+    private ModelAndView getCapabilities(HttpServletRequest httpServletRequest,
+        RequestParams params) throws WmsException
     {
         // Check the SERVICE parameter
         String service = params.getMandatoryParamValue("service");
@@ -104,13 +109,17 @@ public class WmsController extends AbstractController
         
         // Check the FORMAT parameter
         String format = params.getParamValue("format");
-        // The WMS1.3.0 spec says that we can respond with the default text/xml
+        // The WMS 1.3.0 spec says that we can respond with the default text/xml
         // format if the client has requested an unknown format.  Hence we do
         // nothing here.
         
         // TODO: check the UPDATESEQUENCE parameter
         
-        return new ModelAndView("capabilities_xml", "config", this.config);
+        Map<String, Object> models = new HashMap<String, Object>();
+        models.put("config", this.config);
+        models.put("wmsBaseUrl", httpServletRequest.getRequestURL().toString());
+        models.put("picMakerFactory", this.picMakerFactory);
+        return new ModelAndView("capabilities_xml", models);
     }
 
     /**
@@ -119,6 +128,14 @@ public class WmsController extends AbstractController
     public void setConfig(Config config)
     {
         this.config = config;
+    }
+    
+    /**
+     * Called by Spring to inject the PicMakerFactory object
+     */
+    public void setPicMakerFactory(PicMakerFactory picMakerFactory)
+    {
+        this.picMakerFactory = picMakerFactory;
     }
     
 }

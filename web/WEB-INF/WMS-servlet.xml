@@ -21,10 +21,31 @@
     <bean id="ncwmsConfig" class="uk.ac.rdg.resc.ncwms.config.Config"
           factory-method="readConfig"/>
     
+    <!-- An object that is used to create PicMakers.  This object needs a Map
+         of key-value pairs that map MIME types to names of classes that extend PicMaker -->
+    <bean id="picMakerFactory" class="uk.ac.rdg.resc.ncwms.graphics.PicMakerFactory">
+        <!-- This map defines the PicMaker classes that will be used to handle
+             different mime types of images -->
+        <property name="picMakerClasses">
+            <map>
+                <entry key="image/png" value="uk.ac.rdg.resc.ncwms.graphics.SimplePicMaker"/>
+                <entry key="image/gif" value="uk.ac.rdg.resc.ncwms.graphics.GifMaker"/>
+                <entry key="application/vnd.google-earth.kmz" value="uk.ac.rdg.resc.ncwms.graphics.KmzMaker"/>
+            </map>
+        </property>
+    </bean>
+    
+    <!-- Object that handles the periodic refreshing of metadata -->
+    <bean id="metadataLoader" class="uk.ac.rdg.resc.ncwms.controller.MetadataLoader"
+            init-method="init" destroy-method="close">
+        <property name="config"><ref local="ncwmsConfig"/></property>
+    </bean>
+    
     <!-- This Controller will handle all the requests to the WMS -->
     <bean id="wmsController" class="uk.ac.rdg.resc.ncwms.controller.WmsController">
         <property name="supportedMethods" value="GET"/>
         <property name="config"><ref local="ncwmsConfig"/></property>
+        <property name="picMakerFactory"><ref local="picMakerFactory"/></property>
     </bean>
     
     <!-- This mapping ensures that all requests to "/wms*" are mapped to the WmsController -->
