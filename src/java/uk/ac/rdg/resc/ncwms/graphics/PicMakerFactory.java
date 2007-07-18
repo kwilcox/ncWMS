@@ -32,6 +32,8 @@ import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import org.apache.log4j.Logger;
+import uk.ac.rdg.resc.ncwms.exceptions.InvalidFormatException;
 
 /**
  * Class that is used to create instances of PicMaker.
@@ -43,6 +45,8 @@ import java.util.Set;
  */
 public class PicMakerFactory
 {
+    private static final Logger logger = Logger.getLogger(PicMakerFactory.class);
+    
     /**
      * Maps image formats (MIME types) to zero-argument constructors of PicMakers.
      * This is populated from setPicMakerClasses()
@@ -56,6 +60,32 @@ public class PicMakerFactory
     public Set<String> getSupportedImageFormats()
     {
         return this.picMakers.keySet();
+    }
+    
+    /**
+     * Creates a PicMaker object for the given mime type.  Creates a new PicMaker
+     * object with each call.
+     * 
+     * @param mimeType The MIME type of the image that is required
+     * @return A PicMaker object
+     * @throws an {@link InvalidFormatException} if there isn't a PicMaker for
+     * the given MIME type
+     * @throws an {@link Exception} if the PicMaker could not be created for
+     * some other reason (treated as an internal error)
+     */
+    public PicMaker createPicMaker(String mimeType)
+        throws InvalidFormatException, Exception
+    {
+        logger.debug("Creating picMaker of type " + mimeType);
+        Constructor<? extends PicMaker> constructor = this.picMakers.get(mimeType.trim());
+        if (constructor == null)
+        {
+            throw new InvalidFormatException(mimeType);
+        }
+        PicMaker pm = constructor.newInstance();
+        // Some PicMakers support multiple MIME types
+        pm.mimeType = mimeType;
+        return pm;
     }
     
     /**

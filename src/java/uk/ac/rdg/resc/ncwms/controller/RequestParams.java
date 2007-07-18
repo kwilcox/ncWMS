@@ -57,8 +57,52 @@ class RequestParams
         {
             String[] values = (String[])httpRequestParamMap.get(name);
             assert values.length >= 1;
-            this.paramMap.put(name.toString().toLowerCase(), values[0]);
+            this.paramMap.put(unquotePlus(name.toString()).toLowerCase(),
+                unquotePlus(values[0].trim()));
         }
+    }
+    
+    /**
+     * Replaces URL escape sequences with their correct characters, and replaces
+     * plus signs with spaces.  Nearly a direct port of urllib.unquote_plus() in
+     * Python 2.3.
+     * @todo: doesn't handle "%%" correctly as an escape sequence for "%"
+     */
+    private static final String unquotePlus(String s)
+    {
+        s = s.replaceAll("\\+", " ");
+        String[] items = s.split("%");
+        StringBuffer buf = new StringBuffer(items[0]);
+        for (int i = 1; i < items.length; i++)
+        {
+            System.out.println(items[i]);
+            // The first two characters of each item will be a hex representation
+            // of the ASCII code of the escaped character
+            if (items[i].length() >= 2)
+            {
+                try
+                {
+                    int charNum = Integer.parseInt(items[i].substring(0, 2), 16);
+                    buf.append((char)charNum);
+                    buf.append(items[i].substring(2));
+                }
+                catch(NumberFormatException nfe)
+                {
+                    // It wasn't a valid hex code
+                    buf.append("%" + items[i]);
+                }
+            }
+            else
+            {
+                buf.append("%" + items[i]);
+            }
+        }
+        return buf.toString();
+    }
+    
+    public static void main(String[] args)
+    {
+        System.out.println(unquotePlus("%7e/abc+def%2fhello%20flowers%2e"));
     }
     
     /**

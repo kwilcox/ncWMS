@@ -26,63 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package uk.ac.rdg.resc.ncwms.utils;
-
-import java.util.Date;
-import ucar.nc2.units.DateFormatter;
-import uk.ac.rdg.resc.ncwms.config.Dataset;
-import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
+package uk.ac.rdg.resc.ncwms.exceptions;
 
 /**
- * <p>Collection of static utility methods that are useful in the WMS application.</p>
- *
- * <p>Through the taglib definition /WEB-INF/taglib/wmsUtils.tld, these functions
- * are also available as JSP2.0 functions. For example:</p>
- * <code>
- * <%@taglib uri="/WEB-INF/taglib/wmsUtils" prefix="utils"%>
- * The epoch: ${utils:secondsToISO8601(0)}
- * </code>
+ * Exception that is thrown when a client attempts to request a map layer that
+ * is not available from this server.
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
  */
-public class WmsUtils
+public class LayerNotDefinedException extends WmsException
 {
-    /**
-     * The version of the WMS standard that this server supports
-     * @todo Support more versions (e.g. 1.1.1)?
-     */
-    public static final String VERSION = "1.3.0";
-
-    /**
-     * Converts a number of seconds since the epoch into an ISO8601-formatted
-     * String.
-     */
-    public static String secondsToISO8601(double secondsSinceEpoch)
-    {
-        DateFormatter df = new DateFormatter();
-        return df.toDateTimeStringISO(new Date(new Double(secondsSinceEpoch * 1000).longValue()));
-    }
     
-    /**
-     * Converts an ISO8601-formatted time into a number of seconds since the
-     * epoch
-     */
-    public static double iso8061ToSeconds(String iso8601)
+    /** Creates a new instance of LayerNotDefinedException */
+    public LayerNotDefinedException(String layerName)
     {
-        DateFormatter df = new DateFormatter();
-        return df.getISODate(iso8601).getTime() / 1000.0;
-    }
-        
-    /**
-     * @return the version of WMS that this server supports (equal to the VERSION
-     * field but wrapped as a function to support the creation of JSP tags.
-     */
-    public static final String getVersion()
-    {
-        return VERSION;
+        super("The layer \"" + layerName + "\" is not provided by this server",
+            "LayerNotDefined");
     }
     
 }

@@ -43,6 +43,8 @@ import simple.xml.load.Commit;
 import simple.xml.load.PersistenceException;
 import simple.xml.load.Persister;
 import simple.xml.load.Validate;
+import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
+import uk.ac.rdg.resc.ncwms.exceptions.LayerNotDefinedException;
 
 /**
  * Configuration of the server.  We use Simple XML Serialization
@@ -241,6 +243,35 @@ public class Config
     {
         this.datasets.remove(ds.getId());
         this.datasetList.remove(ds);
+    }
+    
+    /**
+     * @return the VariableMetadata object that corresponds with the supplied
+     * layer name (e.g. "FOAM_ONE/TMP").
+     * @throws LayerNotDefinedException if the given name does not match an
+     * available layer.
+     */
+    public VariableMetadata getVariable(String layerName)
+        throws LayerNotDefinedException
+    {
+        // NOTE!! The logic of this method must match up with
+        // VariableMetadata.getLayerName()!
+        String[] dsAndVarIds = layerName.split("/");
+        if (dsAndVarIds.length != 2)
+        {
+            throw new LayerNotDefinedException(layerName);
+        }
+        Dataset ds = this.datasets.get(dsAndVarIds[0]);
+        if (ds == null)
+        {
+            throw new LayerNotDefinedException(layerName);
+        }
+        VariableMetadata var = ds.getVariables().get(dsAndVarIds[1]);
+        if (var == null)
+        {
+            throw new LayerNotDefinedException(layerName);
+        }
+        return var;
     }
     
 }

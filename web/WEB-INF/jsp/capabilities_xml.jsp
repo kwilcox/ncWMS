@@ -1,14 +1,16 @@
 <%@include file="xml_header.jsp"%>
 <%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+<%@taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn"%>
 <%@taglib uri="/WEB-INF/taglib/wmsUtils" prefix="utils"%> <%-- tag library for useful utility functions --%>
 <%-- Displays the Capabilities document in XML.  
      Data (models) passed in to this page:
          config     = Configuration of this server (uk.ac.rdg.resc.ncwms.config.Config)
          wmsBaseUrl = Base URL of this server (java.lang.String)
          picMakerFactory = Factory of PicMaker objects (uk.ac.rdg.resc.ncwms.graphics.PicMakerFactory)
+         layerLimit = Maximum number of layers that can be requested simultaneously from this server (int)
      --%>
 <WMS_Capabilities
-        version="1.3.0" <%-- TODO: get this from somewhere central --%>
+        version="${utils:wmsVersion()}"
         <%-- TODO: do UpdateSequence properly --%>
         xmlns="http://www.opengis.net/wms"
         xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -35,7 +37,7 @@
         </ContactInformation>
         <Fees>none</Fees>
         <AccessConstraints>none</AccessConstraints>
-        <%--TODO <LayerLimit>%d</LayerLimit>" % getmap.getLayerLimit())--%>
+        <LayerLimit>${layerLimit}</LayerLimit>
         <MaxWidth>${config.server.maxImageWidth}</MaxWidth>
         <MaxHeight>${config.server.maxImageHeight}</MaxHeight>
     </Service>
@@ -91,8 +93,7 @@
                 <c:forEach var="variable" items="${dataset.value.variables}">
                 <Layer<c:if test="${config.server.allowFeatureInfo} and ${dataset.value.queryable}"> queryable="1"</c:if>>
                     <Title>${variable.value.title}</Title>
-                    <%-- N.B. This method of generating the Name must match up with the parsing of the Layer names in GetMap --%>
-                    <Name>${dataset.key}/${variable.key}</Name>
+                    <Name>${variable.value.layerName}</Name>
                     <Abstract>${variable.value.abstract}</Abstract>
                     <c:set var="bbox" value="${variable.value.bbox}"/>
                     <EX_GeographicBoundingBox>
@@ -111,9 +112,12 @@
                         <c:forEach var="zval" items="${variable.value.zvalues}" varStatus="status"><c:if test="${status.index > 0}">,</c:if>${zval}</c:forEach>
                     </Dimension>
                     </c:if>
-                    <c:if test="${not empty variable.value.tvalues}">
-                    <Dimension name="time" units="ISO8601" multipleValues="true" current="true">
-                        <c:forEach var="tval" items="${variable.value.tvalues}" varStatus="status"><c:if test="${status.index > 0}">,</c:if>${utils:secondsToISO8601(tval)}</c:forEach>
+                    <c:set var="tvalues" value="${variable.value.tvalues}"/>
+                    <c:if test="${not empty tvalues}">
+                    <%-- We use the *last* value of the time axis as the default.
+                         TODO: make it the time that is closest to now? --%>
+                    <Dimension name="time" units="ISO8601" multipleValues="true" current="true" default="${utils:secondsToISO8601(tvalues[fn:length(tvalues) - 1])}">
+                        <c:forEach var="tval" items="${tvalues}" varStatus="status"><c:if test="${status.index > 0}">,</c:if>${utils:secondsToISO8601(tval)}</c:forEach>
                     </Dimension>
                     </c:if>
                     <c:forEach var="style" items="${variable.value.supportedStyles}">

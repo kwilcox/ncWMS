@@ -453,4 +453,15 @@ public class VariableMetadata
         return this.supportedStyles;
     }
     
+    /**
+     * @return a unique identifier string for this VariableMetadata object (used
+     * in the display of Layers in a Capabilities document).
+     */
+    public String getLayerName()
+    {
+        // NOTE!! The logic of this method must match up with
+        // Config.getVariable(layerName)!
+        return this.dataset.getId() + "/" + this.id;
+    }
+    
 }

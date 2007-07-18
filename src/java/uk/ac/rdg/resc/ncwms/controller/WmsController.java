@@ -35,9 +35,13 @@ import javax.servlet.http.HttpServletResponse;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.AbstractController;
 import uk.ac.rdg.resc.ncwms.config.Config;
+import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
 import uk.ac.rdg.resc.ncwms.exceptions.OperationNotSupportedException;
 import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
+import uk.ac.rdg.resc.ncwms.graphics.PicMaker;
 import uk.ac.rdg.resc.ncwms.graphics.PicMakerFactory;
+import uk.ac.rdg.resc.ncwms.styles.AbstractStyle;
+import uk.ac.rdg.resc.ncwms.utils.WmsUtils;
 
 /**
  * Entry point for the WMS.  Note that we cannot use a CommandController here
@@ -51,8 +55,18 @@ import uk.ac.rdg.resc.ncwms.graphics.PicMakerFactory;
  */
 public class WmsController extends AbstractController
 {
-    private Config config; // Will be injected by Spring
-    private PicMakerFactory picMakerFactory;
+    /**
+     * The maximum number of layers that can be requested in a single GetMap
+     * operation
+     */
+    private static final int LAYER_LIMIT = 1;
+    /**
+     * The fill value to use when reading data and making pictures
+     */
+    private static final float FILL_VALUE = Float.NaN;
+    
+    private Config config;                   // Will be injected by Spring
+    private PicMakerFactory picMakerFactory; // ditto
     
     /**
      * Entry point for all requests to the WMS
@@ -74,7 +88,7 @@ public class WmsController extends AbstractController
         }
         else if (request.equals("GetMap"))
         {
-            
+            return getMap(params);
         }
         else if (request.equals("GetFeatureInfo"))
         {
@@ -105,7 +119,7 @@ public class WmsController extends AbstractController
         
         // Check the VERSION parameter
         String version = params.getParamValue("version");
-        // We do nothing else here because 1.3.0 is the only version we support
+        // We do nothing else here because we only support one version
         
         // Check the FORMAT parameter
         String format = params.getParamValue("format");
@@ -119,7 +133,114 @@ public class WmsController extends AbstractController
         models.put("config", this.config);
         models.put("wmsBaseUrl", httpServletRequest.getRequestURL().toString());
         models.put("picMakerFactory", this.picMakerFactory);
+        models.put("layerLimit", LAYER_LIMIT);
         return new ModelAndView("capabilities_xml", models);
+    }
+    
+    /**
+     * Executes the GetMap operation
+     * @throws WmsException if the user has provided invalid parameters
+     * @throws Exception if an internal error occurs
+     */
+    public ModelAndView getMap(RequestParams params) throws WmsException, Exception
+    {
+        String version = params.getMandatoryParamValue("version");
+        if (!version.equals(WmsUtils.getVersion()))
+        {
+            throw new WmsException("VERSION must be " + WmsUtils.VERSION);
+        }
+        
+        String[] layers = params.getMandatoryParamValue("layers").split(",");
+        if (layers.length > LAYER_LIMIT)
+        {
+            throw new WmsException("You may only request a maximum of " +
+                LAYER_LIMIT + " layer(s) simultaneously from this server");
+        }
+        
+        // TODO: support more than one layer
+        VariableMetadata var = this.config.getVariable(layers[0]);
+        
+        String[] styles = params.getMandatoryParamValue("styles").split(",");
+        // We must either have one style per layer or else an empty parameter: "STYLES="
+        if (styles.length != layers.length && !styles.equals(""))
+        {
+            throw new WmsException("You must request exactly one STYLE per layer, or use"
+               + " the default style for each layer with STYLES=");
+        }
+        AbstractStyle style = null;
+        if (styles[0].equals(""))
+        {
+            // TODO We'll use the default style for this variable
+        }
+        else
+        {
+            // TODO Use the given style if supported by this variable
+        }
+        style.setFillValue(FILL_VALUE);
+        
+        // RequestParser replaces pluses with spaces: we must change back
+        // to parse the format correctly
+        String mimeType = params.getMandatoryParamValue("format").replaceAll(" ", "+");
+        // Get the PicMaker that corresponds with this MIME type
+        PicMaker picMaker = this.picMakerFactory.createPicMaker(mimeType);
+        
+        // TODO: deal with EXCEPTIONS
+                
+        // Get the requested transparency and background colour for the layer
+        String trans = params.getParamValue("transparent", "false").toLowerCase();
+        if (trans.equals("false")) style.setTransparent(false);
+        else if (trans.equals("true")) style.setTransparent(true);
+        else throw new WmsException("The value of TRANSPARENT must be \"TRUE\" or \"FALSE\"");
+
+        String bgc = params.getParamValue("bgcolor", "0xFFFFFF");
+        if (bgc.length() != 8 || !bgc.startsWith("0x"))
+        {
+            throw new WmsException("Invalid format for BGCOLOR");
+        }
+        try
+        {
+            style.setBgColor(Integer.parseInt(bgc.substring(2), 16));
+        }
+        catch(NumberFormatException nfe)
+        {
+            throw new WmsException("Invalid format for BGCOLOR");
+        }
+        
+        float[] bbox = getBbox(params);
+        
+        
+
+        return null;
+    }
+    
+    /**
+     * Gets the bounding box from the parameters as an array of four floats
+     * @throws WmsException if there is an error in the format of the bounding box
+     */
+    private static final float[] getBbox(RequestParams params) throws WmsException
+    {
+        String[] bboxEls = params.getParamValue("bbox").split(",");
+        if (bboxEls.length != 4)
+        {
+            throw new WmsException("Invalid bounding box format: need four elements");
+        }
+        float[] bbox = new float[4];
+        try
+        {
+            for (int i = 0; i < bbox.length; i++)
+            {
+                bbox[i] = Float.parseFloat(bboxEls[i]);
+            }
+        }
+        catch(NumberFormatException nfe)
+        {
+            throw new WmsException("Invalid bounding box format: all elements must be numeric");
+        }
+        if (bbox[0] >= bbox[2] || bbox[1] >= bbox[3])
+        {
+            throw new WmsException("Invalid bounding box format");
+        }
+        return bbox;
     }
 
     /**

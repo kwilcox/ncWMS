@@ -55,10 +55,6 @@ import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
 public abstract class PicMaker
 {
     private static final Logger logger = Logger.getLogger(PicMaker.class);
-    /**
-     * Maps MIME types to the required class of PicMaker
-     */
-    private static Hashtable<String, Class> picMakers;
     
     // Image MIME type
     protected String mimeType;
@@ -68,61 +64,7 @@ public abstract class PicMaker
     protected String[] tValues; // Array of time values, one for each frame
     protected String zValue;
     protected float[] bbox;
-    protected BufferedImage legend; // If we need a legend, it will be stored here    
-    
-    static
-    {
-        picMakers = new Hashtable<String, Class>();
-        picMakers.put("image/png", SimplePicMaker.class);
-        picMakers.put("image/gif", GifMaker.class);
-        picMakers.put("application/vnd.google-earth.kmz", KmzMaker.class);
-    }
-    
-    /**
-     * @return the image formats (MIME types) that can be produced as a
-     * Set of Strings.
-     */
-    public static final Set<String> getSupportedImageFormats()
-    {
-        return picMakers.keySet();
-    }
-    
-    /**
-     * Creates a PicMaker object for the given mime type.  Creates a new PicMaker
-     * object with each call.
-     * 
-     * @param mimeType The MIME type of the image that is required
-     * @return A PicMaker object
-     * @throws a {@link InvalidFormatException} if there isn't a PicMaker for
-     * the given MIME type
-     * @throws a {@link WmsException} if the PicMaker could not be created
-     */
-    public static PicMaker createPicMaker(String mimeType)
-        throws InvalidFormatException, WmsException
-    {
-        Class clazz = picMakers.get(mimeType.trim());
-        if (clazz == null)
-        {
-            throw new InvalidFormatException(mimeType);
-        }
-        try
-        {
-            PicMaker pm = (PicMaker)clazz.newInstance();
-            // Some PicMakers support multiple MIME types
-            pm.mimeType = mimeType;
-            return pm;
-        }
-        catch (InstantiationException ie)
-        {
-            throw new WmsException("Internal error: could not create PicMaker "
-                + "of type " + clazz.getName());
-        }
-        catch (IllegalAccessException iae)
-        {
-            throw new WmsException("Internal error: IllegalAccessException" +
-                " when creating PicMaker of type " + clazz.getName());
-        }
-    }
+    protected BufferedImage legend; // If we need a legend, it will be stored here  
     
     public String getMimeType()
     {
