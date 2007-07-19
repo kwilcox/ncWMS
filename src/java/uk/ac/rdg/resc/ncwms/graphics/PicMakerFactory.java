@@ -51,8 +51,7 @@ public class PicMakerFactory
      * Maps image formats (MIME types) to zero-argument constructors of PicMakers.
      * This is populated from setPicMakerClasses()
      */
-    private Map<String, Constructor<? extends PicMaker>> picMakers =
-        new HashMap<String, Constructor<? extends PicMaker>>();
+    private Map<String, Constructor> picMakers = new HashMap<String, Constructor>();
     
     /**
      * @return the supported image MIME types as a Set of Strings
@@ -77,12 +76,14 @@ public class PicMakerFactory
         throws InvalidFormatException, Exception
     {
         logger.debug("Creating picMaker of type " + mimeType);
-        Constructor<? extends PicMaker> constructor = this.picMakers.get(mimeType.trim());
+        Constructor constructor = this.picMakers.get(mimeType.trim());
         if (constructor == null)
         {
             throw new InvalidFormatException(mimeType);
         }
-        PicMaker pm = constructor.newInstance();
+        // We've already checked that the constructor is of the correct type
+        // (in setPicMakerClasses())
+        PicMaker pm = (PicMaker)constructor.newInstance();
         // Some PicMakers support multiple MIME types
         pm.mimeType = mimeType;
         return pm;
@@ -96,7 +97,7 @@ public class PicMakerFactory
      * supplied class does not have a zero-argument constructor or if the
      * zero-argument constructor is not accessible
      */
-    public void setPicMakerClasses(Map<String, Class<? extends PicMaker>> picMakerClasses)
+    public void setPicMakerClasses(Map<String, Class> picMakerClasses)
         throws Exception
     {
         for (String mimeType : picMakerClasses.keySet())

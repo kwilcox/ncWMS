@@ -16,4 +16,16 @@
       <function-class>uk.ac.rdg.resc.ncwms.utils.WmsUtils</function-class>
       <function-signature>java.lang.String secondsToISO8601(double)</function-signature>
   </function>
+  <function>
+      <description>Calculates the absolute value of a number</description>
+      <name>abs</name>
+      <function-class>java.lang.Math</function-class>
+      <function-signature>double abs(double)</function-signature>
+  </function>
+  <function>
+      <description>Creates a heading (e.g. "Oct 2006") for the given date</description>
+      <name>getHeading</name>
+      <function-class>uk.ac.rdg.resc.ncwms.utils.WmsUtils</function-class>
+      <function-signature>java.lang.String getHeading(double)</function-signature>
+  </function>
 </taglib>

@@ -2,7 +2,7 @@
 <%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
 <%@taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn"%>
 <%@taglib uri="/WEB-INF/taglib/wmsUtils" prefix="utils"%> <%-- tag library for useful utility functions --%>
-<%-- Displays the Capabilities document in XML.  
+<%-- Displays the Capabilities document in XML.
      Data (models) passed in to this page:
          config     = Configuration of this server (uk.ac.rdg.resc.ncwms.config.Config)
          wmsBaseUrl = Base URL of this server (java.lang.String)

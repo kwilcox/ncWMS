@@ -48,7 +48,27 @@
         <property name="picMakerFactory"><ref local="picMakerFactory"/></property>
     </bean>
     
-    <!-- This mapping ensures that all requests to "/wms*" are mapped to the WmsController -->
+    <!-- This Controller will handle all requests for the non-standard
+         metadata that is required by the Godiva2 site-->
+    <bean id="metadataController" class="uk.ac.rdg.resc.ncwms.controller.MetadataController">
+        <property name="supportedMethods" value="GET"/>
+        <property name="config"><ref local="ncwmsConfig"/></property>
+        <property name="methodNameResolver"><ref local="propsResolverGet"/></property>
+    </bean>
+    <!-- This maps URL patterns to the methods of the MetadataController -->
+    <bean id="propsResolverGet" class="org.springframework.web.servlet.mvc.multiaction.PropertiesMethodNameResolver">
+        <property name="mappings">
+            <value>
+                /metadata/datasets = showDatasets
+                /metadata/variables = showVariables
+                /metadata/variableDetails = showVariableDetails
+                /metadata/calendar = showCalendar
+            </value>
+        </property>
+    </bean>
+    
+    <!-- This mapping ensures that all requests to "/wms*" are mapped to the WmsController 
+         and all requests for "/metadata*" are handled by the MetadataController -->
     <bean id="controllermap" class="org.springframework.web.servlet.mvc.support.ControllerClassNameHandlerMapping"/>
     
     <!-- Each Controller will return the name of a View that maps to a certain JSP.

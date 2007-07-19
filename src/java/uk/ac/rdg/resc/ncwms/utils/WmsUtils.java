@@ -28,10 +28,10 @@
 
 package uk.ac.rdg.resc.ncwms.utils;
 
+import java.text.DateFormat;
 import java.util.Date;
 import ucar.nc2.units.DateFormatter;
-import uk.ac.rdg.resc.ncwms.config.Dataset;
-import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
+import java.text.SimpleDateFormat;
 
 /**
  * <p>Collection of static utility methods that are useful in the WMS application.</p>
@@ -63,12 +63,22 @@ public class WmsUtils
     public static String secondsToISO8601(double secondsSinceEpoch)
     {
         DateFormatter df = new DateFormatter();
-        return df.toDateTimeStringISO(new Date(new Double(secondsSinceEpoch * 1000).longValue()));
+        return df.toDateTimeStringISO(getDate(secondsSinceEpoch));
+    }
+    
+    /**
+     * @return a Date object that is equivalent to the given number of seconds
+     * since the epoch
+     */
+    private static Date getDate(double secondsSinceEpoch)
+    {
+        return new Date(new Double(secondsSinceEpoch * 1000).longValue());
     }
     
     /**
      * Converts an ISO8601-formatted time into a number of seconds since the
      * epoch
+     * @todo: shouldn't this throw a parse error?
      */
     public static double iso8061ToSeconds(String iso8601)
     {
@@ -83,6 +93,16 @@ public class WmsUtils
     public static final String getVersion()
     {
         return VERSION;
+    }
+    
+    /**
+     * @return a heading (e.g. "Oct 2006") for the given date, which is 
+     * expressed in seconds since the epoch.  Used by showCalendar.jsp.
+     */
+    public static String getHeading(double secondsSinceEpoch)
+    {
+        DateFormat df = new SimpleDateFormat("MMM yyyy");
+        return df.format(getDate(secondsSinceEpoch));
     }
     
 }
