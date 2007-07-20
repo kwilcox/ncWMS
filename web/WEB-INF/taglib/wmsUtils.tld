@@ -56,4 +56,11 @@
       <function-class>uk.ac.rdg.resc.ncwms.utils.WmsUtils</function-class>
       <function-signature>java.lang.String getMonthAfter(double)</function-signature>
   </function>
+  <function>
+      <description>Gets a List of Lists of day numbers, representing the calendar
+      for the month containing the given date in seconds since the epoch.</description>
+      <name>getWeeksOfMonth</name>
+      <function-class>uk.ac.rdg.resc.ncwms.utils.WmsUtils</function-class>
+      <function-signature>java.util.List getWeeksOfMonth(double)</function-signature>
+  </function>
 </taglib>

@@ -32,6 +32,7 @@ import java.text.DateFormat;
 import java.util.Date;
 import ucar.nc2.units.DateFormatter;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
@@ -173,11 +174,53 @@ public class WmsUtils
         return dateToISO8601(cal.getTime());
     }
     
-    public static List<List<Integer>> getWeeksOfMonth(double secondsSinceEpoch)
+    /**
+     * <p>@return a calendar representation of the month that contains the date
+     * represented by the given number of seconds since the epoch.  Each item
+     * in the returned List represents a week in the calendar (starting on a
+     * Monday).  Each week is represented by an array of 7 integers, giving the
+     * day number on each day of that week.  If a day does not belong in the
+     * calendar for that month, its value will be -1.</p>
+     *
+     * <p>For example, for a date in March 2007, this will return a calendar
+     * of the form:<p>
+     * <table border="1">
+     * <tr><td>-1</td><td>-1</td><td>-1</td><td>1</td><td>2</td><td>3</td><td>4</td></tr>
+     * <tr><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td><td>11</td></tr>
+     * <tr><td>12</td><td>13</td><td>14</td><td>15</td><td>16</td><td>17</td><td>18</td></tr>
+     * <tr><td>19</td><td>20</td><td>21</td><td>22</td><td>23</td><td>24</td><td>25</td></tr>
+     * <tr><td>26</td><td>27</td><td>28</td><td>29</td><td>30</td><td>31</td><td>-1</td></tr>
+     * </table>
+     */
+    public static List<int[]> getWeeksOfMonth(double secondsSinceEpoch)
     {
+        List<int[]> weeks = new ArrayList<int[]>();
         Calendar cal = getCalendar(secondsSinceEpoch);
-        cal.setFirstDayOfWeek(Calendar.MONDAY);
         
+        // Find the first Monday of the month
+        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+        cal.set(Calendar.DAY_OF_WEEK_IN_MONTH, 1);
+        int day = cal.get(Calendar.DAY_OF_MONTH);
+        
+        // If this isn't the first day of the month then we have a partial first week
+        if (day != 1) day -= 7; // Start with the week before the first Monday
+        
+        // Construct the weeks
+        int lastDayOfMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH);
+        while (day < lastDayOfMonth)
+        {
+            int[] week = new int[7];
+            int firstDayNextWeek = day + week.length;
+            for (int i = 0; i < week.length; i++)
+            {
+                if (day >= 1 && day <= lastDayOfMonth) week[i] = day;
+                else week[i] = -1; // indicates a day that's not present in the current month
+                day++;
+            }
+            weeks.add(week);
+        }
+        
+        return weeks;
     }
     
 }

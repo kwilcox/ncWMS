@@ -14,10 +14,6 @@
     <%--<prettyNearestValue>%s</prettyNearestValue>" % time.strftime(prettyDateFormat, time.gmtime(tValues[nearestIndex])))--%>
     <nearestIndex>${nearestIndex}</nearestIndex>
 
-<%--    # create a struct_time tuple with zero timezone offset (i.e. GMT)
-    nearesttime = time.gmtime(tValues[nearestIndex])
-
-    # Now print out the calendar in HTML --%>
     <calendar>
         <table>
             <tbody>
@@ -31,11 +27,19 @@
                 </tr>
                 <%-- Add the day-of-week headings --%>
                 <tr><th>M</th><th>T</th><th>W</th><th>T</th><th>F</th><th>S</th><th>S</th></tr>
+                <c:forEach var="week" items="${utils:getWeeksOfMonth(nearestTime)}">
+                <tr>
+                    <c:forEach var="day" items="${week}">
+                    <td>
+                        <c:if test="${day > 0}">
+                            ${day}
+                        </c:if>
+                    </td>
+                    </c:forEach>
+                </tr>
+                </c:forEach>
     <%--# Add the calendar body
     tValIndex = 0 # index in tvalues array
-    for week in calendar.monthcalendar(nearesttime[0], nearesttime[1]):
-        <tr>")
-        for day in week:
             if day > 0:
                 # Search through the t axis and find out whether we have
                 # any data for this particular day
