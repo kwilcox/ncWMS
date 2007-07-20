@@ -24,8 +24,36 @@
   </function>
   <function>
       <description>Creates a heading (e.g. "Oct 2006") for the given date</description>
-      <name>getHeading</name>
+      <name>getCalendarHeading</name>
       <function-class>uk.ac.rdg.resc.ncwms.utils.WmsUtils</function-class>
-      <function-signature>java.lang.String getHeading(double)</function-signature>
+      <function-signature>java.lang.String getCalendarHeading(double)</function-signature>
+  </function>
+  <function>
+      <description>Gets an ISO8601-formatted date that is exactly one year earlier than
+      the given date, in seconds since the epoch.</description>
+      <name>getYearBefore</name>
+      <function-class>uk.ac.rdg.resc.ncwms.utils.WmsUtils</function-class>
+      <function-signature>java.lang.String getYearBefore(double)</function-signature>
+  </function>
+  <function>
+      <description>Gets an ISO8601-formatted date that is exactly one year later than
+      the given date, in seconds since the epoch.</description>
+      <name>getYearAfter</name>
+      <function-class>uk.ac.rdg.resc.ncwms.utils.WmsUtils</function-class>
+      <function-signature>java.lang.String getYearAfter(double)</function-signature>
+  </function>
+  <function>
+      <description>Gets an ISO8601-formatted date that is exactly one month earlier than
+      the given date, in seconds since the epoch.</description>
+      <name>getMonthBefore</name>
+      <function-class>uk.ac.rdg.resc.ncwms.utils.WmsUtils</function-class>
+      <function-signature>java.lang.String getMonthBefore(double)</function-signature>
+  </function>
+  <function>
+      <description>Gets an ISO8601-formatted date that is exactly one month later than
+      the given date, in seconds since the epoch.</description>
+      <name>getMonthAfter</name>
+      <function-class>uk.ac.rdg.resc.ncwms.utils.WmsUtils</function-class>
+      <function-signature>java.lang.String getMonthAfter(double)</function-signature>
   </function>
 </taglib>

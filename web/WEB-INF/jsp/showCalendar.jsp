@@ -23,11 +23,11 @@
             <tbody>
                 <%-- Add the navigation buttons at the top of the month view --%>
                 <tr>
-                    <td><a href="#" onclick="javascript:setCalendar('${variable.dataset.id}','${variable.id}','%s'); return false">&lt;&lt;</a></td> <%-- % (_getYearBefore(nearesttime)))0--%>
-                    <td><a href="#" onclick="javascript:setCalendar('${variable.dataset.id}','${variable.id}','%s'); return false">&lt;</a></td>" % (dsId, varID, _getMonthBefore(nearesttime)))
-                    <td colspan="3">${utils:getHeading(nearestTime)}</td>
-                    <td><a href="#" onclick="javascript:setCalendar('${variable.dataset.id}','${variable.id}','%s'); return false">&gt;</a></td>" % (dsId, varID, _getMonthAfter(nearesttime)))
-                    <td><a href="#" onclick="javascript:setCalendar('${variable.dataset.id}','${variable.id}','%s'); return false">&gt;&gt;</a></td>" % (dsId, varID, _getYearAfter(nearesttime)))
+                    <td><a href="#" onclick="javascript:setCalendar('${variable.dataset.id}','${variable.id}','${utils:getYearBefore(nearestTime)}'); return false">&lt;&lt;</a></td>
+                    <td><a href="#" onclick="javascript:setCalendar('${variable.dataset.id}','${variable.id}','${utils:getMonthBefore(nearestTime)}'); return false">&lt;</a></td>
+                    <td colspan="3">${utils:getCalendarHeading(nearestTime)}</td>
+                    <td><a href="#" onclick="javascript:setCalendar('${variable.dataset.id}','${variable.id}','${utils:getMonthAfter(nearestTime)}'); return false">&gt;</a></td>
+                    <td><a href="#" onclick="javascript:setCalendar('${variable.dataset.id}','${variable.id}','${utils:getYearAfter(nearestTime)}'); return false">&gt;&gt;</a></td>
                 </tr>
                 <%-- Add the day-of-week headings --%>
                 <tr><th>M</th><th>T</th><th>W</th><th>T</th><th>F</th><th>S</th><th>S</th></tr>

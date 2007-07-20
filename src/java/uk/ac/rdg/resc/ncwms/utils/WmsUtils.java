@@ -32,6 +32,9 @@ import java.text.DateFormat;
 import java.util.Date;
 import ucar.nc2.units.DateFormatter;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.List;
+import java.util.TimeZone;
 
 /**
  * <p>Collection of static utility methods that are useful in the WMS application.</p>
@@ -62,8 +65,15 @@ public class WmsUtils
      */
     public static String secondsToISO8601(double secondsSinceEpoch)
     {
-        DateFormatter df = new DateFormatter();
-        return df.toDateTimeStringISO(getDate(secondsSinceEpoch));
+        return dateToISO8601(getDate(secondsSinceEpoch));
+    }
+
+    /**
+     * Converts a Date object into an ISO8601-formatted String.
+     */
+    public static String dateToISO8601(Date date)
+    {
+        return new DateFormatter().toDateTimeStringISO(date);
     }
     
     /**
@@ -99,10 +109,75 @@ public class WmsUtils
      * @return a heading (e.g. "Oct 2006") for the given date, which is 
      * expressed in seconds since the epoch.  Used by showCalendar.jsp.
      */
-    public static String getHeading(double secondsSinceEpoch)
+    public static String getCalendarHeading(double secondsSinceEpoch)
     {
         DateFormat df = new SimpleDateFormat("MMM yyyy");
         return df.format(getDate(secondsSinceEpoch));
+    }
+    
+    /**
+     * @return an ISO8601-formatted date that is exactly one year earlier than
+     * the given date, in seconds since the epoch.
+     */
+    public static String getYearBefore(double secondsSinceEpoch)
+    {
+        Calendar cal = getCalendar(secondsSinceEpoch);
+        cal.add(Calendar.YEAR, -1);
+        return dateToISO8601(cal.getTime());
+    }
+    
+    /**
+     * @return a new Calendar object, set to the given time (in seconds since
+     * the epoch).
+     */
+    private static Calendar getCalendar(double secondsSinceEpoch)
+    {
+        Date date = getDate(secondsSinceEpoch);
+        Calendar cal = Calendar.getInstance();
+        // Must set the time zone to avoid problems with daylight saving
+        cal.setTimeZone(TimeZone.getTimeZone("GMT+0"));
+        cal.setTime(date);
+        return cal;
+    }
+    
+    /**
+     * @return an ISO8601-formatted date that is exactly one year later than
+     * the given date, in seconds since the epoch.
+     */
+    public static String getYearAfter(double secondsSinceEpoch)
+    {
+        Calendar cal = getCalendar(secondsSinceEpoch);
+        cal.add(Calendar.YEAR, 1);
+        return dateToISO8601(cal.getTime());
+    }
+    
+    /**
+     * @return an ISO8601-formatted date that is exactly one month earlier than
+     * the given date, in seconds since the epoch.
+     */
+    public static String getMonthBefore(double secondsSinceEpoch)
+    {
+        Calendar cal = getCalendar(secondsSinceEpoch);
+        cal.add(Calendar.MONTH, -1);
+        return dateToISO8601(cal.getTime());
+    }
+    
+    /**
+     * @return an ISO8601-formatted date that is exactly one month later than
+     * the given date, in seconds since the epoch.
+     */
+    public static String getMonthAfter(double secondsSinceEpoch)
+    {
+        Calendar cal = getCalendar(secondsSinceEpoch);
+        cal.add(Calendar.MONTH, 1);
+        return dateToISO8601(cal.getTime());
+    }
+    
+    public static List<List<Integer>> getWeeksOfMonth(double secondsSinceEpoch)
+    {
+        Calendar cal = getCalendar(secondsSinceEpoch);
+        cal.setFirstDayOfWeek(Calendar.MONDAY);
+        
     }
     
 }
