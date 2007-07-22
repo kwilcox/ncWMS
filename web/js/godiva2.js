@@ -428,7 +428,7 @@ function getTimesteps(dataset, variable, tIndex, tVal, prettyTVal)
     $('utc').style.visibility = 'visible';
     
     // Get the timesteps
-    downloadUrl('WMS.py', 'SERVICE=WMS&REQUEST=GetMetadata&item=timesteps&dataset=' +  dataset + 
+    downloadUrl('wms', 'REQUEST=GetMetadata&item=timesteps&dataset=' +  dataset + 
         '&variable=' + variable + '&tIndex=' + tIndex,
         function(req) {
             $('time').innerHTML = req.responseText; // the data will be a selection box

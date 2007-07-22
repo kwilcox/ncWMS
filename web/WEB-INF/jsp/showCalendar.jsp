@@ -11,7 +11,7 @@
     <%-- Calculate the nearest time to the focus time (in seconds since epoch) --%>
     <c:set var="nearestTime" value="${variable.tvalues[nearestIndex]}"/>
     <nearestValue>${utils:secondsToISO8601(nearestTime)}</nearestValue>
-    <%--<prettyNearestValue>%s</prettyNearestValue>" % time.strftime(prettyDateFormat, time.gmtime(tValues[nearestIndex])))--%>
+    <prettyNearestValue>${utils:secondsToISO8601(nearestTime)}</prettyNearestValue><%-- TODO: change to prettier date format --%>
     <nearestIndex>${nearestIndex}</nearestIndex>
 
     <calendar>

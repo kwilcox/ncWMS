@@ -81,7 +81,7 @@ public class WmsUtils
      * @return a Date object that is equivalent to the given number of seconds
      * since the epoch
      */
-    private static Date getDate(double secondsSinceEpoch)
+    public static Date getDate(double secondsSinceEpoch)
     {
         return new Date(new Double(secondsSinceEpoch * 1000).longValue());
     }
@@ -131,7 +131,7 @@ public class WmsUtils
      * @return a new Calendar object, set to the given time (in seconds since
      * the epoch).
      */
-    private static Calendar getCalendar(double secondsSinceEpoch)
+    public static Calendar getCalendar(double secondsSinceEpoch)
     {
         Date date = getDate(secondsSinceEpoch);
         Calendar cal = Calendar.getInstance();

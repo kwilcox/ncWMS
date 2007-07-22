@@ -28,14 +28,17 @@
 
 package uk.ac.rdg.resc.ncwms.controller;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.mvc.multiaction.MultiActionController;
 import uk.ac.rdg.resc.ncwms.config.Config;
 import uk.ac.rdg.resc.ncwms.config.Dataset;
 import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
@@ -81,6 +84,10 @@ public class MetadataController
         else if (item.equals("calendar"))
         {
             return this.showCalendar(request, response);
+        }
+        else if (item.equals("timesteps"))
+        {
+            return this.showTimesteps(request, response);
         }
         else
         {
@@ -238,6 +245,59 @@ public class MetadataController
         models.put("nearestIndex", nearestIndex);
         models.put("variable", vm);
         return new ModelAndView("showCalendar", models);
+    }
+    
+    /**
+     * Shows an XML document (containing an HTML select box, yuck) that the Godiva2
+     * site uses to display the available timesteps for a given date.
+     */
+    public ModelAndView showTimesteps(HttpServletRequest request,
+        HttpServletResponse response) throws Exception
+    {
+        VariableMetadata vm = getVariable(request);
+        String tIndexStr = request.getParameter("tIndex");
+        if (tIndexStr == null)
+        {
+            throw new WmsException("Must provide a value for the tIndex parameter");
+        }
+        int tIndex = 0;
+        try
+        {
+            tIndex = Integer.parseInt(tIndexStr);
+        }
+        catch(NumberFormatException nfe)
+        {
+            throw new WmsException("The value of the tIndex parameter must be a valid integer");
+        }
+        // Get the array of time axis values (in seconds since the epoch)
+        double[] tVals = vm.getTvalues();
+        if (tVals.length == 0) return null; // return no data if no time axis present
+        
+        DateFormat df = new SimpleDateFormat("HH:mm:ss");
+        // Maps full date-times (in ISO8601) to simple time strings (HH:mm:ss)
+        Map<String, String> timesteps = new HashMap<String, String>();
+        // add the reference time
+        Date refTime = WmsUtils.getDate(tVals[tIndex]);
+        // TODO: watch out for daylight saving in df.format()
+        timesteps.put(WmsUtils.dateToISO8601(refTime), df.format(refTime));
+        
+        // TODO: add the rest of the times that fall on this day
+        
+        
+        return new ModelAndView("showTimesteps", "timesteps", timesteps);
+    }
+    
+    /**
+     * @return true if the two given dates (in seconds since the epoch) fall on
+     * the same day
+     */
+    private boolean onSameDay(double s1, double s2)
+    {
+        Calendar cal1 = WmsUtils.getCalendar(s1);
+        Calendar cal2 = WmsUtils.getCalendar(s2);
+        return (cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+            cal1.get(Calendar.MONTH) == cal2.get(Calendar.MONTH) &&
+            cal1.get(Calendar.DAY_OF_MONTH) == cal2.get(Calendar.DAY_OF_MONTH));
     }
 
     /**
