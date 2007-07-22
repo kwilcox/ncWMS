@@ -217,7 +217,7 @@ function popUp(url, width, height)
 // Populates the left-hand menu with a set of datasets
 function loadDatasets(dsDivId, filter)
 {
-    downloadUrl('WMS.py', 'SERVICE=WMS&REQUEST=GetMetadata&item=datasets&filter=' + filter,
+    downloadUrl('wms', 'REQUEST=GetMetadata&item=datasets&filter=' + filter,
         function(req) {
             $(dsDivId).innerHTML = req.responseText;
             var accordion = new Rico.Accordion (
@@ -254,7 +254,7 @@ function datasetSelected(expandedTab)
     // Get the pretty-printed name of the dataset
     prettyDsName = expandedTab.titleBar.firstChild.nodeValue;
     // returns a table of variable names in HTML format
-    downloadUrl('WMS.py', 'SERVICE=WMS&REQUEST=GetMetadata&item=variables&dataset=' + dataset,
+    downloadUrl('wms', 'REQUEST=GetMetadata&item=variables&dataset=' + dataset,
         function(req) {
             var xmldoc = req.responseXML;
             // set the size of the panel to match the number of variables
@@ -276,7 +276,7 @@ function variableSelected(datasetName, variableName)
 {
     newVariable = true;
     resetAnimation();
-    downloadUrl('WMS.py', 'SERVICE=WMS&REQUEST=GetMetadata&item=variableDetails&dataset=' + datasetName +
+    downloadUrl('wms', 'REQUEST=GetMetadata&item=variableDetails&dataset=' + datasetName +
         '&variable=' + variableName,
         function(req) {
             var xmldoc = req.responseXML;
@@ -387,7 +387,7 @@ function variableSelected(datasetName, variableName)
 function setCalendar(dataset, variable, dateTime)
 {
     // Set the calendar. When the calendar arrives the map will be updated
-    downloadUrl('WMS.py', 'SERVICE=WMS&REQUEST=GetMetadata&item=calendar&dataset=' +  dataset + 
+    downloadUrl('wms', 'REQUEST=GetMetadata&item=calendar&dataset=' +  dataset + 
         '&variable=' + variable + '&dateTime=' + dateTime,
         function(req) {
             if (req.responseText == '') {

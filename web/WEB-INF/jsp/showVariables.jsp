@@ -1,5 +1,4 @@
-<%@page contentType="text/html"%>
-<%@page pageEncoding="UTF-8"%>
+<%@include file="xml_header.jsp"%><%-- This has to be XML or the AJAX code doesn't work --%>
 <%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
 <%-- Displays the variables of a dataset as an HTML table.
      See MetadataController.showVariables().  This is tightly coupled

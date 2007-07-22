@@ -53,16 +53,45 @@ import uk.ac.rdg.resc.ncwms.utils.WmsUtils;
  * $Log$
  */
 
-public class MetadataController extends MultiActionController
+public class MetadataController
 {
     
     private Config config; // Will be injected by Spring
     
+    public ModelAndView handleRequest(HttpServletRequest request,
+        HttpServletResponse response) throws Exception
+    {
+        String item = request.getParameter("item");
+        if (item == null)
+        {
+            throw new WmsException("Must provide an ITEM parameter");
+        }
+        else if (item.equals("datasets"))
+        {
+            return this.showDatasets(request, response);
+        }
+        else if (item.equals("variables"))
+        {
+            return this.showVariables(request, response);
+        }
+        else if (item.equals("variableDetails"))
+        {
+            return this.showVariableDetails(request, response);
+        }
+        else if (item.equals("calendar"))
+        {
+            return this.showCalendar(request, response);
+        }
+        else
+        {
+            throw new WmsException("Invalid value for ITEM parameter");
+        }
+    }
+    
     /**
      * Shows HTML nested divs representing the datasets available from this
      * server.  This HTML is injected directly into the Godiva2 page to form
-     * the left-hand accordion-style menu.  This is mapped to /metadata/datasets
-     * in WMS-servlet.xml.
+     * the left-hand accordion-style menu.
      */
     public ModelAndView showDatasets(HttpServletRequest request,
         HttpServletResponse response) throws Exception
@@ -99,8 +128,7 @@ public class MetadataController extends MultiActionController
     /**
      * Shows an HTML table containing a set of variables for the given dataset.
      * This HTML is injected directly into the Godiva2 page to form
-     * the left-hand accordion-style menu.  This is mapped to /metadata/variables
-     * in WMS-servlet.xml.
+     * the left-hand accordion-style menu.
      */
     public ModelAndView showVariables(HttpServletRequest request,
         HttpServletResponse response) throws Exception
@@ -131,8 +159,7 @@ public class MetadataController extends MultiActionController
     
     /**
      * Shows an XML document containing the details of the given variable (units,
-     * axes, range etc). This is mapped to /metadata/variableDetails in
-     * WMS-servlet.xml.
+     * axes, range etc).
      */
     public ModelAndView showVariableDetails(HttpServletRequest request,
         HttpServletResponse response) throws Exception

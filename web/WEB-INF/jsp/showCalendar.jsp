@@ -32,7 +32,7 @@
                     <c:forEach var="day" items="${week}">
                     <td>
                         <c:if test="${day > 0}">
-                            ${day}
+                        ${day}
                         </c:if>
                     </td>
                     </c:forEach>

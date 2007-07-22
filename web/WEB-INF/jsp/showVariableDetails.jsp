@@ -10,7 +10,7 @@
 <variableDetails dataset="${variable.dataset.id}" variable="${variable.title}" units="${variable.units}">
     <axes>
         <c:if test="${not empty variable.zvalues}">
-        <axis type="z" units="${variable.zunits}" positive="${variable.positive}">
+        <axis type="z" units="${variable.zunits}" positive="${variable.zpositive}">
             <c:forEach var="z" items="${variable.zvalues}">
             <value>${utils:abs(z)}</value>
             </c:forEach>

@@ -67,6 +67,7 @@ public class WmsController extends AbstractController
     
     private Config config;                   // Will be injected by Spring
     private PicMakerFactory picMakerFactory; // ditto
+    private MetadataController metadataController; // ditto
     
     /**
      * Entry point for all requests to the WMS
@@ -92,7 +93,15 @@ public class WmsController extends AbstractController
         }
         else if (request.equals("GetFeatureInfo"))
         {
-            
+            // TODO
+        }
+        else if (request.equals("GetMetadata"))
+        {
+            // This is a request for non-standard metadata.  (This will one
+            // day be replaced by queries to Capabilities fragments, if possible.)
+            // Delegate to the MetadataController
+            return this.metadataController.handleRequest(httpServletRequest,
+                httpServletResponse);
         }
         else
         {
@@ -257,6 +266,14 @@ public class WmsController extends AbstractController
     public void setPicMakerFactory(PicMakerFactory picMakerFactory)
     {
         this.picMakerFactory = picMakerFactory;
+    }
+    
+    /**
+     * Called by Spring to inject the metadata controller
+     */
+    public void setMetadataController(MetadataController metadataController)
+    {
+        this.metadataController = metadataController;
     }
     
 }
