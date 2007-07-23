@@ -36,6 +36,7 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.AbstractController;
 import uk.ac.rdg.resc.ncwms.config.Config;
 import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
+import uk.ac.rdg.resc.ncwms.exceptions.InvalidFormatException;
 import uk.ac.rdg.resc.ncwms.exceptions.OperationNotSupportedException;
 import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
 import uk.ac.rdg.resc.ncwms.graphics.PicMaker;
@@ -59,14 +60,15 @@ public class WmsController extends AbstractController
      * The maximum number of layers that can be requested in a single GetMap
      * operation
      */
-    private static final int LAYER_LIMIT = 1;
+    static final int LAYER_LIMIT = 1;
     /**
      * The fill value to use when reading data and making pictures
      */
     private static final float FILL_VALUE = Float.NaN;
     
     private Config config;                   // Will be injected by Spring
-    private PicMakerFactory picMakerFactory; // ditto
+    private Factory<PicMaker> picMakerFactory; // ditto
+    private Factory<AbstractStyle> styleFactory; // ditto
     private MetadataController metadataController; // ditto
     
     /**
@@ -185,18 +187,23 @@ public class WmsController extends AbstractController
         {
             // TODO Use the given style if supported by this variable
         }
-        style.setFillValue(FILL_VALUE);
+        //style.setFillValue(FILL_VALUE);
         
         // RequestParser replaces pluses with spaces: we must change back
         // to parse the format correctly
         String mimeType = params.getMandatoryParamValue("format").replaceAll(" ", "+");
         // Get the PicMaker that corresponds with this MIME type
-        PicMaker picMaker = this.picMakerFactory.createPicMaker(mimeType);
+        PicMaker picMaker = this.picMakerFactory.createObject(mimeType);
+        if (picMaker == null)
+        {
+            throw new InvalidFormatException("The image format " + mimeType + 
+                " is not supported by this server");
+        }
         
         // TODO: deal with EXCEPTIONS
                 
         // Get the requested transparency and background colour for the layer
-        String trans = params.getParamValue("transparent", "false").toLowerCase();
+        /*String trans = params.getParamValue("transparent", "false").toLowerCase();
         if (trans.equals("false")) style.setTransparent(false);
         else if (trans.equals("true")) style.setTransparent(true);
         else throw new WmsException("The value of TRANSPARENT must be \"TRUE\" or \"FALSE\"");
@@ -215,9 +222,7 @@ public class WmsController extends AbstractController
             throw new WmsException("Invalid format for BGCOLOR");
         }
         
-        float[] bbox = getBbox(params);
-        
-        
+        float[] bbox = getBbox(params);*/
 
         return null;
     }
@@ -228,7 +233,7 @@ public class WmsController extends AbstractController
      */
     private static final float[] getBbox(RequestParams params) throws WmsException
     {
-        String[] bboxEls = params.getParamValue("bbox").split(",");
+        String[] bboxEls = params.getMandatoryParamValue("bbox").split(",");
         if (bboxEls.length != 4)
         {
             throw new WmsException("Invalid bounding box format: need four elements");
@@ -263,9 +268,17 @@ public class WmsController extends AbstractController
     /**
      * Called by Spring to inject the PicMakerFactory object
      */
-    public void setPicMakerFactory(PicMakerFactory picMakerFactory)
+    public void setPicMakerFactory(Factory<PicMaker> picMakerFactory)
     {
         this.picMakerFactory = picMakerFactory;
+    }
+    
+    /**
+     * Called by Spring to inject the StyleFactory object
+     */
+    public void setStyleFactory(Factory<AbstractStyle> styleFactory)
+    {
+        this.styleFactory = styleFactory;
     }
     
     /**

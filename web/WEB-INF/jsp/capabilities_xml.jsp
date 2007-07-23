@@ -55,7 +55,7 @@
                 </DCPType>
             </GetCapabilities>
             <GetMap>
-                <c:forEach var="mimeType" items="${picMakerFactory.supportedImageFormats}">
+                <c:forEach var="mimeType" items="${picMakerFactory.keys}">
                 <Format>${mimeType}</Format>
                 </c:forEach>
                 <DCPType>

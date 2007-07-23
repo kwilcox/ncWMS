@@ -279,26 +279,14 @@ public class MetadataController
         // First count forwards from the reference time...
         for (int i = tIndex + 1; i < tVals.length; i++)
         {
-            if (onSameDay(tVals[tIndex], tVals[i]))
-            {
-                timesteps.add(tVals[i]);
-            }
-            else
-            {
-                break; // Timesteps are in order so we won't find any more
-            }
+            if (onSameDay(tVals[tIndex], tVals[i])) timesteps.add(tVals[i]);
+            else break; // Timesteps are in order so we won't find any more
         }
         // ... now count backwards from the reference time
         for (int i = tIndex - 1; i >= 0; i--)
         {
-            if (onSameDay(tVals[tIndex], tVals[i]))
-            {
-                timesteps.add(tVals[i]);
-            }
-            else
-            {
-                break; // Timesteps are in order so we won't find any more
-            }
+            if (onSameDay(tVals[tIndex], tVals[i])) timesteps.add(tVals[i]);
+            else break; // Timesteps are in order so we won't find any more
         }
         
         return new ModelAndView("showTimesteps", "timesteps", timesteps);
