@@ -28,15 +28,10 @@
 
 package uk.ac.rdg.resc.ncwms.controller;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.springframework.web.servlet.ModelAndView;
@@ -275,13 +270,10 @@ public class MetadataController
         double[] tVals = vm.getTvalues();
         if (tVals.length == 0) return null; // return no data if no time axis present
         
-        DateFormat df = new SimpleDateFormat("HH:mm:ss");
-        df.setTimeZone(TimeZone.getTimeZone("GMT+0")); // avoid problems with daylight saving
-        // Maps full date-times (in ISO8601) to simple time strings (HH:mm:ss)
-        Map<String, String> timesteps = new HashMap<String, String>();
+        // List of times (in seconds since the epoch) that fall on this day
+        List<Double> timesteps = new ArrayList<Double>();
         // add the reference time
-        Date refTime = WmsUtils.getDate(tVals[tIndex]);
-        timesteps.put(WmsUtils.dateToISO8601(refTime), df.format(refTime));
+        timesteps.add(tVals[tIndex]);
         
         // Add the rest of the times that fall on this day
         // First count forwards from the reference time...
@@ -289,8 +281,7 @@ public class MetadataController
         {
             if (onSameDay(tVals[tIndex], tVals[i]))
             {
-                Date date = WmsUtils.getDate(tVals[i]);
-                timesteps.put(WmsUtils.dateToISO8601(date), df.format(date));
+                timesteps.add(tVals[i]);
             }
             else
             {
@@ -302,8 +293,7 @@ public class MetadataController
         {
             if (onSameDay(tVals[tIndex], tVals[i]))
             {
-                Date date = WmsUtils.getDate(tVals[i]);
-                timesteps.put(WmsUtils.dateToISO8601(date), df.format(date));
+                timesteps.add(tVals[i]);
             }
             else
             {

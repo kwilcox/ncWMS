@@ -28,7 +28,6 @@
 
 package uk.ac.rdg.resc.ncwms.utils;
 
-import com.sun.org.apache.bcel.internal.generic.CALOAD;
 import java.text.DateFormat;
 import java.util.Date;
 import ucar.nc2.units.DateFormatter;
@@ -37,9 +36,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
 import java.util.List;
-import java.util.SortedMap;
 import java.util.TimeZone;
-import java.util.TreeMap;
 
 /**
  * <p>Collection of static utility methods that are useful in the WMS application.</p>
@@ -63,6 +60,11 @@ public class WmsUtils
      * @todo Support more versions (e.g. 1.1.1)?
      */
     public static final String VERSION = "1.3.0";
+    
+    /**
+     * Time zone representing Greenwich Mean Time
+     */
+    private static final TimeZone GMT = TimeZone.getTimeZone("GMT+0");
 
     /**
      * Converts a number of seconds since the epoch into an ISO8601-formatted
@@ -117,6 +119,8 @@ public class WmsUtils
     public static String getCalendarHeading(double secondsSinceEpoch)
     {
         DateFormat df = new SimpleDateFormat("MMM yyyy");
+        // Must set the time zone to avoid problems with daylight saving
+        df.setTimeZone(GMT);
         return df.format(getDate(secondsSinceEpoch));
     }
     
@@ -140,7 +144,7 @@ public class WmsUtils
         Date date = getDate(secondsSinceEpoch);
         Calendar cal = Calendar.getInstance();
         // Must set the time zone to avoid problems with daylight saving
-        cal.setTimeZone(TimeZone.getTimeZone("GMT+0"));
+        cal.setTimeZone(GMT);
         cal.setTime(date);
         return cal;
     }
@@ -185,6 +189,20 @@ public class WmsUtils
     public static String formatPrettyDate(double secondsSinceEpoch)
     {
         DateFormat df = new SimpleDateFormat("dd MMM yyyy");
+        // Must set the time zone to avoid problems with daylight saving
+        df.setTimeZone(GMT);
+        return df.format(getDate(secondsSinceEpoch));
+    }
+    
+    /**
+     * Formats a date (in seconds since the epoch) as human-readable "HH:mm:ss",
+     * e.g. "14:53:03".
+     */
+    public static String formatPrettyTime(double secondsSinceEpoch)
+    {
+        DateFormat df = new SimpleDateFormat("HH:mm:ss");
+        // Must set the time zone to avoid problems with daylight saving
+        df.setTimeZone(GMT);
         return df.format(getDate(secondsSinceEpoch));
     }
     
@@ -211,7 +229,6 @@ public class WmsUtils
     public static List<DayInfo[]> getMonthCalendar(double targetTime,
         double[] axisValues)
     {
-        
         final int DAYS_IN_WEEK = 7;
         List<DayInfo[]> weeks = new ArrayList<DayInfo[]>();
         Calendar cal = getCalendar(targetTime);

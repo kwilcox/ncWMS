@@ -5,9 +5,9 @@
      See MetadataController.showTimesteps().
      
      Data (models) passed in to this page:
-         timesteps = maps ISO8601 date-times to simple HH:mm:ss time strings (Map<String, String>) --%>
+         timesteps = list of times (in seconds since the epoch) that fall on this day --%>
 <select id="tValues" onchange="javascript:updateMap()">
     <c:forEach var="timestep" items="${timesteps}">
-    <option value="${timestep.key}">${timestep.value}</option>
+    <option value="${utils:secondsToISO8601(timestep)}">${utils:formatPrettyTime(timestep)}</option>
     </c:forEach>
 </select>
