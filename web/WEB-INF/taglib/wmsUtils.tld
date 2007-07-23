@@ -57,10 +57,17 @@
       <function-signature>java.lang.String getMonthAfter(double)</function-signature>
   </function>
   <function>
+      <description>Formats a date (in seconds since the epoch) as human-readable "dd MMM yyyy",
+      e.g. "02 Jul 2007".</description>
+      <name>formatPrettyDate</name>
+      <function-class>uk.ac.rdg.resc.ncwms.utils.WmsUtils</function-class>
+      <function-signature>java.lang.String formatPrettyDate(double)</function-signature>
+  </function>
+  <function>
       <description>Gets a List of Lists of day numbers, representing the calendar
       for the month containing the given date in seconds since the epoch.</description>
-      <name>getWeeksOfMonth</name>
+      <name>getMonthCalendar</name>
       <function-class>uk.ac.rdg.resc.ncwms.utils.WmsUtils</function-class>
-      <function-signature>java.util.List getWeeksOfMonth(double)</function-signature>
+      <function-signature>java.util.List getMonthCalendar(double, double[])</function-signature>
   </function>
 </taglib>

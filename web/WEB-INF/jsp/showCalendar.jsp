@@ -11,7 +11,7 @@
     <%-- Calculate the nearest time to the focus time (in seconds since epoch) --%>
     <c:set var="nearestTime" value="${variable.tvalues[nearestIndex]}"/>
     <nearestValue>${utils:secondsToISO8601(nearestTime)}</nearestValue>
-    <prettyNearestValue>${utils:secondsToISO8601(nearestTime)}</prettyNearestValue><%-- TODO: change to prettier date format --%>
+    <prettyNearestValue>${utils:formatPrettyDate(nearestTime)}</prettyNearestValue>
     <nearestIndex>${nearestIndex}</nearestIndex>
 
     <calendar>
@@ -27,42 +27,28 @@
                 </tr>
                 <%-- Add the day-of-week headings --%>
                 <tr><th>M</th><th>T</th><th>W</th><th>T</th><th>F</th><th>S</th><th>S</th></tr>
-                <c:forEach var="week" items="${utils:getWeeksOfMonth(nearestTime)}">
+                <%-- Add the body of the calendar --%>
+                <c:forEach var="week" items="${utils:getMonthCalendar(nearestTime, variable.tvalues)}">
                 <tr>
                     <c:forEach var="day" items="${week}">
-                    <td>
-                        <c:if test="${day > 0}">
-                        ${day}
-                        </c:if>
-                    </td>
+                        <c:choose>
+                            <c:when test="${empty day}">
+                                <td></td> <%-- This day doesn't appear in the calendar for this month --%>
+                            </c:when>
+                            <c:otherwise>
+                                <c:choose>
+                                    <c:when test="${day.tindex >= 0}">
+                                        <td id="t${day.tindex}"><a href="#" onclick="javascript:getTimesteps('${variable.dataset.id}','${variable.id}','${day.tindex}','${utils:secondsToISO8601(variable.tvalues[day.tindex])}','${utils:formatPrettyDate(variable.tvalues[day.tindex])}'); return false">${day.dayNumber}</a></td>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <td>${day.dayNumber}</td> <%-- No data for this day --%>
+                                    </c:otherwise>
+                                </c:choose>
+                            </c:otherwise>
+                        </c:choose>
                     </c:forEach>
                 </tr>
                 </c:forEach>
-    <%--# Add the calendar body
-    tValIndex = 0 # index in tvalues array
-            if day > 0:
-                # Search through the t axis and find out whether we have
-                # any data for this particular day
-                found = 0
-                calendarDay = (nearesttime[0], nearesttime[1], day, 0, 0, 0, 0, 0, 0)
-                while not found and tValIndex < len(tValues):
-                    axisDay = time.gmtime(tValues[tValIndex])
-                    res = _compareDays(axisDay, calendarDay)
-                    if res == 0:
-                        found = 1 # Found data on this day
-                    elif res < 0:
-                        tValIndex = tValIndex + 1 # Date on axis is before target day
-                    else:
-                        break # Date on axis is after target day: no point searching further
-                if found:
-                    tValue = wmsUtils.secondsToISOString(tValues[tValIndex])
-                    prettyTValue = time.strftime(prettyDateFormat, axisDay)
-                    <td id="t%d"><a href="#" onclick="javascript:getTimesteps('%s','%s','%d','%s','%s'); return false">%d</a></td>" % (tValIndex, dsId, varID, tValIndex, tValue, prettyTValue, day))
-                else:
-                    <td>%d</td>" % day)
-            else:
-                <td></td>") 
-                </tr>--%>
             </tbody>
         </table>
     </calendar>

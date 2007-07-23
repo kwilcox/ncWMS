@@ -28,14 +28,18 @@
 
 package uk.ac.rdg.resc.ncwms.utils;
 
+import com.sun.org.apache.bcel.internal.generic.CALOAD;
 import java.text.DateFormat;
 import java.util.Date;
 import ucar.nc2.units.DateFormatter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.List;
+import java.util.SortedMap;
 import java.util.TimeZone;
+import java.util.TreeMap;
 
 /**
  * <p>Collection of static utility methods that are useful in the WMS application.</p>
@@ -175,27 +179,42 @@ public class WmsUtils
     }
     
     /**
+     * Formats a date (in seconds since the epoch) as human-readable "dd MMM yyyy",
+     * e.g. "02 Jul 2007".
+     */
+    public static String formatPrettyDate(double secondsSinceEpoch)
+    {
+        DateFormat df = new SimpleDateFormat("dd MMM yyyy");
+        return df.format(getDate(secondsSinceEpoch));
+    }
+    
+    /**
      * <p>@return a calendar representation of the month that contains the date
      * represented by the given number of seconds since the epoch.  Each item
      * in the returned List represents a week in the calendar (starting on a
-     * Monday).  Each week is represented by an array of 7 integers, giving the
-     * day number on each day of that week.  If a day does not belong in the
-     * calendar for that month, its value will be -1.</p>
+     * Monday).  Each week is represented by an array of 7 DayInfo objects, giving the
+     * day number on each day of that week and the index of the corresponding point
+     * along the time axis.  If a day does not belong in the
+     * calendar for that month, its value will be null.  If there is no corresponding
+     * time axis value for a given day, the t index will be set to -1.</p>
      *
      * <p>For example, for a date in March 2007, this will return a calendar
      * of the form:<p>
      * <table border="1">
-     * <tr><td>-1</td><td>-1</td><td>-1</td><td>1</td><td>2</td><td>3</td><td>4</td></tr>
+     * <tr><td>null</td><td>null</td><td>null</td><td>1</td><td>2</td><td>3</td><td>4</td></tr>
      * <tr><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td><td>11</td></tr>
      * <tr><td>12</td><td>13</td><td>14</td><td>15</td><td>16</td><td>17</td><td>18</td></tr>
      * <tr><td>19</td><td>20</td><td>21</td><td>22</td><td>23</td><td>24</td><td>25</td></tr>
-     * <tr><td>26</td><td>27</td><td>28</td><td>29</td><td>30</td><td>31</td><td>-1</td></tr>
+     * <tr><td>26</td><td>27</td><td>28</td><td>29</td><td>30</td><td>31</td><td>null</td></tr>
      * </table>
      */
-    public static List<int[]> getWeeksOfMonth(double secondsSinceEpoch)
+    public static List<DayInfo[]> getMonthCalendar(double targetTime,
+        double[] axisValues)
     {
-        List<int[]> weeks = new ArrayList<int[]>();
-        Calendar cal = getCalendar(secondsSinceEpoch);
+        
+        final int DAYS_IN_WEEK = 7;
+        List<DayInfo[]> weeks = new ArrayList<DayInfo[]>();
+        Calendar cal = getCalendar(targetTime);
         
         // Find the first Monday of the month
         cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
@@ -203,24 +222,110 @@ public class WmsUtils
         int day = cal.get(Calendar.DAY_OF_MONTH);
         
         // If this isn't the first day of the month then we have a partial first week
-        if (day != 1) day -= 7; // Start with the week before the first Monday
+        if (day != 1) day -= DAYS_IN_WEEK; // Start with the week before the first Monday
         
         // Construct the weeks
         int lastDayOfMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH);
+        int tIndex = 0; // Index in the array of t values
+        DayComparator dayComparator = new DayComparator();
         while (day < lastDayOfMonth)
         {
-            int[] week = new int[7];
-            int firstDayNextWeek = day + week.length;
-            for (int i = 0; i < week.length; i++)
+            DayInfo[] week = new DayInfo[DAYS_IN_WEEK];
+            int firstDayNextWeek = day + DAYS_IN_WEEK;
+            for (int i = 0; i < DAYS_IN_WEEK; i++)
             {
-                if (day >= 1 && day <= lastDayOfMonth) week[i] = day;
-                else week[i] = -1; // indicates a day that's not present in the current month
+                if (day >= 1 && day <= lastDayOfMonth)
+                {
+                    // Get the current day (in seconds since the epoch)
+                    cal.set(Calendar.DAY_OF_MONTH, day);
+                    double currentDay = cal.getTimeInMillis() / 1000.0;
+                    // Look to see if we have any data on this day
+                    boolean found = false;
+                    while (!found && tIndex < axisValues.length)
+                    {
+                        int result = dayComparator.compare(axisValues[tIndex],
+                            currentDay);
+                        if (result == 0) found = true; // Found data on the target day
+                        else if (result < 0) tIndex++; // Move to the next day
+                        else break; // Date on axis is after target day: no point searching further
+                    }
+                    if (found) week[i] = new DayInfo(day, tIndex);
+                    else week[i] = new DayInfo(day, -1);
+                }
+                else
+                {
+                    // This day is not present in the current month
+                    week[i] = null;
+                }
                 day++;
             }
             weeks.add(week);
         }
         
         return weeks;
+    }
+    
+    /**
+     * Simple class containing information about a particular day on the calendar
+     * that is returned by getMonthCalendar()
+     */
+    public static class DayInfo
+    {
+        private int dayNumber; // Number of day in the given month
+        private int tIndex; // time index of a data point on this day
+        
+        public DayInfo(int dayNumber, int tIndex)
+        {
+            this.dayNumber = dayNumber;
+            this.tIndex = tIndex;
+        }
+
+        public int getDayNumber()
+        {
+            return dayNumber;
+        }
+
+        public int getTindex()
+        {
+            return tIndex;
+        }
+    }
+    
+    /**
+     * Compares two dates (expressed in seconds since the epoch) to see if they
+     * fall on the same day or different days (ignoring hours, minutes and seconds)
+     */
+    public static class DayComparator implements Comparator<Double>
+    {
+        /**
+         * Compares two dates (expressed in seconds since the epoch), returning
+         * 0 if they are on the same day, <0 if the first date is on a day before
+         * that of the second date or >0 if the first date is on a day after the
+         * second date.
+         */
+        public int compare(Double d1, Double d2)
+        {
+            Calendar cal1 = getCalendar(d1);
+            Calendar cal2 = getCalendar(d2);
+            // Set hours, minutes, seconds and milliseconds to zero for both
+            // calendars
+            resetHoursEtc(cal1);
+            resetHoursEtc(cal2);
+            // Now we know that any differences are due to the day, month or year
+            return cal1.compareTo(cal2);
+        }
+        
+        /**
+         * zeros out the hours, minutes, seconds and milliseconds fields of
+         * the given Calendar
+         */
+        private static void resetHoursEtc(Calendar cal)
+        {
+            cal.set(Calendar.HOUR_OF_DAY, 0);
+            cal.set(Calendar.MINUTE, 0);
+            cal.set(Calendar.SECOND, 0);
+            cal.set(Calendar.MILLISECOND, 0);
+        }
     }
     
 }

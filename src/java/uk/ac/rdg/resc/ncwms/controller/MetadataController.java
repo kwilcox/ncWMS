@@ -36,6 +36,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.springframework.web.servlet.ModelAndView;
@@ -58,7 +59,8 @@ import uk.ac.rdg.resc.ncwms.utils.WmsUtils;
 
 public class MetadataController
 {
-    
+    private static final WmsUtils.DayComparator DAY_COMPARATOR =
+        new WmsUtils.DayComparator();
     private Config config; // Will be injected by Spring
     
     public ModelAndView handleRequest(HttpServletRequest request,
@@ -274,15 +276,40 @@ public class MetadataController
         if (tVals.length == 0) return null; // return no data if no time axis present
         
         DateFormat df = new SimpleDateFormat("HH:mm:ss");
+        df.setTimeZone(TimeZone.getTimeZone("GMT+0")); // avoid problems with daylight saving
         // Maps full date-times (in ISO8601) to simple time strings (HH:mm:ss)
         Map<String, String> timesteps = new HashMap<String, String>();
         // add the reference time
         Date refTime = WmsUtils.getDate(tVals[tIndex]);
-        // TODO: watch out for daylight saving in df.format()
         timesteps.put(WmsUtils.dateToISO8601(refTime), df.format(refTime));
         
-        // TODO: add the rest of the times that fall on this day
-        
+        // Add the rest of the times that fall on this day
+        // First count forwards from the reference time...
+        for (int i = tIndex + 1; i < tVals.length; i++)
+        {
+            if (onSameDay(tVals[tIndex], tVals[i]))
+            {
+                Date date = WmsUtils.getDate(tVals[i]);
+                timesteps.put(WmsUtils.dateToISO8601(date), df.format(date));
+            }
+            else
+            {
+                break; // Timesteps are in order so we won't find any more
+            }
+        }
+        // ... now count backwards from the reference time
+        for (int i = tIndex - 1; i >= 0; i--)
+        {
+            if (onSameDay(tVals[tIndex], tVals[i]))
+            {
+                Date date = WmsUtils.getDate(tVals[i]);
+                timesteps.put(WmsUtils.dateToISO8601(date), df.format(date));
+            }
+            else
+            {
+                break; // Timesteps are in order so we won't find any more
+            }
+        }
         
         return new ModelAndView("showTimesteps", "timesteps", timesteps);
     }
@@ -293,11 +320,7 @@ public class MetadataController
      */
     private boolean onSameDay(double s1, double s2)
     {
-        Calendar cal1 = WmsUtils.getCalendar(s1);
-        Calendar cal2 = WmsUtils.getCalendar(s2);
-        return (cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
-            cal1.get(Calendar.MONTH) == cal2.get(Calendar.MONTH) &&
-            cal1.get(Calendar.DAY_OF_MONTH) == cal2.get(Calendar.DAY_OF_MONTH));
+        return DAY_COMPARATOR.compare(s1, s2) == 0;
     }
 
     /**

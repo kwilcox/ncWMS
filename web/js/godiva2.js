@@ -644,7 +644,7 @@ function updateMap()
         // If this were an Untiled layer we could control the ratio of image
         // size to viewport size with "{buffer: 1, ratio: 1.5}"
         essc_wms = new OpenLayers.Layer.WMS1_3("ESSC WMS",
-            baseURL + '/WMS.py', {
+            baseURL + '/wms', {
             layers: layerName,
             elevation: getZValue(),
             time: tValue,
@@ -724,7 +724,7 @@ function setGEarthURL()
                 // and the viewport BBOX
                 gEarthURL += '&BBOX=' + getIntersectionBBOX();
             } else if (!urlEls[i].startsWith('OPACITY')) {
-                // We remove the OPACITY ARGUMENT as Google Earth allows opacity
+                // We remove the OPACITY argument as Google Earth allows opacity
                 // to be controlled in the client
                 gEarthURL += '&' + urlEls[i];
             }
