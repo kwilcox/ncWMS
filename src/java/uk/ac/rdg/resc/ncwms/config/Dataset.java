@@ -339,6 +339,7 @@ public class Dataset
                 // We've found both components.  Create a new VariableMetadata object
                 VariableMetadata vec = new VariableMetadata(key, comps[0], comps[1]);
                 // Use the title as the unique ID for this variable
+                vec.setId(key);
                 vars.put(key, vec);
             }
         }

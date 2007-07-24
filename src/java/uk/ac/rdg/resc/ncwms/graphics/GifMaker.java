@@ -48,6 +48,10 @@ import org.apache.log4j.Logger;
 public class GifMaker extends PicMaker
 {
     private static final Logger logger = Logger.getLogger(GifMaker.class);
+    /**
+     * Defines the MIME types that this PicMaker supports: see Factory.setClasses()
+     */
+    public static final String[] KEYS = new String[]{"image/gif"};
     
     /** Creates a new instance of GifMaker */
     public GifMaker()

@@ -29,12 +29,12 @@
 package uk.ac.rdg.resc.ncwms.controller;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.log4j.Logger;
-import uk.ac.rdg.resc.ncwms.exceptions.InvalidFormatException;
-import uk.ac.rdg.resc.ncwms.graphics.PicMaker;
 
 /**
  * A Factory stores a Map of keys to class names, and can create objects of these
@@ -82,6 +82,14 @@ public final class Factory<T>
     }
     
     /**
+     * @return true if this Factory supports the given key
+     */
+    public boolean supportsKey(String key)
+    {
+        return this.getKeys().contains(key.trim());
+    }
+    
+    /**
      * Creates a new object from the class given by the given key.
      * @param key The key
      * @return An object of type T, or null if the given key is not recognized.
@@ -92,35 +100,76 @@ public final class Factory<T>
     {
         Constructor<? extends T> constructor = this.constructors.get(key);
         if (constructor == null) return null;
-        // It's very unlikely that newInstance() or cast() will throw an error
-        // because we've checked in setClasses() that the class is of the correct
-        // type
+        // It's very unlikely that newInstance() will throw an error because
+        // we've checked in setClasses() that the class is of the correct type.
         return constructor.newInstance();
     }
     
     /**
-     * Sets the keys and their associated Classes.  Checks that the supplied
-     * classes have zero-argument constructors.
+     * Sets the classes that can be instantiated by this Factory.  These classes
+     * must all inherit from T.  Also, each class must provide a static String
+     * array field called "KEYS", which defines the keys (e.g. MIME type, Style
+     * name, CRS code) that will be used to identify the class.
      * @throws Exception if a supplied class does not extend the superclass, if a
-     * supplied class does not have a zero-argument constructor or if the
-     * zero-argument constructor is not accessible
+     * supplied class does not have a zero-argument constructor, if the
+     * zero-argument constructor is not accessible or if the class does not
+     * provide a static KEYS field.
      */
-    public void setClasses(Map<String, Class<? extends T>> classes) throws Exception
+    public void setClasses(List<Class<? extends T>> classes) throws Exception
     {
-        for (String key : classes.keySet())
+        for (Class<? extends T> clazz : classes)
         {
-            Class<? extends T> clazz = classes.get(key);
             // Spring2.0 doesn't do the necessary checks on the type of the
-            // classes so we make doubly sure here that the class really does
-            // inherit from T.  This works on the principle of catching errors early
-            // and avoids the possibility of later ClassCastExceptions
+            // classes it injects into this method so we make sure here that the
+            // class really does inherit from T.  This works on the principle of
+            // catching errors early and avoids the possibility of later
+            // ClassCastExceptions in createObject().
             if (!this.superClass.isAssignableFrom(clazz))
             {
                 throw new Exception(clazz.getName() + " does not inherit from "
                     + this.superClass.getName());
             }
+            // Get the zero-argument constructor: will throw an exception if
+            // there is no zero-argument constructor, or if it is not accessible
             Constructor<? extends T> constructor = clazz.getConstructor();
-            this.constructors.put(key.trim(), constructor);
+            // Look for the static field KEYS in the subclass
+            Field field = clazz.getDeclaredField("KEYS");
+            if (field.getType() != String[].class)
+            {
+                throw new Exception("The KEYS field of class " + clazz.getName()
+                    + " must be of type String[]");
+            }
+            // Get the value of the KEYS field: we pass in null because this is
+            // a static field.  This will throw an exception if the field is not
+            // static, or not accessible.
+            try
+            {
+                String[] keys = (String[])field.get(null);
+                for (String key : keys)
+                {
+                    this.constructors.put(key.trim(), constructor);
+                }
+            }
+            catch(NullPointerException npe)
+            {
+                throw new Exception("The KEYS field must be a static field of class "
+                    + clazz.getName());
+            }
+        }
+    }
+    
+    private static class TestClass
+    {
+        public static final String TEST = "hello";
+        //public String TEST_2 = "hello2";
+    }
+    
+    public static void main(String[] args) throws Exception
+    {
+        Field [] fields = TestClass.class.getFields();
+        for (Field field : fields)
+        {
+            System.out.println(field.getName() + ":" + (String)field.get(null));
         }
     }
     

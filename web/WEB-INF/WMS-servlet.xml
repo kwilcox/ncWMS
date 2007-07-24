@@ -21,33 +21,45 @@
     <bean id="ncwmsConfig" class="uk.ac.rdg.resc.ncwms.config.Config"
           factory-method="readConfig"/>
     
-    <!-- An object that is used to create PicMakers.  This object needs a Map
-         of key-value pairs that map MIME types to names of classes that extend PicMaker -->
+    <!-- An object that is used to create PicMakers. -->
     <bean id="picMakerFactory" class="uk.ac.rdg.resc.ncwms.controller.Factory">
         <!-- This constructor argument is the name of the superclass of all PicMakers -->
         <constructor-arg value="uk.ac.rdg.resc.ncwms.graphics.PicMaker"/>
-        <!-- This map defines the PicMaker classes that will be used to handle
+        <!-- This list defines the PicMaker classes that will be used to handle
              different mime types of images -->
         <property name="classes">
-            <map>
-                <entry key="image/png" value="uk.ac.rdg.resc.ncwms.graphics.SimplePicMaker"/>
-                <entry key="image/gif" value="uk.ac.rdg.resc.ncwms.graphics.GifMaker"/>
-                <entry key="application/vnd.google-earth.kmz" value="uk.ac.rdg.resc.ncwms.graphics.KmzMaker"/>
-            </map>
+            <list>
+                <value>uk.ac.rdg.resc.ncwms.graphics.SimplePicMaker</value>
+                <value>uk.ac.rdg.resc.ncwms.graphics.GifMaker</value>
+                <value>uk.ac.rdg.resc.ncwms.graphics.KmzMaker</value>
+            </list>
         </property>
     </bean>
     
     <!-- An object that is used to create Styles -->
     <bean id="styleFactory" class="uk.ac.rdg.resc.ncwms.controller.Factory">
-        <!-- This constructor argument is the name of the superclass of all PicMakers -->
+        <!-- This constructor argument is the name of the superclass of all styles -->
         <constructor-arg value="uk.ac.rdg.resc.ncwms.styles.AbstractStyle"/>
-        <!-- This map defines the classes that will be used to handle
+        <!-- This list defines the classes that will be used to handle
              different styles of images -->
         <property name="classes">
-            <map>
-                <entry key="boxfill" value="uk.ac.rdg.resc.ncwms.styles.BoxFillStyle"/>
-                <entry key="vector" value="uk.ac.rdg.resc.ncwms.styles.VectorStyle"/>
-            </map>
+            <list>
+                <value>uk.ac.rdg.resc.ncwms.styles.BoxFillStyle</value>
+                <value>uk.ac.rdg.resc.ncwms.styles.VectorStyle</value>
+            </list>
+        </property>
+    </bean>
+    
+    <!-- An object that is used to create Grids -->
+    <bean id="gridFactory" class="uk.ac.rdg.resc.ncwms.controller.Factory">
+        <!-- This constructor argument is the name of the superclass of all grids -->
+        <constructor-arg value="uk.ac.rdg.resc.ncwms.grids.AbstractGrid"/>
+        <!-- This list defines the classes that will be used to handle
+             different styles of images -->
+        <property name="classes">
+            <list>
+                <value>uk.ac.rdg.resc.ncwms.grids.PlateCarreeGrid</value>
+            </list>
         </property>
     </bean>
     
@@ -63,6 +75,7 @@
         <property name="config"><ref local="ncwmsConfig"/></property>
         <property name="picMakerFactory"><ref local="picMakerFactory"/></property>
         <property name="styleFactory"><ref local="styleFactory"/></property>
+        <property name="gridFactory"><ref local="gridFactory"/></property>
         <property name="metadataController"><ref local="metadataController"/></property>
     </bean>
     

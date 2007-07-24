@@ -28,14 +28,18 @@
 
 package uk.ac.rdg.resc.ncwms.datareader;
 
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
-import java.util.Hashtable;
-import java.util.Vector;
+import java.util.List;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import ucar.nc2.units.DateFormatter;
 import uk.ac.rdg.resc.ncwms.config.Dataset;
 import uk.ac.rdg.resc.ncwms.exceptions.InvalidDimensionValueException;
-import uk.ac.rdg.resc.ncwms.styles.AbstractStyle;
+import uk.ac.rdg.resc.ncwms.styles.BoxFillStyle;
+import uk.ac.rdg.resc.ncwms.styles.VectorStyle;
 
 /**
  * Stores the metadata for a {@link GeoGrid}: saves reading in the metadata every
@@ -64,8 +68,9 @@ public class VariableMetadata
     private EnhancedCoordAxis xaxis;
     private EnhancedCoordAxis yaxis;
     private Dataset dataset;
-    private Hashtable<Date, TimestepInfo> timesteps;
-    private String[] supportedStyles; // Names of styles that are appropriate to this variable
+    private SortedMap<Date, TimestepInfo> timesteps;
+    // Stores the keys of the styles that this variable supports
+    private List<String> supportedStyles = new ArrayList<String>();
     
     // If this is a vector quantity, these values will be the northward and
     // eastward components
@@ -83,10 +88,10 @@ public class VariableMetadata
         this.xaxis = null;
         this.yaxis = null;
         this.dataset = null;
-        this.timesteps = new Hashtable<Date, TimestepInfo>();
+        this.timesteps = new TreeMap<Date, TimestepInfo>();
         this.eastward = null;
         this.northward = null;
-        this.supportedStyles = new String[]{AbstractStyle.BOXFILL};
+        this.addStyles(BoxFillStyle.KEYS);
     }
     
     /**
@@ -110,10 +115,19 @@ public class VariableMetadata
         this.timesteps = eastward.timesteps;
         // Vector is the default style, but we can also render as a boxfill
         // (magnitude only)
-        this.supportedStyles = new String[]{AbstractStyle.VECTOR, AbstractStyle.BOXFILL};
+        this.addStyles(VectorStyle.KEYS);
+        this.addStyles(BoxFillStyle.KEYS);
         
         this.eastward = eastward;
         this.northward = northward;
+    }
+    
+    private void addStyles(String[] styles)
+    {
+        for (String style : styles)
+        {
+            this.supportedStyles.add(style.trim());
+        }
     }
     
     /**
@@ -169,23 +183,14 @@ public class VariableMetadata
      */
     public synchronized double[] getTvalues()
     {
-        Vector<Date> tValsVec = this.getSortedDates();
-        double[] tVals = new double[tValsVec.size()];
-        for (int i = 0; i < tValsVec.size(); i++)
+        double[] tVals = new double[this.timesteps.size()];
+        int i = 0;
+        for (Date d : this.timesteps.keySet())
         {
-            tVals[i] = tValsVec.get(i).getTime() / 1000.0; 
+            tVals[i] = d.getTime() / 1000.0;
+            i++;
         }
         return tVals;
-    }
-    
-    /**
-     * Returns a Vector of Dates, sorted in ascending order
-     */
-    private Vector<Date> getSortedDates()
-    {
-        Vector<Date> tValsVec = new Vector<Date>(this.timesteps.keySet());
-        Collections.sort(tValsVec); // sort into ascending order
-        return tValsVec;
     }
 
     public double[] getBbox()
@@ -308,7 +313,7 @@ public class VariableMetadata
         {
             // Return the last index in the array
             // TODO: should be the index of the timestep closest to now
-            return this.timesteps.size() - 1;
+            return this.getLastTIndex();
         }
         Date target = dateFormatter.getISODate(tValueStr);
         if (target == null)
@@ -316,10 +321,11 @@ public class VariableMetadata
             throw new InvalidDimensionValueException("time", tValueStr);
         }
         
-        Vector<Date> tValues = this.getSortedDates();
+        Set<Date> tValues = this.timesteps.keySet();
+        Date[] dates = tValues.toArray(new Date[0]);
         
         // Check that the point is within range
-        if (target.before(tValues.firstElement()) || target.after(tValues.lastElement()))
+        if (target.before(dates[0]) || target.after(dates[dates.length - 1]))
         {
             throw new InvalidDimensionValueException("time", tValueStr);
         }
@@ -330,31 +336,17 @@ public class VariableMetadata
         while (low <= high)
         {
             int mid = (low + high) >> 1;
-            Date midVal = tValues.get(mid);
-            if (midVal.equals(target))
-            {
-                return mid;
-            }
-            else if (midVal.before(target))
-            {
-                low = mid + 1;
-            }
-            else
-            {
-                high = mid - 1;
-            }
+            Date midVal = dates[mid];
+            if (midVal.equals(target)) return mid;
+            else if (midVal.before(target)) low = mid + 1;
+            else high = mid - 1;
         }
         
         // If we've got this far we have to decide between values[low]
         // and values[high]
-        if (tValues.get(low).equals(target))
-        {
-            return low;
-        }
-        else if (tValues.get(high).equals(target))
-        {
-            return high;
-        }
+        if (dates[low].equals(target)) return low;
+        else if (dates[high].equals(target)) return high;
+        // The given time doesn't match any axis value
         throw new InvalidDimensionValueException("time", tValueStr);
     }
     
@@ -364,19 +356,18 @@ public class VariableMetadata
      */
     public TimestepInfo getTimestepInfo(int datasetTIndex)
     {
-        // Get a sorted array of the dates in ascending order
-        Vector<Date> dates = this.getSortedDates();
-        if (dates.size() == 0)
+        Collection<TimestepInfo> coll = this.timesteps.values();
+        TimestepInfo[] tInfos = coll.toArray(new TimestepInfo[0]);
+        if (tInfos.length == 0)
         {
             return null;
         }
-        return this.timesteps.get(dates.get(datasetTIndex));
+        return tInfos[datasetTIndex];
     }
     
     /**
      * Finds the index of a certain z value by brute-force search.  We can afford
      * to be inefficient here because z axes are not likely to be large.
-     * @param zValues Array of values of the z coordinate
      * @param targetVal Value to search for
      * @return the z index corresponding with the given targetVal
      * @throws InvalidDimensionValueException if targetVal could not be found
@@ -448,9 +439,87 @@ public class VariableMetadata
         return this.northward;
     }
 
-    public String[] getSupportedStyles()
+    /**
+     * @return List of Strings representing the keys of styles that this
+     * variable can be rendered in.
+     */
+    public List<String> getSupportedStyleKeys()
     {
         return this.supportedStyles;
+    }
+    
+    /**
+     * @return the key of the default style for this Variable.  Exactly 
+     * equivalent to getSupportedStyleKeys().get(0)
+     */
+    public String getDefaultStyleKey()
+    {
+        // Could be an IndexOutOfBoundsException here, but would be a programming
+        // error if so
+        return this.supportedStyles.get(0);
+    }
+    
+    /**
+     * @return true if this Variable can be rendered in the style with the 
+     * given name, false otherwise.
+     */
+    public boolean supportsStyle(String styleName)
+    {
+        return this.supportedStyles.contains(styleName.trim());
+    }
+    
+    /**
+     * @return true if this variable has a depth/elevation axis
+     */
+    public boolean isZaxisPresent()
+    {
+        return this.zValues != null && this.zValues.length > 0;
+    }
+    
+    /**
+     * @return true if this variable has a time axis
+     */
+    public boolean isTaxisPresent()
+    {
+        return this.timesteps != null && this.timesteps.size() > 0;
+    }
+    
+    /**
+     * @return the index of the default value on the z axis (i.e. the index of
+     * the z value that will be used if the user does not specify an explicit
+     * z value in a GetMap request).
+     */
+    public int getDefaultZIndex()
+    {
+        return 0;
+    }
+    
+    /**
+     * @return the default value of the z axis (i.e. the z value that will be
+     * used if the user does not specify an explicit z value in a GetMap request).
+     */
+    public final double getDefaultZValue()
+    {
+        return this.zValues[this.getDefaultZIndex()];
+    }
+    
+    /**
+     * @return the last index on the t axis
+     */
+    public int getLastTIndex()
+    {
+        return this.timesteps.size() - 1;
+    }
+    
+    /**
+     * @return the default value of the t axis (i.e. the t value that will be
+     * used if the user does not specify an explicit t value in a GetMap request),
+     * in seconds since the epoch.  This currently returns the last value along
+     * the time axis, but should probably return the value closest to now.
+     */
+    public final double getDefaultTValue()
+    {
+        return this.getTvalues()[this.getLastTIndex()];
     }
     
     /**

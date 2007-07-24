@@ -48,6 +48,12 @@ import uk.ac.rdg.resc.ncwms.exceptions.StyleNotDefinedException;
 public class VectorStyle extends AbstractStyle
 {
     private static final Logger logger = Logger.getLogger(VectorStyle.class);
+    
+    /**
+     * Defines the names of styles that this class supports: see Factory.setClasses()
+     */
+    public static final String[] KEYS = new String[]{"vector"};
+    
     /**
      * The maximum length of arrows in pixels
      */
@@ -60,7 +66,7 @@ public class VectorStyle extends AbstractStyle
      */
     public VectorStyle()
     {
-        super("vector");
+        super(KEYS[0]);
         this.unitsPerPixel = 0.0f;
     }
 

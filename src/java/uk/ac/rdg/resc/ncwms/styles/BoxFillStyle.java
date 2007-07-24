@@ -57,6 +57,11 @@ public class BoxFillStyle extends AbstractStyle
 {
     private static final Logger logger = Logger.getLogger(BoxFillStyle.class);
     
+    /**
+     * Defines the names of styles that this class supports: see Factory.setClasses()
+     */
+    public static final String[] KEYS = new String[]{"boxfill"};
+    
     private static DecimalFormat DECIMAL_FORMATTER = new DecimalFormat("0.#####");
     private static DecimalFormat SCIENTIFIC_FORMATTER = new DecimalFormat("0.###E0");
     
@@ -98,7 +103,7 @@ public class BoxFillStyle extends AbstractStyle
     /** Creates a new instance of BoxFillStyle */
     public BoxFillStyle()
     {
-        super("boxfill");
+        super(KEYS[0]);
         this.opacity = 100;
         this.scaleMin = 0.0f;
         this.scaleMax = 0.0f;

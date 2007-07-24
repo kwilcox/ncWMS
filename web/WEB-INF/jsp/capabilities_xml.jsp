@@ -6,7 +6,7 @@
      Data (models) passed in to this page:
          config     = Configuration of this server (uk.ac.rdg.resc.ncwms.config.Config)
          wmsBaseUrl = Base URL of this server (java.lang.String)
-         picMakerFactory = Factory of PicMaker objects (uk.ac.rdg.resc.ncwms.graphics.PicMakerFactory)
+         supportedImageFormats = Set of Strings representing MIME types of supported image formats
          layerLimit = Maximum number of layers that can be requested simultaneously from this server (int)
      --%>
 <WMS_Capabilities
@@ -55,7 +55,7 @@
                 </DCPType>
             </GetCapabilities>
             <GetMap>
-                <c:forEach var="mimeType" items="${picMakerFactory.keys}">
+                <c:forEach var="mimeType" items="${supportedImageFormats}">
                 <Format>${mimeType}</Format>
                 </c:forEach>
                 <DCPType>
@@ -103,8 +103,8 @@
                         <northBoundLatitude>${bbox[3]}</northBoundLatitude>
                     </EX_GeographicBoundingBox>
                     <BoundingBox CRS="CRS:84" minx="${bbox[0]}" maxx="${bbox[2]}" miny="${bbox[1]}" maxy="${bbox[3]}"/>
-                    <c:if test="${not empty variable.value.zvalues}">
-                    <Dimension name="elevation" units="${variable.value.zunits}" default="${variable.value.zvalues[0]}">
+                    <c:if test="${variable.value.zaxisPresent}">
+                    <Dimension name="elevation" units="${variable.value.zunits}" default="${variable.value.defaultZValue}">
                         <%-- Print out the dimension values, comma separated, making sure
                              that there is no comma at the start or end of the list.  Note that
                              we can't use ${fn:join} because the z values are an array of doubles,
@@ -113,14 +113,12 @@
                     </Dimension>
                     </c:if>
                     <c:set var="tvalues" value="${variable.value.tvalues}"/>
-                    <c:if test="${not empty tvalues}">
-                    <%-- We use the *last* value of the time axis as the default.
-                         TODO: make it the time that is closest to now? --%>
-                    <Dimension name="time" units="ISO8601" multipleValues="true" current="true" default="${utils:secondsToISO8601(tvalues[fn:length(tvalues) - 1])}">
+                    <c:if test="${variable.value.taxisPresent}">
+                    <Dimension name="time" units="ISO8601" multipleValues="true" current="true" default="${utils:secondsToISO8601(variable.value.defaultTValue)}">
                         <c:forEach var="tval" items="${tvalues}" varStatus="status"><c:if test="${status.index > 0}">,</c:if>${utils:secondsToISO8601(tval)}</c:forEach>
                     </Dimension>
                     </c:if>
-                    <c:forEach var="style" items="${variable.value.supportedStyles}">
+                    <c:forEach var="style" items="${variable.value.supportedStyleKeys}">
                     <Style><Name>${style}</Name><Title>${style}</Title></Style>
                     </c:forEach>
                 </Layer>

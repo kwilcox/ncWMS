@@ -50,6 +50,10 @@ import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
 public class KmzMaker extends PicMaker
 {
     private static final Logger logger = Logger.getLogger(KmzMaker.class);
+    /**
+     * Defines the MIME types that this PicMaker supports: see Factory.setClasses()
+     */
+    public static final String[] KEYS = new String[]{"application/vnd.google-earth.kmz"};
     
     private static final String PICNAME = "frame";
     private static final String PICEXT  = "png";

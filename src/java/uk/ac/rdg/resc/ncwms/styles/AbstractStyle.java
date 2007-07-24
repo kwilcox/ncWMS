@@ -46,10 +46,6 @@ public abstract class AbstractStyle
 {
     private static final Logger logger = Logger.getLogger(AbstractStyle.class);
     
-    public static final String BOXFILL = "boxfill";
-    public static final String VECTOR = "vector";
-    public static final String CONTOUR = "contour";
-    
     protected String name;
     // Width and height of the resulting picture
     protected int picWidth;
@@ -74,47 +70,6 @@ public abstract class AbstractStyle
     {
         this.name = name;
         this.renderedFrames = new ArrayList<BufferedImage>();
-    }
-    
-    /**
-     * Creates an AbstractStyle from the given specification (e.g.
-     * "boxfill;scale=-5:15;palette=rainbow")
-     * @throws StyleNotDefinedException if there is no matching style for the 
-     * given specification
-     */
-    public static AbstractStyle createStyle(String styleSpec)
-        throws StyleNotDefinedException
-    {
-        AbstractStyle style = null;
-        String[] els = styleSpec.split(";");
-        if (els[0].equalsIgnoreCase(BOXFILL))
-        {
-            style = new BoxFillStyle();
-        }
-        else if (els[0].equalsIgnoreCase(VECTOR))
-        {
-            style = new VectorStyle();
-        }
-        if (style == null)
-        {
-            throw new StyleNotDefinedException(styleSpec + " is not a valid STYLE");
-        }
-        // Set the attributes of the AbstractStyle
-        for (int i = 1; i < els.length; i++)
-        {
-            String[] keyAndValues = els[i].split(":");
-            if (keyAndValues.length < 2)
-            {
-                throw new StyleNotDefinedException("STYLE specification format error");
-            }
-            // Get the array of values for this attribute
-            String[] vals = new String[keyAndValues.length - 1];
-            System.arraycopy(keyAndValues, 1, vals, 0, vals.length);
-            style.setAttribute(keyAndValues[0], vals);
-        }
-        logger.debug("Style object of type {} created from styleSpec {}",
-            style.getClass(), styleSpec);
-        return style;
     }
     
     /**

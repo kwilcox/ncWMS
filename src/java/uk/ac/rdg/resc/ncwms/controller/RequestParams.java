@@ -106,11 +106,11 @@ class RequestParams
     }
     
     /**
-     * Returns the value of the parameter with the given name, or null if the
+     * Returns the value of the parameter with the given name as a String, or null if the
      * parameter does not have a value.  This method is not sensitive to the case
      * of the parameter name.
      */
-    public String getParamValue(String paramName)
+    public String getString(String paramName)
     {
         return this.paramMap.get(paramName.toLowerCase());
     }
@@ -119,9 +119,9 @@ class RequestParams
      * Returns the value of the parameter with the given name, throwing a
      * WmsException if the parameter does not exist.
      */
-    public String getMandatoryParamValue(String paramName) throws WmsException
+    public String getMandatoryString(String paramName) throws WmsException
     {
-        String value = this.getParamValue(paramName);
+        String value = this.getString(paramName);
         if (value == null)
         {
             throw new WmsException("Must provide a value for parameter "
@@ -131,17 +131,65 @@ class RequestParams
     }
     
     /**
+     * Returns the value of the parameter with the given name as an integer,
+     * throwing a WmsException if the parameter does not exist or if the value
+     * is not a valid integer.
+     */
+    public int getMandatoryInt(String paramName) throws WmsException
+    {
+        String value = this.getString(paramName);
+        if (value == null)
+        {
+            throw new WmsException("Must provide a value for parameter "
+                + paramName.toUpperCase());
+        }
+        try
+        {
+            return Integer.parseInt(value);
+        }
+        catch(NumberFormatException nfe)
+        {
+            throw new WmsException("Parameter " + paramName.toUpperCase() +
+                " must be a valid integer");
+        }
+    }
+    
+    /**
      * Returns the value of the parameter with the given name, or the supplied
      * default value if the parameter does not exist.
      */
-    public String getParamValue(String paramName, String defaultValue)
+    public String getString(String paramName, String defaultValue)
     {
-        String value = this.getParamValue(paramName);
+        String value = this.getString(paramName);
         if (value == null)
         {
             return defaultValue;
         }
         return value;
+    }
+    
+    /**
+     * Returns the value of the parameter with the given name, or the supplied
+     * default value if the parameter does not exist.
+     * @throws WmsException if the value of the parameter is not a valid
+     * floating-point number
+     */
+    public float getFloat(String paramName, float defaultValue) throws WmsException
+    {
+        String value = this.getString(paramName);
+        if (value == null)
+        {
+            return defaultValue;
+        }
+        try
+        {
+            return Float.parseFloat(value);
+        }
+        catch(NumberFormatException nfe)
+        {
+            throw new WmsException("Parameter " + paramName.toUpperCase() +
+                " must be a valid floating-point number");
+        }
     }
     
 }

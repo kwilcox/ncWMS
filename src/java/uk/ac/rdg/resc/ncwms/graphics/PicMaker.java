@@ -32,20 +32,13 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.Set;
 import org.apache.log4j.Logger;
 import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
-import uk.ac.rdg.resc.ncwms.exceptions.InvalidFormatException;
-import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
 
 /**
  * Abstract superclass of picture makers.  Subclasses must have a no-argument
- * constructor
- *
- * Makes a picture from an array of raw data, using a rainbow colour model.
- * Fill values are represented as transparent pixels and out-of-range values
- * are represented as black pixels.
+ * constructor and provide a public static field "KEYS", which is an array of
+ * Strings that specify which MIME types are supported by the PicMaker.
  *
  * @author Jon Blower
  * $Revision$
@@ -69,6 +62,11 @@ public abstract class PicMaker
     public String getMimeType()
     {
         return mimeType;
+    }
+    
+    public void setMimeType(String mimeType)
+    {
+        this.mimeType = mimeType;
     }
     
     public VariableMetadata getVar()

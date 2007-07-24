@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 The University of Reading
+ * Copyright (c) 2007 The University of Reading
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,52 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package uk.ac.rdg.resc.ncwms.graphics;
-
-import java.awt.image.BufferedImage;
-import javax.imageio.ImageIO;
-
-import java.io.OutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
+package uk.ac.rdg.resc.ncwms.grids;
 
 /**
- * Writes images using the ImageIO class.  Will only write the first frame of
- * an animation: Use GifMaker or KmzMaker to make animations.
- * Supports any output format that is supported by ImageIO class.
- * @author jdb
+ * Abstract superclass of all Grids.  All sub-classes must define a public
+ * static String[] field called KEYS that lists the CRS codes that they can
+ * handle.
+ *
+ * @author Jon Blower
+ * $Revision$
+ * $Date$
+ * $Log$
  */
-public class SimplePicMaker extends PicMaker
+public abstract class AbstractGrid
 {
-    /**
-     * Defines the MIME types that this PicMaker supports: see Factory.setClasses()
-     */
-    public static final String[] KEYS = new String[]{"image/png"};
-    
-    /**
-     * This just writes the first frame as the image.  The transparentColor is
-     * not used because this class understands the alpha channel.
-     */
-    public void writeImage(ArrayList<BufferedImage> frames, OutputStream out) throws IOException
+    private int width;    // Width of the grid in pixels
+    private int height;   // Height of the grid in pixels
+    private float[] bbox; // Array of four floats representing the bounding box
+
+    public int getWidth()
     {
-        String imageType = this.mimeType.split("/")[1];
-        ImageIO.write(frames.get(0), imageType, out);
+        return width;
     }
+
+    public void setWidth(int width)
+    {
+        this.width = width;
+    }
+
+    public int getHeight()
+    {
+        return height;
+    }
+
+    public void setHeight(int height)
+    {
+        this.height = height;
+    }
+
+    public float[] getBbox()
+    {
+        return bbox;
+    }
+
+    public void setBbox(float[] bbox)
+    {
+        this.bbox = bbox;
+    }
+    
 }
