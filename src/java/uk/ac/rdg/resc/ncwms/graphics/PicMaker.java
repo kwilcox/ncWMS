@@ -32,6 +32,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.List;
 import org.apache.log4j.Logger;
 import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
 
@@ -54,7 +55,7 @@ public abstract class PicMaker
     // The variable metadata from which this picture was created
     protected VariableMetadata var;
     
-    protected String[] tValues; // Array of time values, one for each frame
+    protected List<String> tValues; // List of time values, one for each frame
     protected String zValue;
     protected float[] bbox;
     protected BufferedImage legend; // If we need a legend, it will be stored here  
@@ -92,21 +93,19 @@ public abstract class PicMaker
     
     /**
      * Encodes and writes the frames to the given OutputStream
-     * @param frames The arrays of pixels that will be rendered
-     * @param transparentColor The Color that is to be rendered transparent
-     * (may be ignored in subclasses that understand the alpha channel)
+     * @param frames The image frames that will be rendered
      * @param out The {@link OutputStream} to which the image will be written
      * @throws IOException if there was an error writing the data
      */
-    public abstract void writeImage(ArrayList<BufferedImage> frames, 
+    public abstract void writeImage(List<BufferedImage> frames, 
         OutputStream out) throws IOException;
 
-    public String[] getTvalues()
+    public List<String> getTvalues()
     {
         return tValues;
     }
 
-    public void setTvalues(String[] tValues)
+    public void setTvalues(List<String> tValues)
     {
         this.tValues = tValues;
     }

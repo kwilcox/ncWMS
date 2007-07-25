@@ -56,6 +56,7 @@ public class MetadataController
 {
     private static final WmsUtils.DayComparator DAY_COMPARATOR =
         new WmsUtils.DayComparator();
+    
     private Config config; // Will be injected by Spring
     
     public ModelAndView handleRequest(HttpServletRequest request,
@@ -85,6 +86,10 @@ public class MetadataController
         else if (item.equals("timesteps"))
         {
             return this.showTimesteps(request, response);
+        }
+        else if (item.equals("minmax"))
+        {
+            return this.showMinMax(request, response);
         }
         else
         {
@@ -211,7 +216,7 @@ public class MetadataController
         }
         // Convert the focus time to seconds since the epoch
         // TODO: this method should throw a ParseException, which we should trap
-        double focusTime = WmsUtils.iso8061ToSeconds(focusTimeIso);
+        double focusTime = WmsUtils.iso8601ToSeconds(focusTimeIso);
         
         // Get the array of time axis values (in seconds since the epoch)
         double[] tVals = vm.getTvalues();
@@ -290,6 +295,55 @@ public class MetadataController
         }
         
         return new ModelAndView("showTimesteps", "timesteps", timesteps);
+    }
+    
+    /**
+     * Shows an XML document containing the minimum and maximum values for the
+     * tile given in the parameters.
+     * @todo Do this properly!
+     */
+    public ModelAndView showMinMax(HttpServletRequest request,
+        HttpServletResponse response) throws Exception
+    {
+        float[] minMax = new float[2];
+        
+        /*layers = params.getParamValue("layers").split(",")
+        dataset, varID = getmap._getDatasetAndVariableID(layers, config.datasets)
+        var = dataset.variables[varID]
+        tIndex = getmap._getTIndices(var, params)[0]
+        zValue = getmap._getZValue(params)
+        bbox = getmap._getBbox(params)
+        grid = getmap._getGrid(params, bbox, config)
+        fillvalue = getmap._getFillValue()
+        # Now read the data
+
+        picData = [] # Contains one (scalar) or two (vector) components
+        if var.vector:
+            picData.append(getmap.readPicData(dataset, var.eastwardComponent, params.getParamValue("crs"), bbox, grid, zValue, tIndex, cache))
+            picData.append(getmap.readPicData(dataset, var.northwardComponent, params.getParamValue("crs"), bbox, grid, zValue, tIndex, cache))
+        else:
+            picData.append(getmap.readPicData(dataset, var, params.getParamValue("crs"), bbox, grid, zValue, tIndex, cache))
+
+        min = 1e20
+        max = -1e20
+        allNone = 1
+
+        # Now find the minimum and maximum values: for a vector this is the magnitude
+        for i in xrange(len(picData[0])):
+            val = picData[0][i]
+            if getfeatureinfo._checkFillValue(val, fillvalue) is not None:
+                allNone = 0
+                if len(picData) == 2:
+                    # This is a vector quantity: calculate the magnitude
+                    val = math.sqrt(val * val + picData[1][i] * picData[1][i])
+                if val < min: min = val
+                if val > max: max = val
+        if allNone:
+            min, max = 0, 50 # All data values were "None". Make up some numbers*/
+                
+        minMax[0] = 0.0f;
+        minMax[1] = 50.0f;
+        return new ModelAndView("showMinMax", "minMax", minMax);
     }
     
     /**

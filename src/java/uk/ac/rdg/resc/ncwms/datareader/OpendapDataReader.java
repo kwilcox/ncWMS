@@ -40,7 +40,6 @@ import ucar.nc2.dataset.NetcdfDataset;
 import ucar.nc2.dataset.grid.GeoGrid;
 import ucar.nc2.dataset.grid.GridDataset;
 import ucar.unidata.geoloc.LatLonPointImpl;
-import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
 
 /**
  * DataReader for OPeNDAP datasets.  This is very similar to the DefaultDataReader
@@ -59,21 +58,21 @@ public class OpendapDataReader extends DefaultDataReader
     
     /**
      * Reads an array of data from a NetCDF file and projects onto a rectangular
-     * lat-lon grid.  Reads data for a single time index only.
+     * lat-lon grid.  Reads data for a single timestep only.  This method knows
+     * nothing about aggregation: it simply reads data from the given file.
      * 
-     * 
-     * @param location Location of the NetCDF dataset (full file path, OPeNDAP URL etc)
+     * @param filename Location of the file, NcML aggregation or OPeNDAP URL
      * @param vm {@link VariableMetadata} object representing the variable
-     * @param tIndex The index along the time axis as found in getmap.py
-     * @param zIndex The index along the vertical axis (or 0 if there is no vertical axis)
+     * @param tIndex The index along the time axis (or -1 if there is no time axis)
+     * @param zIndex The index along the vertical axis (or -1 if there is no vertical axis)
      * @param latValues Array of latitude values
      * @param lonValues Array of longitude values
      * @param fillValue Value to use for missing data
-     * @throws WmsException if an error occurs
+     * @throws Exception if an error occurs
      */
-    public float[] read(String location, VariableMetadata vm,
+    public float[] read(String filename, VariableMetadata vm,
         int tIndex, int zIndex, float[] latValues, float[] lonValues,
-        float fillValue) throws WmsException
+        float fillValue) throws Exception
     {
         NetcdfDataset nc = null;
         try
@@ -81,6 +80,9 @@ public class OpendapDataReader extends DefaultDataReader
             // Get the metadata from the cache
             long start = System.currentTimeMillis();
             
+            // Prevent InvalidRangeExceptions for ranges we're not going to use anyway
+            if (tIndex < 0) tIndex = 0;
+            if (zIndex < 0) zIndex = 0;
             Range tRange = new Range(tIndex, tIndex);
             Range zRange = new Range(zIndex, zIndex);
             
@@ -146,7 +148,7 @@ public class OpendapDataReader extends DefaultDataReader
             logger.debug("Read metadata in {} milliseconds", (readMetadata - start));
             
             // Get the dataset from the cache, without enhancing it
-            nc = getDataset(location);
+            nc = getDataset(filename);
             long openedDS = System.currentTimeMillis();
             logger.debug("Opened NetcdfDataset in {} milliseconds", (openedDS - readMetadata));            
             GridDataset gd = new GridDataset(nc);
@@ -201,16 +203,6 @@ public class OpendapDataReader extends DefaultDataReader
             
             return picData;
         }
-        catch(IOException e)
-        {
-            logger.error("IOException reading from " + nc.getLocation(), e);
-            throw new WmsException("IOException: " + e.getMessage());
-        }
-        catch(InvalidRangeException ire)
-        {
-            logger.error("InvalidRangeException reading from " + nc.getLocation(), ire);
-            throw new WmsException("InvalidRangeException: " + ire.getMessage());
-        }
         finally
         {
             if (nc != null)
@@ -224,17 +216,6 @@ public class OpendapDataReader extends DefaultDataReader
                     logger.error("IOException closing " + nc.getLocation(), ex);
                 }
             }
-        }
-    }
-    
-    public static void main(String[] args) throws Exception
-    {
-        DataReader dr = new OpendapDataReader();
-        Hashtable<String, VariableMetadata> vars =
-            dr.getVariableMetadata("http://www.nerc-essc.ac.uk:9090/thredds/dodsC/FOAM_MED_MEANSSH");
-        for (VariableMetadata var : vars.values())
-        {
-            System.out.println(var.getId() + "; " + var.getTitle());
         }
     }
     

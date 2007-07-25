@@ -29,49 +29,24 @@
 package uk.ac.rdg.resc.ncwms.grids;
 
 /**
- * Abstract superclass of all Grids.  All sub-classes must define a public
- * static String[] field called KEYS that lists the CRS codes that they can
- * handle.
+ * A Grid that consists of orthogonal latitude and longitude axes.
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
  */
-public abstract class AbstractGrid
+public abstract class RectangularLatLonGrid extends AbstractGrid
 {
-    protected int width;    // Width of the grid in pixels
-    protected int height;   // Height of the grid in pixels
-    protected float[] bbox; // Array of four floats representing the bounding box
-
-    public int getWidth()
-    {
-        return width;
-    }
-
-    public void setWidth(int width)
-    {
-        this.width = width;
-    }
-
-    public int getHeight()
-    {
-        return height;
-    }
-
-    public void setHeight(int height)
-    {
-        this.height = height;
-    }
-
-    public float[] getBbox()
-    {
-        return bbox;
-    }
-
-    public void setBbox(float[] bbox)
-    {
-        this.bbox = bbox;
-    }
+    
+    /**
+     * @return array of points along the latitude axis
+     */
+    public abstract float[] getLatArray();
+    
+    /**
+     * @return array of points along the longitude axis
+     */
+    public abstract float[] getLonArray();
     
 }

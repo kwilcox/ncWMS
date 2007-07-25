@@ -31,12 +31,12 @@ package uk.ac.rdg.resc.ncwms.config;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.Map;
 import org.apache.log4j.Logger;
 import simple.xml.Attribute;
 import simple.xml.Root;
 import uk.ac.rdg.resc.ncwms.datareader.DataReader;
 import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
-import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
 
 /**
  * A dataset Java bean: contains a number of VariableMetadata objects.
@@ -75,7 +75,7 @@ public class Dataset
     private int updateInterval; // The update interval in minutes
     
     // Variables contained in this dataset, keyed by their unique IDs
-    private Hashtable<String, VariableMetadata> vars;
+    private Map<String, VariableMetadata> vars;
     
     private State state;     // State of this dataset
     private Exception err;   // Set if there is an error loading the dataset
@@ -113,7 +113,7 @@ public class Dataset
         this.location = location.trim();
     }
 
-    public Hashtable<String, VariableMetadata> getVariables()
+    public Map<String, VariableMetadata> getVariables()
     {
         return vars;
     }
@@ -225,7 +225,7 @@ public class Dataset
             logger.debug("Getting data reader of type {}", this.dataReaderClass);
             DataReader dr = DataReader.getDataReader(this.dataReaderClass, this.location);
             // Read the metadata
-            Hashtable<String, VariableMetadata> vars = dr.getVariableMetadata(this.getLocation());
+            Map<String, VariableMetadata> vars = dr.getAllVariableMetadata(this.getLocation());
             logger.debug("loaded VariableMetadata");
             // Search for vector quantities (e.g. northward/eastward_sea_water_velocity)
             findVectorQuantities(vars);
@@ -241,6 +241,7 @@ public class Dataset
         }
         catch(Exception e)
         {
+            logger.error("Error loading metadata for dataset " + this.getId(), e);
             this.err = e;
             this.state = State.ERROR;
             return false;
@@ -254,7 +255,7 @@ public class Dataset
      * in-place.
      * @todo Only works for northward/eastward components so far
      */
-    private static void findVectorQuantities(Hashtable<String, VariableMetadata> vars)
+    private static void findVectorQuantities(Map<String, VariableMetadata> vars)
     {
         // This hashtable will store pairs of components in eastward-northward
         // order, keyed by the standard name for the vector quantity
@@ -352,30 +353,6 @@ public class Dataset
     {
         this.state = State.TO_BE_LOADED;
         new Refresher().start();
-    }
-    
-    /**
-     * Reads an array of data from a NetCDF file and projects onto a rectangular
-     * lat-lon grid.  Reads data for a single time index only.  Delegates to 
-     * the DataReader.
-     * 
-     * 
-     * @param vm {@link VariableMetadata} object representing the variable
-     * @param tIndex The index along the time axis as found in getmap.py
-     * @param zValue The value of elevation as specified by the client
-     * @param latValues Array of latitude values
-     * @param lonValues Array of longitude values
-     * @param fillValue Value to use for missing data
-     * @return array of data values
-     * @throws WmsException if an error occurs
-     */
-    public float[] read(VariableMetadata vm,
-        int tIndex, String zValue, float[] latValues, float[] lonValues,
-        float fillValue) throws WmsException
-    {
-        logger.debug("Getting data reader of type {}", this.dataReaderClass);
-        DataReader dr = DataReader.getDataReader(this.dataReaderClass, this.location);
-        return dr.read(this.location, vm, tIndex, zValue, latValues, lonValues, fillValue);
     }
     
     /**

@@ -28,7 +28,6 @@
 
 package uk.ac.rdg.resc.ncwms.controller;
 
-import com.sun.org.apache.xpath.internal.operations.Variable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +38,7 @@ import org.apache.log4j.Logger;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.AbstractController;
 import uk.ac.rdg.resc.ncwms.config.Config;
+import uk.ac.rdg.resc.ncwms.datareader.DataReader;
 import uk.ac.rdg.resc.ncwms.grids.AbstractGrid;
 import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
 import uk.ac.rdg.resc.ncwms.exceptions.InvalidCrsException;
@@ -47,7 +47,9 @@ import uk.ac.rdg.resc.ncwms.exceptions.InvalidFormatException;
 import uk.ac.rdg.resc.ncwms.exceptions.OperationNotSupportedException;
 import uk.ac.rdg.resc.ncwms.exceptions.StyleNotDefinedException;
 import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
+import uk.ac.rdg.resc.ncwms.graphics.KmzMaker;
 import uk.ac.rdg.resc.ncwms.graphics.PicMaker;
+import uk.ac.rdg.resc.ncwms.grids.RectangularLatLonGrid;
 import uk.ac.rdg.resc.ncwms.styles.AbstractStyle;
 import uk.ac.rdg.resc.ncwms.utils.WmsUtils;
 
@@ -69,7 +71,7 @@ public class WmsController extends AbstractController
      * The maximum number of layers that can be requested in a single GetMap
      * operation
      */
-    static final int LAYER_LIMIT = 1;
+    private static final int LAYER_LIMIT = 1;
     /**
      * The fill value to use when reading data and making pictures
      */
@@ -80,6 +82,8 @@ public class WmsController extends AbstractController
     private Factory<PicMaker> picMakerFactory;
     private Factory<AbstractStyle> styleFactory;
     private Factory<AbstractGrid> gridFactory;
+    
+    // This will be created when this object is created
     private MetadataController metadataController;
     
     /**
@@ -88,39 +92,51 @@ public class WmsController extends AbstractController
     protected ModelAndView handleRequestInternal(HttpServletRequest httpServletRequest,
         HttpServletResponse httpServletResponse) throws Exception
     {
-        // Create an object that allows request parameters to be retrieved in
-        // a way that is not sensitive to the case of the parameter NAMES
-        // (but is sensitive to the case of the parameter VALUES).
-        RequestParams params = new RequestParams(httpServletRequest.getParameterMap());
-        
-        // Check the REQUEST parameter to see if we're producing a capabilities
-        // document, a map or a FeatureInfo
-        String request = params.getMandatoryString("request");
-        if (request.equals("GetCapabilities"))
+        try
         {
-            return getCapabilities(httpServletRequest, params);
+            // Create an object that allows request parameters to be retrieved in
+            // a way that is not sensitive to the case of the parameter NAMES
+            // (but is sensitive to the case of the parameter VALUES).
+            RequestParams params = new RequestParams(httpServletRequest.getParameterMap());
+
+            // Check the REQUEST parameter to see if we're producing a capabilities
+            // document, a map or a FeatureInfo
+            String request = params.getMandatoryString("request");
+            if (request.equals("GetCapabilities"))
+            {
+                return getCapabilities(httpServletRequest, params);
+            }
+            else if (request.equals("GetMap"))
+            {
+                return getMap(params, httpServletResponse);
+            }
+            else if (request.equals("GetFeatureInfo"))
+            {
+                // TODO
+            }
+            else if (request.equals("GetMetadata"))
+            {
+                // This is a request for non-standard metadata.  (This will one
+                // day be replaced by queries to Capabilities fragments, if possible.)
+                // Delegate to the MetadataController
+                return this.metadataController.handleRequest(httpServletRequest,
+                    httpServletResponse);
+            }
+            else
+            {
+                throw new OperationNotSupportedException(request);
+            }
         }
-        else if (request.equals("GetMap"))
+        catch(WmsException wmse)
         {
-            return getMap(params);
+            // We don't log these errors
+            throw wmse;
         }
-        else if (request.equals("GetFeatureInfo"))
+        catch(Exception e)
         {
-            // TODO
+            logger.error(e.getMessage(), e);
+            throw e;
         }
-        else if (request.equals("GetMetadata"))
-        {
-            // This is a request for non-standard metadata.  (This will one
-            // day be replaced by queries to Capabilities fragments, if possible.)
-            // Delegate to the MetadataController
-            return this.metadataController.handleRequest(httpServletRequest,
-                httpServletResponse);
-        }
-        else
-        {
-            throw new OperationNotSupportedException(request);
-        }
-        
         return null;
     }
     
@@ -164,7 +180,8 @@ public class WmsController extends AbstractController
      * @throws WmsException if the user has provided invalid parameters
      * @throws Exception if an internal error occurs
      */
-    public ModelAndView getMap(RequestParams params) throws WmsException, Exception
+    public ModelAndView getMap(RequestParams params, HttpServletResponse response)
+        throws WmsException, Exception
     {
         String version = params.getMandatoryString("version");
         if (!version.equals(WmsUtils.VERSION))
@@ -193,17 +210,78 @@ public class WmsController extends AbstractController
         
         // TODO: support more than one layer
         VariableMetadata var = this.config.getVariable(layers[0]);
-        AbstractGrid grid = this.getGrid(params);
+        AbstractGrid theGrid = this.getGrid(params);
+        if (!(theGrid instanceof RectangularLatLonGrid))
+        {
+            // Shouldn't happen
+            // TODO: support non-rectangular grids for images
+            throw new Exception("Grid is not rectangular");
+        }
+        RectangularLatLonGrid grid = (RectangularLatLonGrid)theGrid;
         AbstractStyle style = this.getStyle(params, layers, var, grid);
         // TODO: deal with EXCEPTIONS
-        int zIndex = getZIndex(params, var); // -1 if no z axis present
+        String zValue = params.getString("elevation");
+        int zIndex = getZIndex(zValue, var); // -1 if no z axis present
+        
+        // Get a DataReader object for reading the data
+        String dataReaderClass = var.getDataset().getDataReaderClass();
+        String location = var.getDataset().getLocation();
+        DataReader dr = DataReader.getDataReader(dataReaderClass, location);
+        logger.debug("Got data reader of type {}", dr.getClass().getName());
         
         // Cycle through all the provided timesteps, extracting data for each step
-        // If there is no time axis getTIndices will return a single value of -1
-        for (int tIndex : getTIndices(params, var))
+        // If there is no time axis getTimesteps will return a single value of null
+        List<String> tValues = new ArrayList<String>();
+        List<VariableMetadata.TimestepInfo> timesteps = getTimesteps(params, var);
+        for (VariableMetadata.TimestepInfo timestep : timesteps)
         {
-            
+            int tIndex = timestep == null ? -1 : timestep.getIndexInFile();
+            String filename = timestep == null ? var.getDataset().getLocation() : timestep.getFilename();
+            List<float[]> picData = new ArrayList<float[]>();
+            if (var.isVector())
+            {
+                // Need to read both components
+                picData.add(dr.read(filename, var.getEastwardComponent(), tIndex,
+                    zIndex, grid.getLatArray(), grid.getLonArray(), FILL_VALUE));
+                picData.add(dr.read(filename, var.getNorthwardComponent(), tIndex,
+                    zIndex, grid.getLatArray(), grid.getLonArray(), FILL_VALUE));
+            }
+            else
+            {
+                picData.add(dr.read(filename, var, tIndex, zIndex,
+                    grid.getLatArray(), grid.getLonArray(), FILL_VALUE));
+            }
+            // Only add a label if this is part of an animation
+            String tValue = "";
+            if (var.isTaxisPresent() && timesteps.size() > 1)
+            {
+                tValue = WmsUtils.dateToISO8601(timestep.getDate());
+            }
+            tValues.add(tValue);
+            style.addFrame(picData, tValue); // the tValue is the label for the image
         }
+
+        // We write some of the request elements to the picMaker - this is
+        // used to create labels and metadata, e.g. in KMZ.
+        picMaker.setVar(var);
+        picMaker.setTvalues(tValues);
+        picMaker.setZvalue(zValue);
+        picMaker.setBbox(grid.getBbox());
+        // Set the legend if we need one (required for KMZ files, for instance)
+        if (picMaker.needsLegend()) picMaker.setLegend(style.getLegend(var));
+        
+        // Write the image to the client
+        response.setStatus(HttpServletResponse.SC_OK);
+        response.setContentType(picMaker.getMimeType());
+        // If this is a KMZ file give it a sensible filename
+        if (picMaker instanceof KmzMaker)
+        {
+            response.setHeader("Content-Disposition", "inline; filename=" +
+                var.getDataset().getId() + "_" + var.getId() + ".kmz");
+        }
+
+        // Send the images to the picMaker and write to the output
+        picMaker.writeImage(style.getRenderedFrames(), response.getOutputStream());
 
         return null;
     }
@@ -342,13 +420,12 @@ public class WmsController extends AbstractController
      * @throws InvalidDimensionValueException if the provided z value is not
      * a valid floating-point number or if it is not a valid value for this axis.
      */
-    private static int getZIndex(RequestParams params, VariableMetadata var)
+    private static int getZIndex(String zValue, VariableMetadata var)
         throws InvalidDimensionValueException
     {
         // Get the z value.  The default value is the first value in the array
         // of z values
-        String zStr = params.getString("elevation");
-        if (zStr == null)
+        if (zValue == null)
         {
             // No value has been specified
             return var.isZaxisPresent() ? var.getDefaultZIndex() : -1;
@@ -356,33 +433,26 @@ public class WmsController extends AbstractController
         // The user has specified a z value.  Check that we have a z axis
         if (!var.isZaxisPresent())
         {
-            throw new InvalidDimensionValueException("elevation", zStr);
+            return -1; // We ignore the given value
         }
         // Check to see if this is a single value (the
         // user hasn't requested anything of the form z1,z2 or start/stop/step)
-        if (zStr.split(",").length > 1 || zStr.split("/").length > 1)
+        if (zValue.split(",").length > 1 || zValue.split("/").length > 1)
         {
-            throw new InvalidDimensionValueException("elevation", zStr);
+            throw new InvalidDimensionValueException("elevation", zValue);
         }
-        try
-        {
-            return var.findZIndex(zStr);
-        }
-        catch(NumberFormatException nfe)
-        {
-            throw new InvalidDimensionValueException("elevation", zStr);
-        }
+        return var.findZIndex(zValue);
     }
     
     /**
      * @return a List of indices along the time axis corresponding with the
      * requested TIME parameter.  If there is no time axis, this will return
-     * a List with a single value of -1.
+     * a List with a single value of null.
      */
-    private static List<Integer> getTIndices(RequestParams params, VariableMetadata var)
+    private static List<VariableMetadata.TimestepInfo> getTimesteps(RequestParams params, VariableMetadata var)
         throws WmsException
     {
-        List<Integer> tIndices = new ArrayList<Integer>();
+        List<VariableMetadata.TimestepInfo> tInfos = new ArrayList<VariableMetadata.TimestepInfo>();
         String timeSpec = params.getString("time");
         if (var.isTaxisPresent())
         {
@@ -390,7 +460,7 @@ public class WmsController extends AbstractController
             {
                 // The default time is the last value along the axis
                 // TODO: this should be the time closest to now
-                tIndices.add(var.getLastTIndex());
+                tInfos.add(var.getDefaultTimestep());
             }
             else
             {
@@ -401,17 +471,13 @@ public class WmsController extends AbstractController
                     if (startStopPeriod.length == 1)
                     {
                         // This is a single time value
-                        tIndices.add(var.findTIndex(startStopPeriod[0]));
+                        tInfos.add(var.findTimestepInfo(startStopPeriod[0]));
                     }
                     else if (startStopPeriod.length == 2)
                     {
-                        // Extract all time values from start to stop inclusive
-                        int startIndex = var.findTIndex(startStopPeriod[0]);
-                        int stopIndex = var.findTIndex(startStopPeriod[1]);
-                        for (int i = startIndex; i <= stopIndex; i++)
-                        {
-                            tIndices.add(i);
-                        }
+                        // Use all time values from start to stop inclusive
+                        tInfos.addAll(var.findTimestepInfoList(startStopPeriod[0],
+                            startStopPeriod[1]));
                     }
                     else if (startStopPeriod.length == 3)
                     {
@@ -428,14 +494,10 @@ public class WmsController extends AbstractController
         }
         else
         {
-            // The variable has no time axis
-            if (timeSpec != null)
-            {
-                throw new InvalidDimensionValueException("time", timeSpec);
-            }
-            tIndices.add(-1); // Signifies a single frame with no particular time value
+            // The variable has no time axis.  We ignore any provided TIME value.
+            tInfos.add(null); // Signifies a single frame with no particular time value
         }
-        return tIndices;
+        return tInfos;
     }
 
     /**
@@ -476,11 +538,6 @@ public class WmsController extends AbstractController
     public void setMetadataController(MetadataController metadataController)
     {
         this.metadataController = metadataController;
-    }
-    
-    public static void main(String[] args)
-    {
-        System.out.println("".split(",").length + "");
     }
     
 }

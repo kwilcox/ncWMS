@@ -82,6 +82,14 @@ public class WmsUtils
     {
         return new DateFormatter().toDateTimeStringISO(date);
     }
+
+    /**
+     * Converts an ISO8601-formatted String into a Date
+     */
+    public static Date iso8601ToDate(String isoDateTime)
+    {
+        return new DateFormatter().getISODate(isoDateTime);
+    }
     
     /**
      * @return a Date object that is equivalent to the given number of seconds
@@ -97,10 +105,9 @@ public class WmsUtils
      * epoch
      * @todo: shouldn't this throw a parse error?
      */
-    public static double iso8061ToSeconds(String iso8601)
+    public static double iso8601ToSeconds(String isoDateTime)
     {
-        DateFormatter df = new DateFormatter();
-        return df.getISODate(iso8601).getTime() / 1000.0;
+        return iso8601ToDate(isoDateTime).getTime() / 1000.0;
     }
         
     /**

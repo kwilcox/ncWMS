@@ -30,6 +30,7 @@ package uk.ac.rdg.resc.ncwms.styles;
 
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.List;
 import org.apache.log4j.Logger;
 import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
 import uk.ac.rdg.resc.ncwms.exceptions.StyleNotDefinedException;
@@ -56,11 +57,11 @@ public abstract class AbstractStyle
     protected int bgColor; // Background colour as an integer
     
     // set of rendered images, ready to be turned into a picture
-    protected ArrayList<BufferedImage> renderedFrames;
+    protected List<BufferedImage> renderedFrames;
     // If we need to cache the frame data and associated labels (we do this if
     // we have to auto-scale the image) this is where we put them.
-    protected ArrayList<float[][]> frameData;
-    protected ArrayList<String> labels;
+    protected List<List<float[]>> frameData;
+    protected List<String> labels;
     
     /**
      * Creates a new instance of AbstractStyle
@@ -158,7 +159,7 @@ public abstract class AbstractStyle
      * Adds a frame of data to this Style.  If the data cannot yet be rendered 
      * into a BufferedImage, the data and label are stored.
      */
-    public void addFrame(float[][] data, String label)
+    public void addFrame(List<float[]> data, String label)
     {
         logger.debug("Adding frame with label {}", label);
         this.processData(data);
@@ -167,7 +168,7 @@ public abstract class AbstractStyle
             logger.debug("Auto-scaling, so caching frame");
             if (this.frameData == null)
             {
-                this.frameData = new ArrayList<float[][]>();
+                this.frameData = new ArrayList<List<float[]>>();
                 this.labels = new ArrayList<String>();
             }
             this.frameData.add(data);
@@ -185,7 +186,7 @@ public abstract class AbstractStyle
      * Does so in-place.  This implementation does nothing: subclasses
      * can override.
      */
-    protected void processData(float[][] data)
+    protected void processData(List<float[]> data)
     {
     }
     
@@ -196,7 +197,7 @@ public abstract class AbstractStyle
      * @param data The data to be rendered into an image.
      * @param label Label to add to the image (ignored if null or the empty string)
      */
-    protected abstract void createImage(float[][] data, String label);
+    protected abstract void createImage(List<float[]> data, String label);
     
     /**
      * @return true if this image is to be auto-scaled (meaning we have to collect
@@ -208,7 +209,7 @@ public abstract class AbstractStyle
      * Adjusts the colour scale of the image based on the given data.  Used if
      * <code>isAutoScale() == true</code>.
      */
-    protected abstract void adjustScaleForFrame(float[][] data);
+    protected abstract void adjustScaleForFrame(List<float[]> data);
     
     /**
      * Creates and returns a BufferedImage representing the legend for this 
@@ -239,9 +240,9 @@ public abstract class AbstractStyle
      * so subclasses can delay creating the BufferedImages until all the data
      * has been extracted (for example, if we are auto-scaling an animation,
      * we can't create each individual frame until we have data for all the frames)
-     * @return ArrayList of BufferedImages
+     * @return List of BufferedImages
      */
-    public ArrayList<BufferedImage> getRenderedFrames()
+    public List<BufferedImage> getRenderedFrames()
     {
         this.setScale(); // Make sure the colour scale is set before proceeding
         // We render the frames if we have not done so already
@@ -268,7 +269,7 @@ public abstract class AbstractStyle
         {
             logger.debug("Setting the scale automatically");
             // We have a cache of image data, which we use to generate the colour scale
-            for (float[][] data : this.frameData)
+            for (List<float[]> data : this.frameData)
             {
                 this.adjustScaleForFrame(data);
             }

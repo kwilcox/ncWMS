@@ -36,13 +36,41 @@ package uk.ac.rdg.resc.ncwms.grids;
  * $Date$
  * $Log$
  */
-public class PlateCarreeGrid extends AbstractGrid
+public class PlateCarreeGrid extends RectangularLatLonGrid
 {
     public static final String[] KEYS = new String[]{"CRS:84"};
-    
-    /** Creates a new instance of PlateCarreeGrid */
-    public PlateCarreeGrid()
+
+    /**
+     * @returns a new array of points along the longitude axis
+     */
+    public float[] getLonArray()
     {
+        float minLon = this.bbox[0];
+        float maxLon = this.bbox[2];
+        float dx = (maxLon - minLon) / this.width;
+        float[] lonArray = new float[this.width];
+        for (int i = 0; i < lonArray.length; i++)
+        {
+            lonArray[i] = minLon + (i + 0.5f) * dx;
+        }
+        return lonArray;
+    }
+
+    /**
+     * @returns a new array of points along the latitude axis
+     */
+    public float[] getLatArray()
+    {
+        float minLat = this.bbox[1];
+        float maxLat = this.bbox[3];
+        float dy = (maxLat - minLat) / this.height;
+        float[] latArray = new float[this.height];
+        for (int i = 0; i < latArray.length; i++)
+        {
+            // The latitude axis is flipped
+            latArray[i] = minLat + (this.height - i - 0.5f) * dy;
+        }
+        return latArray;
     }
     
 }

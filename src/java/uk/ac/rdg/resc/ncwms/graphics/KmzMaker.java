@@ -31,13 +31,12 @@ package uk.ac.rdg.resc.ncwms.graphics;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Date;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import javax.imageio.ImageIO;
 import org.apache.log4j.Logger;
-import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
+import uk.ac.rdg.resc.ncwms.utils.WmsUtils;
 
 /**
  * Creates KMZ files for importing into Google Earth.
@@ -64,8 +63,8 @@ public class KmzMaker extends PicMaker
         return true;
     }
 
-    public void writeImage(ArrayList<BufferedImage> frames,
-        OutputStream out) throws IOException
+    public void writeImage(List<BufferedImage> frames,OutputStream out)
+        throws IOException
     {
         StringBuffer kml = new StringBuffer();
         
@@ -99,13 +98,13 @@ public class KmzMaker extends PicMaker
             kml.append("<GroundOverlay>");
             String timestamp = null;
             String z = null;
-            if (this.tValues[frameIndex] != null && !this.tValues[frameIndex].equals(""))
+            if (this.tValues.get(frameIndex) != null && !this.tValues.get(frameIndex).equals(""))
             {
                 // We must make sure the ISO8601 timestamp is full and includes
                 // seconds, otherwise Google Earth gets confused.  This is why we
-                // convert to a Date and back again.
-                Date date = VariableMetadata.dateFormatter.getISODate(this.tValues[frameIndex]);
-                timestamp = VariableMetadata.dateFormatter.toDateTimeStringISO(date);
+                // convert to a double and back again.
+                double secondsSinceEpoch = WmsUtils.iso8601ToSeconds(this.tValues.get(frameIndex));
+                timestamp = WmsUtils.secondsToISO8601(secondsSinceEpoch);
                 kml.append("<TimeStamp><when>" + timestamp + "</when></TimeStamp>");
             }
             if (this.zValue != null && !this.zValue.equals("") && this.var.getZvalues() != null)

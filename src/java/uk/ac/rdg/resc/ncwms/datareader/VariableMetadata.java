@@ -29,17 +29,16 @@
 package uk.ac.rdg.resc.ncwms.datareader;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import ucar.nc2.units.DateFormatter;
+import org.apache.log4j.Logger;
 import uk.ac.rdg.resc.ncwms.config.Dataset;
 import uk.ac.rdg.resc.ncwms.exceptions.InvalidDimensionValueException;
+import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
 import uk.ac.rdg.resc.ncwms.styles.BoxFillStyle;
 import uk.ac.rdg.resc.ncwms.styles.VectorStyle;
+import uk.ac.rdg.resc.ncwms.utils.WmsUtils;
 
 /**
  * Stores the metadata for a {@link GeoGrid}: saves reading in the metadata every
@@ -53,7 +52,7 @@ import uk.ac.rdg.resc.ncwms.styles.VectorStyle;
  */
 public class VariableMetadata
 {
-    public static DateFormatter dateFormatter = new DateFormatter();
+    private static final Logger logger = Logger.getLogger(VariableMetadata.class);
     
     private String id;
     private String title;
@@ -68,7 +67,8 @@ public class VariableMetadata
     private EnhancedCoordAxis xaxis;
     private EnhancedCoordAxis yaxis;
     private Dataset dataset;
-    private SortedMap<Date, TimestepInfo> timesteps;
+    // Sorted in ascending order of time
+    private List<TimestepInfo> timesteps;
     // Stores the keys of the styles that this variable supports
     private List<String> supportedStyles = new ArrayList<String>();
     
@@ -88,7 +88,7 @@ public class VariableMetadata
         this.xaxis = null;
         this.yaxis = null;
         this.dataset = null;
-        this.timesteps = new TreeMap<Date, TimestepInfo>();
+        this.timesteps = new ArrayList<TimestepInfo>();
         this.eastward = null;
         this.northward = null;
         this.addStyles(BoxFillStyle.KEYS);
@@ -112,7 +112,7 @@ public class VariableMetadata
         this.yaxis = eastward.yaxis;
         this.dataset = eastward.dataset;
         this.units = eastward.units;
-        this.timesteps = eastward.timesteps;
+        this.timesteps = eastward.getTimesteps();
         // Vector is the default style, but we can also render as a boxfill
         // (magnitude only)
         this.addStyles(VectorStyle.KEYS);
@@ -183,11 +183,11 @@ public class VariableMetadata
      */
     public synchronized double[] getTvalues()
     {
-        double[] tVals = new double[this.timesteps.size()];
+        double[] tVals = new double[this.getTimesteps().size()];
         int i = 0;
-        for (Date d : this.timesteps.keySet())
+        for (TimestepInfo tInfo : timesteps)
         {
-            tVals[i] = d.getTime() / 1000.0;
+            tVals[i] = tInfo.timestep.getTime() / 1000.0;
             i++;
         }
         return tVals;
@@ -291,52 +291,51 @@ public class VariableMetadata
      */
     public synchronized void addTimestepInfo(TimestepInfo tInfo)
     {
-        TimestepInfo existingTStep = this.timesteps.get(tInfo.timestep);
-        if (existingTStep == null || tInfo.indexInFile < existingTStep.indexInFile)
+        // See if we already have a TimestepInfo object for this date
+        int tIndex = this.findTIndex(tInfo.timestep);
+        if (tIndex < 0)
         {
-            this.timesteps.put(tInfo.timestep, tInfo);
+            // We don't have an info for this date, so we add the new info
+            // and make sure the List is sorted correctly (TODO: could do a
+            // simple insertion into the correct locaion?)
+            this.getTimesteps().add(tInfo);
+            Collections.sort(this.getTimesteps());
+        }
+        else
+        {
+            // We already have a timestep for this time
+            TimestepInfo existingTStep = this.getTimesteps().get(tIndex);
+            if (tInfo.indexInFile < existingTStep.indexInFile)
+            {
+                // The new info probably has a shorter forecast time and so we
+                // replace the existing version with this one
+                existingTStep = tInfo;
+            }
         }
     }
     
     /**
-     * Finds the index of a certain t value by binary search (the axis may be
-     * very long, so a brute-force search is inappropriate)
-     * @param tValue Date to search for as an ISO8601-formatted String
-     * @return the t index corresponding with the given targetVal
-     * @throws InvalidDimensionValueException if targetVal could not be found
-     * within tValues
-     * @todo almost repeats code in {@link Irregular1DCoordAxis} - refactor?
+     * @return the index of the TimestepInfo object corresponding with the given
+     * date, or -1 if there is no TimestepInfo object corresponding with the
+     * given date.  Uses binary search for efficiency.
      */
-    public int findTIndex(String tValueStr) throws InvalidDimensionValueException
+    private int findTIndex(Date target)
     {
-        if (tValueStr.equals("current"))
-        {
-            // Return the last index in the array
-            // TODO: should be the index of the timestep closest to now
-            return this.getLastTIndex();
-        }
-        Date target = dateFormatter.getISODate(tValueStr);
-        if (target == null)
-        {
-            throw new InvalidDimensionValueException("time", tValueStr);
-        }
-        
-        Set<Date> tValues = this.timesteps.keySet();
-        Date[] dates = tValues.toArray(new Date[0]);
-        
+        if (this.timesteps.size() == 0) return -1;
         // Check that the point is within range
-        if (target.before(dates[0]) || target.after(dates[dates.length - 1]))
+        if (target.before(this.timesteps.get(0).timestep) ||
+            target.after(this.timesteps.get(this.timesteps.size()  - 1).timestep))
         {
-            throw new InvalidDimensionValueException("time", tValueStr);
+            return -1;
         }
         
         // do a binary search to find the nearest index
         int low = 0;
-        int high = tValues.size() - 1;
+        int high = this.getTimesteps().size() - 1;
         while (low <= high)
         {
             int mid = (low + high) >> 1;
-            Date midVal = dates[mid];
+            Date midVal = this.timesteps.get(mid).timestep;
             if (midVal.equals(target)) return mid;
             else if (midVal.before(target)) low = mid + 1;
             else high = mid - 1;
@@ -344,25 +343,79 @@ public class VariableMetadata
         
         // If we've got this far we have to decide between values[low]
         // and values[high]
-        if (dates[low].equals(target)) return low;
-        else if (dates[high].equals(target)) return high;
+        if (this.timesteps.get(low).timestep.equals(target)) return low;
+        else if (this.timesteps.get(high).timestep.equals(target)) return high;
         // The given time doesn't match any axis value
-        throw new InvalidDimensionValueException("time", tValueStr);
+        return -1;
     }
     
     /**
-     * @return the TimestepInfo object for the timestep at the given index in the
-     * <b>whole dataset</b>.  Returns null if there is no time axis for this dataset.
+     * @return the index of the TimestepInfo object corresponding with the given
+     * ISO8601 time string. Uses binary search for efficiency.
+     * @throws InvalidDimensionValueException if there is no corresponding
+     * TimestepInfo object, or if the given ISO8601 string is not valid.  
      */
-    public TimestepInfo getTimestepInfo(int datasetTIndex)
+    private int findTIndex(String isoDateTime) throws InvalidDimensionValueException
     {
-        Collection<TimestepInfo> coll = this.timesteps.values();
-        TimestepInfo[] tInfos = coll.toArray(new TimestepInfo[0]);
-        if (tInfos.length == 0)
+        if (isoDateTime.equals("current"))
         {
-            return null;
+            // Return the last timestep
+            // TODO: should be the index of the timestep closest to now
+            return this.timesteps.size() - 1;
         }
-        return tInfos[datasetTIndex];
+        Date target = WmsUtils.iso8601ToDate(isoDateTime);
+        if (target == null)
+        {
+            throw new InvalidDimensionValueException("time", isoDateTime);
+        }
+        int index = findTIndex(target);
+        if (index < 0)
+        {
+            throw new InvalidDimensionValueException("time", isoDateTime);
+        }
+        return index;
+    }
+    
+    /**
+     * Finds the index of a certain t value by binary search (the axis may be
+     * very long, so a brute-force search is inappropriate)
+     * @param isoDateTime Date to search for as an ISO8601-formatted String
+     * @return the t index corresponding with the given targetVal
+     * @throws InvalidDimensionValueException if targetVal could not be found
+     * within tValues
+     * @todo almost repeats code in {@link Irregular1DCoordAxis} - refactor?
+     */
+    public TimestepInfo findTimestepInfo(String isoDateTime)
+        throws InvalidDimensionValueException
+    {
+        int tIndex = this.findTIndex(isoDateTime);
+        if (tIndex < 0)
+        {
+            throw new InvalidDimensionValueException("time", isoDateTime);
+        }
+        return this.timesteps.get(tIndex);
+    }
+    
+    /**
+     * Gets a List of TimestepInfo objects starting from isoDateTimeStart and
+     * ending at isoDateTimeEnd, inclusive.
+     * @param isoDateTimeStart ISO8601-formatted String representing the start time
+     * @param isoDateTimeEnd ISO8601-formatted String representing the start time
+     * @return List of TimestepInfo objects from start to end
+     * @throws InvalidDimensionValueException if either of the start or end
+     * values were not found in the axis, or if they are not valid ISO8601 times.
+     */
+    public List<TimestepInfo> findTimestepInfoList(String isoDateTimeStart,
+        String isoDateTimeEnd) throws InvalidDimensionValueException
+    {
+        int startIndex = this.findTIndex(isoDateTimeStart);
+        int endIndex = this.findTIndex(isoDateTimeStart);
+        if (startIndex < endIndex)
+        {
+            throw new InvalidDimensionValueException("time",
+                isoDateTimeStart + "/" + isoDateTimeEnd);
+        }
+        return this.timesteps.subList(startIndex, endIndex + 1);
     }
     
     /**
@@ -397,9 +450,10 @@ public class VariableMetadata
 
     /**
      * Simple class that holds information about which files in an aggregation
-     * hold which timesteps for a variable
+     * hold which timesteps for this variable.  Implements Comparable to allow
+     * collections of this class to be sorted in order of their timestep.
      */
-    public static class TimestepInfo
+    public static class TimestepInfo implements Comparable<TimestepInfo>
     {
         private Date timestep;
         private String filename;
@@ -426,6 +480,22 @@ public class VariableMetadata
         public int getIndexInFile()
         {
             return this.indexInFile;
+        }
+        
+        /**
+         * @return the date-time that this timestep represents
+         */
+        public Date getDate()
+        {
+            return this.timestep;
+        }
+        
+        /**
+         * Sorts based on the timestep only
+         */
+        public int compareTo(TimestepInfo otherInfo)
+        {
+            return this.timestep.compareTo(otherInfo.timestep);
         }
     }
 
@@ -481,7 +551,7 @@ public class VariableMetadata
      */
     public boolean isTaxisPresent()
     {
-        return this.timesteps != null && this.timesteps.size() > 0;
+        return this.getTimesteps() != null && this.getTimesteps().size() > 0;
     }
     
     /**
@@ -508,7 +578,18 @@ public class VariableMetadata
      */
     public int getLastTIndex()
     {
-        return this.timesteps.size() - 1;
+        return this.getTimesteps().size() - 1;
+    }
+    
+    /**
+     * @return the default value of the t axis (i.e. the t value that will be
+     * used if the user does not specify an explicit t value in a GetMap request),
+     * as a TimestepInfo object.  This currently returns the last value along
+     * the time axis, but should probably return the value closest to now.
+     */
+    public final TimestepInfo getDefaultTimestep()
+    {
+        return this.getTimesteps().get(this.getLastTIndex());
     }
     
     /**
@@ -531,6 +612,14 @@ public class VariableMetadata
         // NOTE!! The logic of this method must match up with
         // Config.getVariable(layerName)!
         return this.dataset.getId() + "/" + this.id;
+    }
+
+    /**
+     * @return all the timesteps in this variable
+     */
+    public List<TimestepInfo> getTimesteps()
+    {
+        return timesteps;
     }
     
 }

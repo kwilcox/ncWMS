@@ -482,7 +482,7 @@ function autoScale()
     }
     // Get the minmax metadata item.  This gets a grid of 50x50 data points
     // covering the BBOX and finds the min and max values
-    downloadUrl('WMS.py', 'SERVICE=WMS&REQUEST=GetMetadata&item=minmax&layers=' +
+    downloadUrl('wms', 'REQUEST=GetMetadata&item=minmax&layers=' +
         layerName + '&BBOX=' + dataBounds + '&WIDTH=50&HEIGHT=50'
         + '&CRS=CRS:84&ELEVATION=' + getZValue() + '&TIME=' + tValue,
         function(req) {

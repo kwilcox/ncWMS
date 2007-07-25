@@ -28,10 +28,15 @@
 
 package uk.ac.rdg.resc.ncwms.datareader;
 
+import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
-import java.util.Hashtable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.apache.log4j.Logger;
-import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
+import org.apache.oro.io.GlobFilenameFilter;
 
 /**
  * Abstract superclass for classes that read data and metadata from NetCDF datasets.
@@ -46,7 +51,7 @@ public abstract class DataReader
      * Maps class names to DataReader objects.  Only one DataReader object of
      * each class will ever be created.
      */
-    private static Hashtable<String, DataReader> readers = new Hashtable<String, DataReader>();
+    private static Map<String, DataReader> readers = new HashMap<String, DataReader>();
     
     /**
      * This class can only be instantiated through getDataReader()
@@ -64,121 +69,120 @@ public abstract class DataReader
      * @return a DataReader object of the given class, or {@link DefaultDataReader}
      * or {@link OpendapDataReader} (depending on whether the location starts with
      * "http://" or "dods://") if <code>className</code> is null or the empty string
-     * @throws a {@link WmsException} if the DataReader could not be created
+     * @throws an Exception if the DataReader could not be created
      */
     public static DataReader getDataReader(String className, String location)
-        throws WmsException
+        throws Exception
     {
         String clazz = DefaultDataReader.class.getName();
         if (isOpendapLocation(location))
         {
             clazz = OpendapDataReader.class.getName();
         }
-        try
+        if (className != null && !className.trim().equals(""))
         {
-            if (className != null && !className.trim().equals(""))
-            {
-                clazz = className;
-            }
-            if (!readers.containsKey(clazz))
-            {
-                // Create the DataReader object
-                Object drObj = Class.forName(clazz).newInstance();
-                // this will throw a ClassCastException if drObj is not a DataReader
-                readers.put(clazz, (DataReader)drObj);
-            }
-            return readers.get(clazz);
+            clazz = className;
         }
-        catch(ClassNotFoundException cnfe)
+        if (!readers.containsKey(clazz))
         {
-            logger.error("Class not found: " + clazz, cnfe);
-            throw new WmsException("Internal error: class " + clazz +
-                " not found");
+            // Create the DataReader object
+            Object drObj = Class.forName(clazz).newInstance();
+            // this will throw a ClassCastException if drObj is not a DataReader
+            readers.put(clazz, (DataReader)drObj);
         }
-        catch(InstantiationException ie)
-        {
-            logger.error("Instantiation error for class: " + clazz, ie);
-            throw new WmsException("Internal error: class " + clazz +
-                " could not be instantiated");
-        }
-        catch(IllegalAccessException iae)
-        {
-            logger.error("Illegal access error for class: " + clazz, iae);
-            throw new WmsException("Internal error: constructor for " + clazz +
-                " could not be accessed");
-        }
-    }
-    
-    protected static boolean isOpendapLocation(String location)
-    {
-        return location.startsWith("http://") || location.startsWith("dods://")
-            || location.startsWith("thredds");
+        return readers.get(clazz);
     }
     
     /**
      * Reads an array of data from a NetCDF file and projects onto a rectangular
-     * lat-lon grid.  Reads data for a single time index only.
+     * lat-lon grid.  Reads data for a single timestep only.  This method knows
+     * nothing about aggregation: it simply reads data from the given file.
      * 
-     * @param location Location of the dataset
+     * @param filename Location of the file, NcML aggregation or OPeNDAP URL
      * @param vm {@link VariableMetadata} object representing the variable
-     * @param tIndex The index along the time axis as found in getmap.py
-     * @param zValue The value of elevation as specified by the client
+     * @param tIndex The index along the time axis (or -1 if there is no time axis)
+     * @param zIndex The index along the vertical axis (or -1 if there is no vertical axis)
      * @param latValues Array of latitude values
      * @param lonValues Array of longitude values
      * @param fillValue Value to use for missing data
-     * @return array of data values
-     * @throws WmsException if an error occurs
+     * @throws Exception if an error occurs
      */
-    public float[] read(String location, VariableMetadata vm,
-        int tIndex, String zValue, float[] latValues, float[] lonValues,
-        float fillValue) throws WmsException
-    {
-        try
-        {
-            // Find the index along the depth axis
-            int zIndex = 0; // Default value of z is the first in the axis
-            if (zValue != null && !zValue.equals("") && vm.getZvalues() != null)
-            {
-                zIndex = vm.findZIndex(zValue);
-            }
-            return this.read(location, vm, tIndex, zIndex, latValues, lonValues, fillValue);
-        }
-        catch(WmsException wmeij)
-        {
-            throw wmeij;
-        }
-        catch(Exception e)
-        {
-            logger.error(e.getMessage(), e);
-            throw new WmsException(e.getMessage());
-        }
-    }
-    
-    /**
-     * Reads an array of data from a NetCDF file and projects onto a rectangular
-     * lat-lon grid.  Reads data for a single time index only.
-     * 
-     * @param location Location of the dataset
-     * @param vm {@link VariableMetadata} object representing the variable
-     * @param tIndex The index along the time axis as found in getmap.py
-     * @param zIndex The index along the vertical axis (or 0 if there is no vertical axis)
-     * @param latValues Array of latitude values
-     * @param lonValues Array of longitude values
-     * @param fillValue Value to use for missing data
-     * @throws WmsException if an error occurs
-     */
-    protected abstract float[] read(String location, VariableMetadata vm,
+    public abstract float[] read(String filename, VariableMetadata vm,
         int tIndex, int zIndex, float[] latValues, float[] lonValues,
-        float fillValue) throws WmsException;
+        float fillValue) throws Exception;
     
     /**
      * Reads and returns the metadata for all the variables in the dataset
-     * at the given location.
-     * @param location Full path to the dataset
-     * @return Hashtable of variable IDs mapped to {@link VariableMetadata} objects
+     * at the given location, which may be a glob aggregation (e.g. "/path/to/*.nc").
+     * @param location Full path to the dataset, may be a glob aggregation
+     * @return Map of variable IDs mapped to {@link VariableMetadata} objects
      * @throws IOException if there was an error reading from the data source
      */
-    public abstract Hashtable<String, VariableMetadata> getVariableMetadata(String location)
+    public Map<String, VariableMetadata> getAllVariableMetadata(String location)
+        throws IOException
+    {
+        // A list of names of files resulting from glob expansion
+        List<String> filenames = new ArrayList<String>();
+        if (isOpendapLocation(location))
+        {
+            // We don't do the glob expansion
+            filenames.add(location);
+        }
+        else
+        {
+            // The location might be a glob expression, in which case the last part
+            // of the location path will be the filter expression
+            File locFile = new File(location);
+            FilenameFilter filter = new GlobFilenameFilter(locFile.getName());
+            // Loop over all the files that match the glob pattern
+            for (File f : locFile.getParentFile().listFiles(filter))
+            {
+                filenames.add(f.getPath());
+            }
+        }
+        // Now extract the data for each individual file
+        Map<String, VariableMetadata> aggVars = new HashMap<String, VariableMetadata>();
+        for (String filename : filenames)
+        {
+            // Read the metadata from the file and add them to the aggregation
+            for (VariableMetadata newVar : this.getVariableMetadata(filename))
+            {
+                // Look to see if this variable is already present in the aggregation
+                VariableMetadata existingVar = aggVars.get(newVar.getId());
+                if (existingVar == null)
+                {
+                    // We haven't seen this variable before: just add it to the aggregation
+                    aggVars.put(newVar.getId(), newVar);
+                }
+                else
+                {
+                    // We've already seen this variable: just update the timesteps
+                    // TODO: check that the rest of the metadata matches
+                    for (VariableMetadata.TimestepInfo tInfo : newVar.getTimesteps())
+                    {
+                        existingVar.addTimestepInfo(tInfo);
+                    }
+                }
+            }
+        }
+        return aggVars;
+    }
+    
+    /**
+     * Reads and returns the metadata for all the variables in the dataset
+     * at the given location, which is the location of a NetCDF file, NcML
+     * aggregation, or OPeNDAP location (i.e. one element resulting from the
+     * expansion of a glob aggregation).
+     * @param filename Full path to the dataset (N.B. not an aggregation)
+     * @return List of {@link VariableMetadata} objects
+     * @throws IOException if there was an error reading from the data source
+     */
+    protected abstract List<VariableMetadata> getVariableMetadata(String filename)
         throws IOException;
+    
+    private static boolean isOpendapLocation(String location)
+    {
+        return location.startsWith("http://") || location.startsWith("dods://");
+    }
 
 }
