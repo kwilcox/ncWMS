@@ -50,25 +50,13 @@ public abstract class PicMaker
 {
     private static final Logger logger = Logger.getLogger(PicMaker.class);
     
-    // Image MIME type
-    protected String mimeType;
     // The variable metadata from which this picture was created
     protected VariableMetadata var;
     
     protected List<String> tValues; // List of time values, one for each frame
     protected String zValue;
     protected float[] bbox;
-    protected BufferedImage legend; // If we need a legend, it will be stored here  
-    
-    public String getMimeType()
-    {
-        return mimeType;
-    }
-    
-    public void setMimeType(String mimeType)
-    {
-        this.mimeType = mimeType;
-    }
+    protected BufferedImage legend; // If we need a legend, it will be stored here 
     
     public VariableMetadata getVar()
     {
@@ -94,11 +82,12 @@ public abstract class PicMaker
     /**
      * Encodes and writes the frames to the given OutputStream
      * @param frames The image frames that will be rendered
+     * @param mimeType The mime type of the image to write
      * @param out The {@link OutputStream} to which the image will be written
      * @throws IOException if there was an error writing the data
      */
     public abstract void writeImage(List<BufferedImage> frames, 
-        OutputStream out) throws IOException;
+        String mimeType, OutputStream out) throws IOException;
 
     public List<String> getTvalues()
     {

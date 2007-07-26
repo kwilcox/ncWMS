@@ -131,11 +131,11 @@ class RequestParams
     }
     
     /**
-     * Returns the value of the parameter with the given name as an integer,
+     * Returns the value of the parameter with the given name as a positive integer,
      * throwing a WmsException if the parameter does not exist or if the value
-     * is not a valid integer.
+     * is not a valid positive integer.
      */
-    public int getMandatoryInt(String paramName) throws WmsException
+    public int getMandatoryPositiveInt(String paramName) throws WmsException
     {
         String value = this.getString(paramName);
         if (value == null)
@@ -145,12 +145,18 @@ class RequestParams
         }
         try
         {
-            return Integer.parseInt(value);
+            int i = Integer.parseInt(value);
+            if (i < 0)
+            {
+                throw new WmsException("Parameter " + paramName.toUpperCase() +
+                    " must be a valid positive integer");
+            }
+            return i;
         }
         catch(NumberFormatException nfe)
         {
             throw new WmsException("Parameter " + paramName.toUpperCase() +
-                " must be a valid integer");
+                " must be a valid positive integer");
         }
     }
     

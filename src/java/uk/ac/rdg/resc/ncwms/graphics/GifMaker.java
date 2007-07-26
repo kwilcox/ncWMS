@@ -58,7 +58,8 @@ public class GifMaker extends PicMaker
         logger.debug("Created GifMaker");
     }
 
-    public void writeImage(List<BufferedImage> frames, OutputStream out) throws IOException
+    public void writeImage(List<BufferedImage> frames, String mimeType,
+        OutputStream out) throws IOException
     {
         logger.debug("Writing GIF to output stream ...");
         AnimatedGifEncoder e = new AnimatedGifEncoder();

@@ -51,9 +51,10 @@ public class SimplePicMaker extends PicMaker
     /**
      * This just writes the first frame as the image.
      */
-    public void writeImage(List<BufferedImage> frames, OutputStream out) throws IOException
+    public void writeImage(List<BufferedImage> frames, String mimeType,
+        OutputStream out) throws IOException
     {
-        String imageType = this.mimeType.split("/")[1];
+        String imageType = mimeType.split("/")[1];
         ImageIO.write(frames.get(0), imageType, out);
     }
 }

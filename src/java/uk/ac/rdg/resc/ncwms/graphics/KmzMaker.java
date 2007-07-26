@@ -63,8 +63,8 @@ public class KmzMaker extends PicMaker
         return true;
     }
 
-    public void writeImage(List<BufferedImage> frames,OutputStream out)
-        throws IOException
+    public void writeImage(List<BufferedImage> frames, String mimeType,
+        OutputStream out) throws IOException
     {
         StringBuffer kml = new StringBuffer();
         

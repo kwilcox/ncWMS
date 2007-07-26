@@ -71,7 +71,7 @@ public class WmsController extends AbstractController
      * The maximum number of layers that can be requested in a single GetMap
      * operation
      */
-    private static final int LAYER_LIMIT = 1;
+    static final int LAYER_LIMIT = 1;
     /**
      * The fill value to use when reading data and making pictures
      */
@@ -183,22 +183,8 @@ public class WmsController extends AbstractController
     public ModelAndView getMap(RequestParams params, HttpServletResponse response)
         throws WmsException, Exception
     {
-        String version = params.getMandatoryString("version");
-        if (!version.equals(WmsUtils.VERSION))
-        {
-            throw new WmsException("VERSION must be " + WmsUtils.VERSION);
-        }
+        GetMapRequest getMapRequest = new GetMapRequest(params);
         
-        String[] layers = params.getMandatoryString("layers").split(",");
-        if (layers.length > LAYER_LIMIT)
-        {
-            throw new WmsException("You may only request a maximum of " +
-                LAYER_LIMIT + " layer(s) simultaneously from this server");
-        }
-        
-        // RequestParser replaces pluses with spaces: we must change back
-        // to parse the format correctly
-        String mimeType = params.getMandatoryString("format").replaceAll(" ", "+");
         // Get the PicMaker that corresponds with this MIME type
         PicMaker picMaker = this.picMakerFactory.createObject(mimeType);
         if (picMaker == null)
@@ -206,7 +192,6 @@ public class WmsController extends AbstractController
             throw new InvalidFormatException("The image format " + mimeType + 
                 " is not supported by this server");
         }
-        picMaker.setMimeType(mimeType); // Some PicMakers support multiple mime types
         
         // TODO: support more than one layer
         VariableMetadata var = this.config.getVariable(layers[0]);
@@ -219,8 +204,7 @@ public class WmsController extends AbstractController
         }
         RectangularLatLonGrid grid = (RectangularLatLonGrid)theGrid;
         AbstractStyle style = this.getStyle(params, layers, var, grid);
-        // TODO: deal with EXCEPTIONS
-        String zValue = params.getString("elevation");
+        
         int zIndex = getZIndex(zValue, var); // -1 if no z axis present
         
         // Get a DataReader object for reading the data
@@ -406,8 +390,8 @@ public class WmsController extends AbstractController
         {
             throw new InvalidCrsException(crsCode);
         }
-        grid.setWidth(params.getMandatoryInt("WIDTH"));
-        grid.setHeight(params.getMandatoryInt("HEIGHT"));
+        grid.setWidth(params.getMandatoryPositiveInt("WIDTH"));
+        grid.setHeight(params.getMandatoryPositiveInt("HEIGHT"));
         grid.setBbox(bbox);
         
         return grid;
