@@ -84,6 +84,7 @@
          WmsController and therefore does not need a mapping to be set up here. -->
     <bean id="metadataController" class="uk.ac.rdg.resc.ncwms.controller.MetadataController">
         <property name="config"><ref local="ncwmsConfig"/></property>
+        <property name="gridFactory"><ref local="gridFactory"/></property>
     </bean>
     
     <!-- This mapping ensures that all requests to "/wms*" are mapped to the WmsController -->

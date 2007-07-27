@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 The University of Reading
+ * Copyright (c) 2006 The University of Reading
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,37 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package uk.ac.rdg.resc.ncwms.grids;
+package uk.ac.rdg.resc.ncwms.exceptions;
 
 /**
- * A Grid that consists of orthogonal latitude and longitude axes.
+ * Exception that is thrown when a user requests an unsupported coordinate
+ * reference system
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
  */
-public abstract class RectangularLatLonGrid extends AbstractGrid
+public class InvalidPointException extends WmsException
 {
     
     /**
-     * @return array of points along the latitude axis
+     * Creates a new instance of InvalidCrsException
+     * @param crsCode The code of the unsupported CRS
      */
-    public abstract float[] getLatArray();
-    
-    /**
-     * @return array of points along the longitude axis
-     */
-    public abstract float[] getLonArray();
-
-    public float getLongitude(int i, int j)
+    public InvalidPointException(String i_or_j)
     {
-        return this.getLonArray()[i];
-    }
-
-    public float getLatitude(int i, int j)
-    {
-        return this.getLatArray()[j];
+        super("The GetFeatureInfo request contains an invalid value for " +
+            i_or_j.toUpperCase());
     }
     
 }

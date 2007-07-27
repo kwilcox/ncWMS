@@ -47,7 +47,7 @@ public class InvalidCrsException extends WmsException
     public InvalidCrsException(String crsCode)
     {
         super("The CRS " + crsCode + " is not supported by this server",
-            "InvalidFormat");
+            "InvalidCRS");
     }
     
 }

@@ -34,7 +34,8 @@ import uk.ac.rdg.resc.ncwms.grids.AbstractGrid;
 /**
  * Contains the parts of the GetMap request that pertain to data extraction,
  * i.e. independent of styling.
- * @todo Use this as a key for the tile cache?
+ * @todo Use this as a key for the tile cache?  Would need to normalise timeString
+ * etc.
  *
  * @author Jon Blower
  * $Revision$
@@ -43,7 +44,7 @@ import uk.ac.rdg.resc.ncwms.grids.AbstractGrid;
  */
 class GetMapDataRequest
 {
-    private String[] layers;
+    protected String[] layers;
     private String crs;
     private float[] bbox;
     private int width;
@@ -58,11 +59,19 @@ class GetMapDataRequest
     public GetMapDataRequest(RequestParams params) throws WmsException
     {
         this.layers = params.getMandatoryString("layers").split(",");
-        if (layers.length > WmsController.LAYER_LIMIT)
-        {
-            throw new WmsException("You may only request a maximum of " +
-                WmsController.LAYER_LIMIT + " layer(s) simultaneously from this server");
-        }
+        this.init(params);
+    }
+    
+    /**
+     * Constructor called by GetFeatureInfoDataRequest
+     */
+    protected GetMapDataRequest() {}
+    
+    /**
+     * Initializes the parameters that are common to GetMap and GetFeatureInfo
+     */
+    protected void init(RequestParams params) throws WmsException
+    {
         this.crs = params.getMandatoryString("crs");
         String[] bboxEls = params.getMandatoryString("bbox").split(",");
         // Check the validity of the bounding box

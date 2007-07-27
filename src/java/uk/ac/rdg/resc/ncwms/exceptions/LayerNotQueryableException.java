@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 The University of Reading
+ * Copyright (c) 2006 The University of Reading
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,37 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package uk.ac.rdg.resc.ncwms.grids;
+package uk.ac.rdg.resc.ncwms.exceptions;
 
 /**
- * A Grid that consists of orthogonal latitude and longitude axes.
+ * Exception that is thrown when a user tries to perform GetFeatureInfo on a
+ * layer that is not queryable
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
  */
-public abstract class RectangularLatLonGrid extends AbstractGrid
+public class LayerNotQueryableException extends WmsException
 {
     
     /**
-     * @return array of points along the latitude axis
+     * Creates a new instance of LayerNotQueryableException
+     * @param layer
      */
-    public abstract float[] getLatArray();
-    
-    /**
-     * @return array of points along the longitude axis
-     */
-    public abstract float[] getLonArray();
-
-    public float getLongitude(int i, int j)
+    public LayerNotQueryableException(String layer)
     {
-        return this.getLonArray()[i];
-    }
-
-    public float getLatitude(int i, int j)
-    {
-        return this.getLatArray()[j];
+        super("The layer " + layer + " is not queryable", "LayerNotQueryable");
     }
     
 }

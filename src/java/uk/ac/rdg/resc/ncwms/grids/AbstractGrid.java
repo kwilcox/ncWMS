@@ -74,4 +74,14 @@ public abstract class AbstractGrid
         this.bbox = bbox;
     }
     
+    /**
+     * @return the longitude of the given point on the grid
+     */
+    public abstract float getLongitude(int i, int j);
+    
+    /**
+     * @return the latitude of the given point on the grid
+     */
+    public abstract float getLatitude(int i, int j);
+    
 }

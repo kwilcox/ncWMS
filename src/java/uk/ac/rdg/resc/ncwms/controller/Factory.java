@@ -164,13 +164,4 @@ public final class Factory<T>
         //public String TEST_2 = "hello2";
     }
     
-    public static void main(String[] args) throws Exception
-    {
-        Field [] fields = TestClass.class.getFields();
-        for (Field field : fields)
-        {
-            System.out.println(field.getName() + ":" + (String)field.get(null));
-        }
-    }
-    
 }

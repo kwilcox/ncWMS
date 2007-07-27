@@ -26,37 +26,62 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package uk.ac.rdg.resc.ncwms.grids;
+package uk.ac.rdg.resc.ncwms.controller;
+
+import uk.ac.rdg.resc.ncwms.exceptions.InvalidPointException;
+import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
 
 /**
- * A Grid that consists of orthogonal latitude and longitude axes.
+ * The portion of a GetFeatureInfoRequest that pertains to extraction of 
+ * data (rather than presentation).  Shares most of its parameters with
+ * GetMapDataRequest and hence inherits from it (TODO: probably not the most
+ * logical structure since it's not a real "is-a" relationship - we're only doing
+ * this to save code repetition).
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
  */
-public abstract class RectangularLatLonGrid extends AbstractGrid
+public class GetFeatureInfoDataRequest extends GetMapDataRequest
 {
+    private int pixelColumn; // I and J indices of the feature in question on the map
+    private int pixelRow;
+    private int featureCount;
     
     /**
-     * @return array of points along the latitude axis
+     * Creates a new instance of GetFeatureInfoDataRequest
      */
-    public abstract float[] getLatArray();
-    
-    /**
-     * @return array of points along the longitude axis
-     */
-    public abstract float[] getLonArray();
-
-    public float getLongitude(int i, int j)
+    public GetFeatureInfoDataRequest(RequestParams params) throws WmsException
     {
-        return this.getLonArray()[i];
+        this.layers = params.getMandatoryString("query_layers").split(",");
+        this.init(params); // Initialize parameters that are shared with GetMap
+        this.featureCount = params.getPositiveInt("feature_count", 1);
+        this.pixelColumn = params.getMandatoryPositiveInt("i");
+        if (this.pixelColumn > this.getWidth() - 1)
+        {
+            throw new InvalidPointException("i");
+        }
+        this.pixelRow = params.getMandatoryPositiveInt("j");
+        if (this.pixelRow > this.getHeight() - 1)
+        {
+            throw new InvalidPointException("j");
+        }
     }
 
-    public float getLatitude(int i, int j)
+    public int getPixelColumn()
     {
-        return this.getLatArray()[j];
+        return pixelColumn;
+    }
+
+    public int getPixelRow()
+    {
+        return pixelRow;
+    }
+
+    public int getFeatureCount()
+    {
+        return featureCount;
     }
     
 }

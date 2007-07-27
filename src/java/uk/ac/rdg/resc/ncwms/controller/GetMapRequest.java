@@ -28,10 +28,7 @@
 
 package uk.ac.rdg.resc.ncwms.controller;
 
-import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
 import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
-import uk.ac.rdg.resc.ncwms.graphics.PicMaker;
-import uk.ac.rdg.resc.ncwms.styles.AbstractStyle;
 import uk.ac.rdg.resc.ncwms.utils.WmsUtils;
 
 /**
@@ -46,7 +43,6 @@ import uk.ac.rdg.resc.ncwms.utils.WmsUtils;
  */
 class GetMapRequest
 {
-    private String version;
     private GetMapDataRequest dataRequest;
     private GetMapStyleRequest styleRequest;
     
@@ -56,8 +52,8 @@ class GetMapRequest
      */
     public GetMapRequest(RequestParams params) throws WmsException
     {
-        this.version = params.getMandatoryString("version");
-        if (!this.version.equals(WmsUtils.VERSION))
+        String version = params.getMandatoryString("version");
+        if (!version.equals(WmsUtils.VERSION))
         {
             throw new WmsException("VERSION must be " + WmsUtils.VERSION);
         }
@@ -72,11 +68,6 @@ class GetMapRequest
             throw new WmsException("You must request exactly one STYLE per layer, "
                 + "or use the default style for each layer with STYLES=");
         }
-    }
-
-    public String getVersion()
-    {
-        return version;
     }
 
     /**

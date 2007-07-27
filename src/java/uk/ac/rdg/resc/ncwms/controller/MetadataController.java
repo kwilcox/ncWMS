@@ -39,6 +39,8 @@ import uk.ac.rdg.resc.ncwms.config.Config;
 import uk.ac.rdg.resc.ncwms.config.Dataset;
 import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
 import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
+import uk.ac.rdg.resc.ncwms.grids.AbstractGrid;
+import uk.ac.rdg.resc.ncwms.grids.RectangularLatLonGrid;
 import uk.ac.rdg.resc.ncwms.utils.WmsUtils;
 
 /**
@@ -58,6 +60,7 @@ public class MetadataController
         new WmsUtils.DayComparator();
     
     private Config config; // Will be injected by Spring
+    private Factory<AbstractGrid> gridFactory; // Ditto
     
     public ModelAndView handleRequest(HttpServletRequest request,
         HttpServletResponse response) throws Exception
@@ -300,50 +303,52 @@ public class MetadataController
     /**
      * Shows an XML document containing the minimum and maximum values for the
      * tile given in the parameters.
-     * @todo Do this properly!
      */
     public ModelAndView showMinMax(HttpServletRequest request,
         HttpServletResponse response) throws Exception
     {
-        float[] minMax = new float[2];
+        RequestParams params = new RequestParams(request.getParameterMap());
+        // We only need the bit of the GetMap request that pertains to data extraction
+        GetMapDataRequest dataRequest = new GetMapDataRequest(params);
         
-        /*layers = params.getParamValue("layers").split(",")
-        dataset, varID = getmap._getDatasetAndVariableID(layers, config.datasets)
-        var = dataset.variables[varID]
-        tIndex = getmap._getTIndices(var, params)[0]
-        zValue = getmap._getZValue(params)
-        bbox = getmap._getBbox(params)
-        grid = getmap._getGrid(params, bbox, config)
-        fillvalue = getmap._getFillValue()
-        # Now read the data
+        // TODO: some of the code below is repetitive of WmsController: refactor?
+        
+        // Get the variable we're interested in
+        VariableMetadata var = this.config.getVariable(dataRequest.getLayers()[0]);
+        
+        // Get the grid onto which the data is being projected
+        AbstractGrid grid = WmsController.getGrid(dataRequest, this.gridFactory);
+        
+        // Get the index along the z axis
+        int zIndex = WmsController.getZIndex(dataRequest.getElevationString(), var); // -1 if no z axis present
+        
+        // Get the information about the requested timestep (taking the first only)
+        VariableMetadata.TimestepInfo timestep =
+            WmsController.getTimesteps(dataRequest.getTimeString(), var).get(0);
+        
+        // Now read the data
+        List<float[]> picData = var.read(timestep, zIndex, grid, WmsController.FILL_VALUE);
 
-        picData = [] # Contains one (scalar) or two (vector) components
-        if var.vector:
-            picData.append(getmap.readPicData(dataset, var.eastwardComponent, params.getParamValue("crs"), bbox, grid, zValue, tIndex, cache))
-            picData.append(getmap.readPicData(dataset, var.northwardComponent, params.getParamValue("crs"), bbox, grid, zValue, tIndex, cache))
-        else:
-            picData.append(getmap.readPicData(dataset, var, params.getParamValue("crs"), bbox, grid, zValue, tIndex, cache))
-
-        min = 1e20
-        max = -1e20
-        allNone = 1
-
-        # Now find the minimum and maximum values: for a vector this is the magnitude
-        for i in xrange(len(picData[0])):
-            val = picData[0][i]
-            if getfeatureinfo._checkFillValue(val, fillvalue) is not None:
-                allNone = 0
-                if len(picData) == 2:
-                    # This is a vector quantity: calculate the magnitude
-                    val = math.sqrt(val * val + picData[1][i] * picData[1][i])
-                if val < min: min = val
-                if val > max: max = val
-        if allNone:
-            min, max = 0, 50 # All data values were "None". Make up some numbers*/
-                
-        minMax[0] = 0.0f;
-        minMax[1] = 50.0f;
-        return new ModelAndView("showMinMax", "minMax", minMax);
+        // Now find the minimum and maximum values: for a vector this is the magnitude
+        boolean allFillValue = true;
+        float min = Float.MAX_VALUE;
+        float max = -Float.MAX_VALUE;
+        for (int i = 0; i < picData.get(0).length; i++)
+        {
+            float val = picData.get(0)[i];
+            if (val != WmsController.FILL_VALUE)
+            {
+                allFillValue = false;
+                if (picData.size() == 2)
+                {
+                    // This is a vector quantity: calculate the magnitude
+                    val = (float)Math.sqrt(val * val + picData.get(1)[i] * picData.get(1)[i]);
+                }
+                if (val < min) min = val;
+                if (val > max) max = val;
+            }
+        }
+        return new ModelAndView("showMinMax", "minMax", new float[]{min, max});
     }
     
     /**
@@ -361,6 +366,14 @@ public class MetadataController
     public void setConfig(Config config)
     {
         this.config = config;
+    }
+    
+    /**
+     * Called by Spring to inject the gridFactory object
+     */
+    public void setGridFactory(Factory<AbstractGrid> gridFactory)
+    {
+        this.gridFactory = gridFactory;
     }
     
 }

@@ -130,7 +130,9 @@ public class DefaultDataReader extends DataReader
             long openedDS = System.currentTimeMillis();
             logger.debug("Opened NetcdfDataset in {} milliseconds", (openedDS - readMetadata));            
             GridDataset gd = new GridDataset(nc);
+            logger.debug("Getting GeoGrid with id {}", vm.getId());
             GeoGrid gg = gd.findGridByName(vm.getId());
+            logger.debug("filename = {}, gg = " + gg, filename);
             // Get an enhanced version of the variable for fast reading of data
             EnhanceScaleMissingImpl enhanced = getEnhanced(gg);
             
@@ -202,10 +204,9 @@ public class DefaultDataReader extends DataReader
     }
     
     /**
-     * Implemented as a function because for some reason we can't access
-     * EnhanceScaleMissingImpl() constructor from Jython.
+     * @return enhanced version of the given GeoGrid
      */
-    public static EnhanceScaleMissingImpl getEnhanced(GeoGrid gg)
+    protected static EnhanceScaleMissingImpl getEnhanced(GeoGrid gg)
     {
         return new EnhanceScaleMissingImpl((VariableDS)gg.getVariable());
     }

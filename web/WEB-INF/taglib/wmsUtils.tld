@@ -17,6 +17,12 @@
       <function-signature>java.lang.String secondsToISO8601(double)</function-signature>
   </function>
   <function>
+      <description>Converts a date object to an ISO8601-formatted String</description>
+      <name>dateToISO8601</name>
+      <function-class>uk.ac.rdg.resc.ncwms.utils.WmsUtils</function-class>
+      <function-signature>java.lang.String dateToISO8601(java.util.Date)</function-signature>
+  </function>
+  <function>
       <description>Calculates the absolute value of a number</description>
       <name>abs</name>
       <function-class>java.lang.Math</function-class>

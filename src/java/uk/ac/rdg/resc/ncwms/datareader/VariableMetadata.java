@@ -35,7 +35,8 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import uk.ac.rdg.resc.ncwms.config.Dataset;
 import uk.ac.rdg.resc.ncwms.exceptions.InvalidDimensionValueException;
-import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
+import uk.ac.rdg.resc.ncwms.grids.AbstractGrid;
+import uk.ac.rdg.resc.ncwms.grids.RectangularLatLonGrid;
 import uk.ac.rdg.resc.ncwms.styles.BoxFillStyle;
 import uk.ac.rdg.resc.ncwms.styles.VectorStyle;
 import uk.ac.rdg.resc.ncwms.utils.WmsUtils;
@@ -112,7 +113,12 @@ public class VariableMetadata
         this.yaxis = eastward.yaxis;
         this.dataset = eastward.dataset;
         this.units = eastward.units;
+        
+        ///////////////////
+        // BUG!! Doesn't work for datasets that have different variables in different files'
         this.timesteps = eastward.getTimesteps();
+        ///////////////////
+        
         // Vector is the default style, but we can also render as a boxfill
         // (magnitude only)
         this.addStyles(VectorStyle.KEYS);
@@ -409,8 +415,8 @@ public class VariableMetadata
         String isoDateTimeEnd) throws InvalidDimensionValueException
     {
         int startIndex = this.findTIndex(isoDateTimeStart);
-        int endIndex = this.findTIndex(isoDateTimeStart);
-        if (startIndex < endIndex)
+        int endIndex = this.findTIndex(isoDateTimeEnd);
+        if (startIndex > endIndex)
         {
             throw new InvalidDimensionValueException("time",
                 isoDateTimeStart + "/" + isoDateTimeEnd);
@@ -613,7 +619,71 @@ public class VariableMetadata
         // Config.getVariable(layerName)!
         return this.dataset.getId() + "/" + this.id;
     }
-
+    
+    /**
+     * @return true if this variable can be queried through the GetFeatureInfo
+     * function.  Delegates to Dataset.isQueryable().
+     */
+    public boolean isQueryable()
+    {
+        return this.dataset.isQueryable();
+    }
+    
+    /**
+     * Reads a layer of data from this variable.  If this is a vector variable
+     * the returned List will contain both components (i.e. List.size() == 2).
+     * Currently only works for RectangularLatLonGrids.
+     */
+    public List<float[]> read(TimestepInfo timestep, int zIndex,
+        AbstractGrid grid, float fillValue) throws Exception
+    {
+        // Check that we can handle this type of grid
+        if (!(grid instanceof RectangularLatLonGrid))
+        {
+            // TODO: support non-rectangular grids for images
+            throw new Exception("Grid is not rectangular");
+        }
+        RectangularLatLonGrid rectGrid = (RectangularLatLonGrid)grid;
+        return this.read(timestep, zIndex, rectGrid.getLatArray(),
+            rectGrid.getLonArray(), fillValue);
+    }
+    
+    /**
+     * Reads a layer of data from this variable.  If this is a vector variable
+     * the returned List will contain both components (i.e. List.size() == 2).
+     */
+    public List<float[]> read(TimestepInfo timestep, int zIndex,
+        float[] latValues, float[] lonValues, float fillValue) throws Exception
+    {
+        // Get a DataReader object for reading the data
+        String dataReaderClass = this.dataset.getDataReaderClass();
+        String location = this.dataset.getLocation();
+        DataReader dr = DataReader.getDataReader(dataReaderClass, location);
+        logger.debug("Got data reader of type {}", dr.getClass().getName());
+        
+        // See exactly which file we're reading from, and which time index in 
+        // the file (handles datasets with glob aggregation)
+        int tIndex = timestep == null ? -1 : timestep.getIndexInFile();
+        String filename = timestep == null ? this.dataset.getLocation() : timestep.getFilename();
+        
+        List<float[]> picData = new ArrayList<float[]>();
+        if (this.isVector())
+        {
+            // Need to read both components
+            picData.add(dr.read(filename, this.getEastwardComponent(), tIndex,
+                zIndex, latValues, lonValues, fillValue));
+            picData.add(dr.read(filename, this.getNorthwardComponent(), tIndex,
+                zIndex, latValues, lonValues, fillValue));
+        }
+        else
+        {
+            picData.add(dr.read(filename, this, tIndex, zIndex,
+                latValues, lonValues, fillValue));
+        }
+        
+        return picData;
+    }
+    
     /**
      * @return all the timesteps in this variable
      */

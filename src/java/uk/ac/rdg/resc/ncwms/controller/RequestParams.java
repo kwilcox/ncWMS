@@ -57,7 +57,7 @@ class RequestParams
         {
             String[] values = (String[])httpRequestParamMap.get(name);
             assert values.length >= 1;
-            this.paramMap.put(unquotePlus(name.toString()).toLowerCase(),
+            this.paramMap.put(unquotePlus(name.toString().trim()).toLowerCase(),
                 unquotePlus(values[0].trim()));
         }
     }
@@ -100,11 +100,6 @@ class RequestParams
         return buf.toString();
     }
     
-    public static void main(String[] args)
-    {
-        System.out.println(unquotePlus("%7e/abc+def%2fhello%20flowers%2e"));
-    }
-    
     /**
      * Returns the value of the parameter with the given name as a String, or null if the
      * parameter does not have a value.  This method is not sensitive to the case
@@ -132,8 +127,21 @@ class RequestParams
     
     /**
      * Returns the value of the parameter with the given name as a positive integer,
+     * or the provided default if no parameter with the given name has been supplied.
+     * Throws a WmsException if the parameter does not exist or if the value
+     * is not a valid positive integer.  Zero is counted as a positive integer.
+     */
+    public int getPositiveInt(String paramName, int defaultValue) throws WmsException
+    {
+        String value = this.getString(paramName);
+        if (value == null) return defaultValue;
+        return parsePositiveInt(paramName, value);
+    }
+    
+    /**
+     * Returns the value of the parameter with the given name as a positive integer,
      * throwing a WmsException if the parameter does not exist or if the value
-     * is not a valid positive integer.
+     * is not a valid positive integer.  Zero is counted as a positive integer.
      */
     public int getMandatoryPositiveInt(String paramName) throws WmsException
     {
@@ -143,6 +151,11 @@ class RequestParams
             throw new WmsException("Must provide a value for parameter "
                 + paramName.toUpperCase());
         }
+        return parsePositiveInt(paramName, value);
+    }
+    
+    private int parsePositiveInt(String paramName, String value) throws WmsException
+    {
         try
         {
             int i = Integer.parseInt(value);
