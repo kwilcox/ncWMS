@@ -185,15 +185,15 @@ public class VariableMetadata
     }
 
     /**
-     * @return array of timestep values in seconds since the epoch
+     * @return array of timestep values in milliseconds since the epoch
      */
-    public synchronized double[] getTvalues()
+    public synchronized long[] getTvalues()
     {
-        double[] tVals = new double[this.getTimesteps().size()];
+        long[] tVals = new long[this.getTimesteps().size()];
         int i = 0;
         for (TimestepInfo tInfo : timesteps)
         {
-            tVals[i] = tInfo.timestep.getTime() / 1000.0;
+            tVals[i] = tInfo.timestep.getTime();
             i++;
         }
         return tVals;
@@ -587,10 +587,10 @@ public class VariableMetadata
     /**
      * @return the default value of the t axis (i.e. the t value that will be
      * used if the user does not specify an explicit t value in a GetMap request),
-     * in seconds since the epoch.  This currently returns the last value along
+     * in milliseconds since the epoch.  This currently returns the last value along
      * the time axis, but should probably return the value closest to now.
      */
-    public final double getDefaultTValue()
+    public final long getDefaultTValue()
     {
         return this.getTvalues()[this.getLastTIndex()];
     }

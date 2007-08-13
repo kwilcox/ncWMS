@@ -8,9 +8,9 @@
           nearestIndex = nearest index along time axis to the focus time (int)
           variable = The variable in question (VariableMetadata) --%>
 <root>
-    <%-- Calculate the nearest time to the focus time (in seconds since epoch) --%>
+    <%-- Calculate the nearest time to the focus time (in milliseconds since epoch) --%>
     <c:set var="nearestTime" value="${variable.tvalues[nearestIndex]}"/>
-    <nearestValue>${utils:secondsToISO8601(nearestTime)}</nearestValue>
+    <nearestValue>${utils:millisecondsToISO8601(nearestTime)}</nearestValue>
     <prettyNearestValue>${utils:formatPrettyDate(nearestTime)}</prettyNearestValue>
     <nearestIndex>${nearestIndex}</nearestIndex>
 
@@ -38,7 +38,7 @@
                             <c:otherwise>
                                 <c:choose>
                                     <c:when test="${day.tindex >= 0}">
-                                        <td id="t${day.tindex}"><a href="#" onclick="javascript:getTimesteps('${variable.dataset.id}','${variable.id}','${day.tindex}','${utils:secondsToISO8601(variable.tvalues[day.tindex])}','${utils:formatPrettyDate(variable.tvalues[day.tindex])}'); return false">${day.dayNumber}</a></td>
+                                        <td id="t${day.tindex}"><a href="#" onclick="javascript:getTimesteps('${variable.dataset.id}','${variable.id}','${day.tindex}','${utils:millisecondsToISO8601(variable.tvalues[day.tindex])}','${utils:formatPrettyDate(variable.tvalues[day.tindex])}'); return false">${day.dayNumber}</a></td>
                                     </c:when>
                                     <c:otherwise>
                                         <td>${day.dayNumber}</td> <%-- No data for this day --%>

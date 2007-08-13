@@ -217,12 +217,12 @@ public class MetadataController
         {
             throw new WmsException("Must provide a value for the dateTime parameter");
         }
-        // Convert the focus time to seconds since the epoch
+        // Convert the focus time to milliseconds since the epoch
         // TODO: this method should throw a ParseException, which we should trap
-        double focusTime = WmsUtils.iso8601ToSeconds(focusTimeIso);
+        long focusTime = WmsUtils.iso8601ToMilliseconds(focusTimeIso);
         
-        // Get the array of time axis values (in seconds since the epoch)
-        double[] tVals = vm.getTvalues();
+        // Get the array of time axis values (in milliseconds since the epoch)
+        long[] tVals = vm.getTvalues();
         if (tVals.length == 0) return null; // return no data if no time axis present
         
         // Find the closest time step to the focus time
@@ -274,12 +274,12 @@ public class MetadataController
         {
             throw new WmsException("The value of the tIndex parameter must be a valid integer");
         }
-        // Get the array of time axis values (in seconds since the epoch)
-        double[] tVals = vm.getTvalues();
+        // Get the array of time axis values (in milliseconds since the epoch)
+        long[] tVals = vm.getTvalues();
         if (tVals.length == 0) return null; // return no data if no time axis present
         
-        // List of times (in seconds since the epoch) that fall on this day
-        List<Double> timesteps = new ArrayList<Double>();
+        // List of times (in milliseconds since the epoch) that fall on this day
+        List<Long> timesteps = new ArrayList<Long>();
         // add the reference time
         timesteps.add(tVals[tIndex]);
         
@@ -351,10 +351,10 @@ public class MetadataController
     }
     
     /**
-     * @return true if the two given dates (in seconds since the epoch) fall on
+     * @return true if the two given dates (in milliseconds since the epoch) fall on
      * the same day
      */
-    private boolean onSameDay(double s1, double s2)
+    private boolean onSameDay(long s1, long s2)
     {
         return DAY_COMPARATOR.compare(s1, s2) == 0;
     }

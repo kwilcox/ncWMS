@@ -102,9 +102,9 @@ public class KmzMaker extends PicMaker
             {
                 // We must make sure the ISO8601 timestamp is full and includes
                 // seconds, otherwise Google Earth gets confused.  This is why we
-                // convert to a double and back again.
-                double secondsSinceEpoch = WmsUtils.iso8601ToSeconds(this.tValues.get(frameIndex));
-                timestamp = WmsUtils.secondsToISO8601(secondsSinceEpoch);
+                // convert to a long and back again.
+                long millisecondsSinceEpoch = WmsUtils.iso8601ToMilliseconds(this.tValues.get(frameIndex));
+                timestamp = WmsUtils.millisecondsToISO8601(millisecondsSinceEpoch);
                 kml.append("<TimeStamp><when>" + timestamp + "</when></TimeStamp>");
             }
             if (this.zValue != null && !this.zValue.equals("") && this.var.getZvalues() != null)

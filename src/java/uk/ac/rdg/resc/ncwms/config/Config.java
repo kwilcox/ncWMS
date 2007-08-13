@@ -190,11 +190,11 @@ public class Config
     
     /**
      * @return the time of the last change to the configuration or metadata,
-     * in seconds since the epoch
+     * in milliseconds since the epoch
      */
-    public double getLastUpdateTimeSeconds()
+    public long getLastUpdateTimeSeconds()
     {
-        return this.lastUpdateTime.getTime() / 1000.0;
+        return this.lastUpdateTime.getTime();
     }
 
     public Server getServer()

@@ -67,12 +67,12 @@ public class WmsUtils
     private static final TimeZone GMT = TimeZone.getTimeZone("GMT+0");
 
     /**
-     * Converts a number of seconds since the epoch into an ISO8601-formatted
+     * Converts a number of milliseconds since the epoch into an ISO8601-formatted
      * String.
      */
-    public static String secondsToISO8601(double secondsSinceEpoch)
+    public static String millisecondsToISO8601(long millisecondsSinceEpoch)
     {
-        return dateToISO8601(getDate(secondsSinceEpoch));
+        return dateToISO8601(new Date(millisecondsSinceEpoch));
     }
 
     /**
@@ -92,22 +92,13 @@ public class WmsUtils
     }
     
     /**
-     * @return a Date object that is equivalent to the given number of seconds
-     * since the epoch
-     */
-    public static Date getDate(double secondsSinceEpoch)
-    {
-        return new Date(new Double(secondsSinceEpoch * 1000).longValue());
-    }
-    
-    /**
-     * Converts an ISO8601-formatted time into a number of seconds since the
+     * Converts an ISO8601-formatted time into a number of milliseconds since the
      * epoch
      * @todo: shouldn't this throw a parse error?
      */
-    public static double iso8601ToSeconds(String isoDateTime)
+    public static long iso8601ToMilliseconds(String isoDateTime)
     {
-        return iso8601ToDate(isoDateTime).getTime() / 1000.0;
+        return iso8601ToDate(isoDateTime).getTime();
     }
         
     /**
@@ -121,34 +112,34 @@ public class WmsUtils
     
     /**
      * @return a heading (e.g. "Oct 2006") for the given date, which is 
-     * expressed in seconds since the epoch.  Used by showCalendar.jsp.
+     * expressed in milliseconds since the epoch.  Used by showCalendar.jsp.
      */
-    public static String getCalendarHeading(double secondsSinceEpoch)
+    public static String getCalendarHeading(long millisecondsSinceEpoch)
     {
         DateFormat df = new SimpleDateFormat("MMM yyyy");
         // Must set the time zone to avoid problems with daylight saving
         df.setTimeZone(GMT);
-        return df.format(getDate(secondsSinceEpoch));
+        return df.format(new Date(millisecondsSinceEpoch));
     }
     
     /**
      * @return an ISO8601-formatted date that is exactly one year earlier than
-     * the given date, in seconds since the epoch.
+     * the given date, in milliseconds since the epoch.
      */
-    public static String getYearBefore(double secondsSinceEpoch)
+    public static String getYearBefore(long millisecondsSinceEpoch)
     {
-        Calendar cal = getCalendar(secondsSinceEpoch);
+        Calendar cal = getCalendar(millisecondsSinceEpoch);
         cal.add(Calendar.YEAR, -1);
         return dateToISO8601(cal.getTime());
     }
     
     /**
-     * @return a new Calendar object, set to the given time (in seconds since
-     * the epoch).
+     * @return a new Calendar object, set to the given time (in milliseconds
+     * since the epoch).
      */
-    public static Calendar getCalendar(double secondsSinceEpoch)
+    public static Calendar getCalendar(long millisecondsSinceEpoch)
     {
-        Date date = getDate(secondsSinceEpoch);
+        Date date = new Date(millisecondsSinceEpoch);
         Calendar cal = Calendar.getInstance();
         // Must set the time zone to avoid problems with daylight saving
         cal.setTimeZone(GMT);
@@ -158,64 +149,64 @@ public class WmsUtils
     
     /**
      * @return an ISO8601-formatted date that is exactly one year later than
-     * the given date, in seconds since the epoch.
+     * the given date, in milliseconds since the epoch.
      */
-    public static String getYearAfter(double secondsSinceEpoch)
+    public static String getYearAfter(long millisecondsSinceEpoch)
     {
-        Calendar cal = getCalendar(secondsSinceEpoch);
+        Calendar cal = getCalendar(millisecondsSinceEpoch);
         cal.add(Calendar.YEAR, 1);
         return dateToISO8601(cal.getTime());
     }
     
     /**
      * @return an ISO8601-formatted date that is exactly one month earlier than
-     * the given date, in seconds since the epoch.
+     * the given date, in milliseconds since the epoch.
      */
-    public static String getMonthBefore(double secondsSinceEpoch)
+    public static String getMonthBefore(long millisecondsSinceEpoch)
     {
-        Calendar cal = getCalendar(secondsSinceEpoch);
+        Calendar cal = getCalendar(millisecondsSinceEpoch);
         cal.add(Calendar.MONTH, -1);
         return dateToISO8601(cal.getTime());
     }
     
     /**
      * @return an ISO8601-formatted date that is exactly one month later than
-     * the given date, in seconds since the epoch.
+     * the given date, in milliseconds since the epoch.
      */
-    public static String getMonthAfter(double secondsSinceEpoch)
+    public static String getMonthAfter(long millisecondsSinceEpoch)
     {
-        Calendar cal = getCalendar(secondsSinceEpoch);
+        Calendar cal = getCalendar(millisecondsSinceEpoch);
         cal.add(Calendar.MONTH, 1);
         return dateToISO8601(cal.getTime());
     }
     
     /**
-     * Formats a date (in seconds since the epoch) as human-readable "dd MMM yyyy",
+     * Formats a date (in milliseconds since the epoch) as human-readable "dd MMM yyyy",
      * e.g. "02 Jul 2007".
      */
-    public static String formatPrettyDate(double secondsSinceEpoch)
+    public static String formatPrettyDate(long millisecondsSinceEpoch)
     {
         DateFormat df = new SimpleDateFormat("dd MMM yyyy");
         // Must set the time zone to avoid problems with daylight saving
         df.setTimeZone(GMT);
-        return df.format(getDate(secondsSinceEpoch));
+        return df.format(new Date(millisecondsSinceEpoch));
     }
     
     /**
-     * Formats a date (in seconds since the epoch) as human-readable "HH:mm:ss",
+     * Formats a date (in milliseconds since the epoch) as human-readable "HH:mm:ss",
      * e.g. "14:53:03".
      */
-    public static String formatPrettyTime(double secondsSinceEpoch)
+    public static String formatPrettyTime(long millisecondsSinceEpoch)
     {
         DateFormat df = new SimpleDateFormat("HH:mm:ss");
         // Must set the time zone to avoid problems with daylight saving
         df.setTimeZone(GMT);
-        return df.format(getDate(secondsSinceEpoch));
+        return df.format(new Date(millisecondsSinceEpoch));
     }
     
     /**
      * <p>@return a calendar representation of the month that contains the date
-     * represented by the given number of seconds since the epoch.  Each item
+     * represented by the given number of milliseconds since the epoch.  Each item
      * in the returned List represents a week in the calendar (starting on a
      * Monday).  Each week is represented by an array of 7 DayInfo objects, giving the
      * day number on each day of that week and the index of the corresponding point
@@ -233,8 +224,8 @@ public class WmsUtils
      * <tr><td>26</td><td>27</td><td>28</td><td>29</td><td>30</td><td>31</td><td>null</td></tr>
      * </table>
      */
-    public static List<DayInfo[]> getMonthCalendar(double targetTime,
-        double[] axisValues)
+    public static List<DayInfo[]> getMonthCalendar(long targetTime,
+        long[] axisValues)
     {
         final int DAYS_IN_WEEK = 7;
         List<DayInfo[]> weeks = new ArrayList<DayInfo[]>();
@@ -260,9 +251,9 @@ public class WmsUtils
             {
                 if (day >= 1 && day <= lastDayOfMonth)
                 {
-                    // Get the current day (in seconds since the epoch)
+                    // Get the current day (in milliseconds since the epoch)
                     cal.set(Calendar.DAY_OF_MONTH, day);
-                    double currentDay = cal.getTimeInMillis() / 1000.0;
+                    long currentDay = cal.getTimeInMillis();
                     // Look to see if we have any data on this day
                     boolean found = false;
                     while (!found && tIndex < axisValues.length)
@@ -316,18 +307,18 @@ public class WmsUtils
     }
     
     /**
-     * Compares two dates (expressed in seconds since the epoch) to see if they
+     * Compares two dates (expressed in milliseconds since the epoch) to see if they
      * fall on the same day or different days (ignoring hours, minutes and seconds)
      */
-    public static class DayComparator implements Comparator<Double>
+    public static class DayComparator implements Comparator<Long>
     {
         /**
-         * Compares two dates (expressed in seconds since the epoch), returning
+         * Compares two dates (expressed in milliseconds since the epoch), returning
          * 0 if they are on the same day, <0 if the first date is on a day before
          * that of the second date or >0 if the first date is on a day after the
          * second date.
          */
-        public int compare(Double d1, Double d2)
+        public int compare(Long d1, Long d2)
         {
             Calendar cal1 = getCalendar(d1);
             Calendar cal2 = getCalendar(d2);

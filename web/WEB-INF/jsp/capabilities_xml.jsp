@@ -114,8 +114,8 @@
                     </c:if>
                     <c:set var="tvalues" value="${variable.value.tvalues}"/>
                     <c:if test="${variable.value.taxisPresent}">
-                    <Dimension name="time" units="ISO8601" multipleValues="true" current="true" default="${utils:secondsToISO8601(variable.value.defaultTValue)}">
-                        <c:forEach var="tval" items="${tvalues}" varStatus="status"><c:if test="${status.index > 0}">,</c:if>${utils:secondsToISO8601(tval)}</c:forEach>
+                    <Dimension name="time" units="ISO8601" multipleValues="true" current="true" default="${utils:millisecondsToISO8601(variable.value.defaultTValue)}">
+                        <c:forEach var="tval" items="${tvalues}" varStatus="status"><c:if test="${status.index > 0}">,</c:if>${utils:millisecondsToISO8601(tval)}</c:forEach>
                     </Dimension>
                     </c:if>
                     <c:forEach var="style" items="${variable.value.supportedStyleKeys}">
