@@ -113,11 +113,11 @@ public class VariableMetadata
         this.yaxis = eastward.yaxis;
         this.dataset = eastward.dataset;
         this.units = eastward.units;
-        
-        ///////////////////
-        // BUG!! Doesn't work for datasets that have different variables in different files'
-        this.timesteps = eastward.getTimesteps();
-        ///////////////////
+        this.timesteps = eastward.getTimesteps(); // Only used for metadata:
+                                                  // have to be careful reading
+                                                  // data as some datasets might
+                                                  // store different variables in
+                                                  // different files.
         
         // Vector is the default style, but we can also render as a boxfill
         // (magnitude only)
@@ -324,6 +324,7 @@ public class VariableMetadata
      * @return the index of the TimestepInfo object corresponding with the given
      * date, or -1 if there is no TimestepInfo object corresponding with the
      * given date.  Uses binary search for efficiency.
+     * @todo replace with Arrays.binarySearch()?
      */
     private int findTIndex(Date target)
     {
@@ -361,7 +362,7 @@ public class VariableMetadata
      * @throws InvalidDimensionValueException if there is no corresponding
      * TimestepInfo object, or if the given ISO8601 string is not valid.  
      */
-    private int findTIndex(String isoDateTime) throws InvalidDimensionValueException
+    public int findTIndex(String isoDateTime) throws InvalidDimensionValueException
     {
         if (isoDateTime.equals("current"))
         {
@@ -383,35 +384,15 @@ public class VariableMetadata
     }
     
     /**
-     * Finds the index of a certain t value by binary search (the axis may be
-     * very long, so a brute-force search is inappropriate)
-     * @param isoDateTime Date to search for as an ISO8601-formatted String
-     * @return the t index corresponding with the given targetVal
-     * @throws InvalidDimensionValueException if targetVal could not be found
-     * within tValues
-     * @todo almost repeats code in {@link Irregular1DCoordAxis} - refactor?
-     */
-    public TimestepInfo findTimestepInfo(String isoDateTime)
-        throws InvalidDimensionValueException
-    {
-        int tIndex = this.findTIndex(isoDateTime);
-        if (tIndex < 0)
-        {
-            throw new InvalidDimensionValueException("time", isoDateTime);
-        }
-        return this.timesteps.get(tIndex);
-    }
-    
-    /**
-     * Gets a List of TimestepInfo objects starting from isoDateTimeStart and
-     * ending at isoDateTimeEnd, inclusive.
+     * Gets a List of integers representing indices along the time axis
+     * starting from isoDateTimeStart and ending at isoDateTimeEnd, inclusive.
      * @param isoDateTimeStart ISO8601-formatted String representing the start time
      * @param isoDateTimeEnd ISO8601-formatted String representing the start time
-     * @return List of TimestepInfo objects from start to end
+     * @return List of Integer indices
      * @throws InvalidDimensionValueException if either of the start or end
      * values were not found in the axis, or if they are not valid ISO8601 times.
      */
-    public List<TimestepInfo> findTimestepInfoList(String isoDateTimeStart,
+    public List<Integer> findTIndices(String isoDateTimeStart,
         String isoDateTimeEnd) throws InvalidDimensionValueException
     {
         int startIndex = this.findTIndex(isoDateTimeStart);
@@ -421,7 +402,12 @@ public class VariableMetadata
             throw new InvalidDimensionValueException("time",
                 isoDateTimeStart + "/" + isoDateTimeEnd);
         }
-        return this.timesteps.subList(startIndex, endIndex + 1);
+        List<Integer> tIndices = new ArrayList<Integer>();
+        for (int i = startIndex; i <= endIndex; i++)
+        {
+            tIndices.add(i);
+        }
+        return tIndices;
     }
     
     /**
@@ -588,14 +574,14 @@ public class VariableMetadata
     }
     
     /**
-     * @return the default value of the t axis (i.e. the t value that will be
+     * @return the index of the default value of the t axis (i.e. the t value that will be
      * used if the user does not specify an explicit t value in a GetMap request),
      * as a TimestepInfo object.  This currently returns the last value along
      * the time axis, but should probably return the value closest to now.
      */
-    public final TimestepInfo getDefaultTimestep()
+    public final int getDefaultTIndex()
     {
-        return this.getTimesteps().get(this.getLastTIndex());
+        return this.getLastTIndex();
     }
     
     /**
@@ -630,12 +616,12 @@ public class VariableMetadata
     }
     
     /**
-     * Reads a layer of data from this variable.  If this is a vector variable
-     * the returned List will contain both components (i.e. List.size() == 2).
+     * Reads a layer of data from this variable (which must be a scalar or a
+     * single component of a vector).
      * Currently only works for RectangularLatLonGrids.
      */
-    public List<float[]> read(TimestepInfo timestep, int zIndex,
-        AbstractGrid grid, float fillValue) throws Exception
+    public float[] read(int tIndex, int zIndex, AbstractGrid grid,
+        float fillValue) throws Exception
     {
         // Check that we can handle this type of grid
         if (!(grid instanceof RectangularLatLonGrid))
@@ -644,16 +630,16 @@ public class VariableMetadata
             throw new Exception("Grid is not rectangular");
         }
         RectangularLatLonGrid rectGrid = (RectangularLatLonGrid)grid;
-        return this.read(timestep, zIndex, rectGrid.getLatArray(),
+        return this.read(tIndex, zIndex, rectGrid.getLatArray(),
             rectGrid.getLonArray(), fillValue);
     }
     
     /**
-     * Reads a layer of data from this variable.  If this is a vector variable
-     * the returned List will contain both components (i.e. List.size() == 2).
+     * Reads a layer of data from this variable (which must be a scalar or a
+     * single component of a vector).
      */
-    public List<float[]> read(TimestepInfo timestep, int zIndex,
-        float[] latValues, float[] lonValues, float fillValue) throws Exception
+    public float[] read(int tIndex, int zIndex, float[] latValues,
+        float[] lonValues, float fillValue) throws Exception
     {
         // Get a DataReader object for reading the data
         String dataReaderClass = this.dataset.getDataReaderClass();
@@ -663,25 +649,22 @@ public class VariableMetadata
         
         // See exactly which file we're reading from, and which time index in 
         // the file (handles datasets with glob aggregation)
-        int tIndex = timestep == null ? -1 : timestep.getIndexInFile();
-        String filename = timestep == null ? this.dataset.getLocation() : timestep.getFilename();
-        
-        List<float[]> picData = new ArrayList<float[]>();
-        if (this.isVector())
+        String filename;
+        int tIndexInFile;
+        if (tIndex >= 0)
         {
-            // Need to read both components
-            picData.add(dr.read(filename, this.getEastwardComponent(), tIndex,
-                zIndex, latValues, lonValues, fillValue));
-            picData.add(dr.read(filename, this.getNorthwardComponent(), tIndex,
-                zIndex, latValues, lonValues, fillValue));
+            TimestepInfo tInfo = this.timesteps.get(tIndex);
+            filename = tInfo.getFilename();
+            tIndexInFile = tInfo.getIndexInFile();
         }
         else
         {
-            picData.add(dr.read(filename, this, tIndex, zIndex,
-                latValues, lonValues, fillValue));
+            // There is no time axis
+            filename = this.dataset.getLocation();
+            tIndexInFile = -1;
         }
-        
-        return picData;
+        return dr.read(filename, this, tIndexInFile, zIndex, latValues,
+            lonValues, fillValue);
     }
     
     /**

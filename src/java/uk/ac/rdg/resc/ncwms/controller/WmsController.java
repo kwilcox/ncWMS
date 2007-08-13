@@ -225,15 +225,16 @@ public class WmsController extends AbstractController
         // If there is no time axis getTimesteps will return a single value of null
         List<String> tValues = new ArrayList<String>();
         String timeString = getMapRequest.getDataRequest().getTimeString();
-        List<VariableMetadata.TimestepInfo> timesteps = getTimesteps(timeString, var);
-        for (VariableMetadata.TimestepInfo timestep : timesteps)
+        List<Integer> tIndices = getTIndices(timeString, var);
+        for (int tIndex : tIndices)
         {
-            List<float[]> picData = var.read(timestep, zIndex, grid, FILL_VALUE);
+            // tIndex == -1 if there is no t axis present
+            List<float[]> picData = readData(var, tIndex, zIndex, grid);
             // Only add a label if this is part of an animation
             String tValue = "";
-            if (var.isTaxisPresent() && timesteps.size() > 1)
+            if (var.isTaxisPresent() && tIndices.size() > 1)
             {
-                tValue = WmsUtils.dateToISO8601(timestep.getDate());
+                tValue = WmsUtils.dateToISO8601(var.getTimesteps().get(tIndex).getDate());
             }
             tValues.add(tValue);
             style.addFrame(picData, tValue); // the tValue is the label for the image
@@ -259,10 +260,32 @@ public class WmsController extends AbstractController
         }
 
         // Send the images to the picMaker and write to the output
+        // TODO: for KMZ output, better to do this via a JSP page?
         picMaker.writeImage(style.getRenderedFrames(), mimeType,
             response.getOutputStream());
 
         return null;
+    }
+    
+    /**
+     * Reads data from the given variable, returning a List of data arrays.
+     * This List will have a single element if the variable is scalar, or two
+     * elements if the variable is a vector
+     */
+    static List<float[]> readData(VariableMetadata var, int tIndex, int zIndex,
+        AbstractGrid grid) throws Exception
+    {
+        List<float[]> picData = new ArrayList<float[]>();
+        if (var.isVector())
+        {
+            picData.add(var.getEastwardComponent().read(tIndex, zIndex, grid, FILL_VALUE));
+            picData.add(var.getNorthwardComponent().read(tIndex, zIndex, grid, FILL_VALUE));
+        }
+        else
+        {
+            picData.add(var.read(tIndex, zIndex, grid, FILL_VALUE));
+        }
+        return picData;
     }
     
     /**
@@ -309,26 +332,26 @@ public class WmsController extends AbstractController
         int zIndex = getZIndex(dataRequest.getElevationString(), var); // -1 if no z axis present
         
         // Get the information about the requested timesteps
-        List<VariableMetadata.TimestepInfo> timesteps =
-            getTimesteps(dataRequest.getTimeString(), var);
+        List<Integer> tIndices = getTIndices(dataRequest.getTimeString(), var);
         
         // Now read the data, mapping date-times to data values
         Map<Date, Float> featureData = new HashMap<Date, Float>();
-        for (VariableMetadata.TimestepInfo timestep : timesteps)
+        for (int tIndex : tIndices)
         {
-            List<float[]> picData = var.read(timestep, zIndex, new float[]{lat},
-                new float[]{lon}, FILL_VALUE);
-            Date date = timestep == null ? null : timestep.getDate();
-            // If we have a vector quantity we calculate the magnitude
-            if (picData.size() == 1)
+            Date date = tIndex < 0 ? null : var.getTimesteps().get(tIndex).getDate();
+            if (var.isVector())
             {
-                featureData.put(date, picData.get(0)[0]);
+                float x = var.getEastwardComponent().read(tIndex, zIndex,
+                    new float[]{lat}, new float[]{lon}, FILL_VALUE)[0];
+                float y = var.getNorthwardComponent().read(tIndex, zIndex,
+                    new float[]{lat}, new float[]{lon}, FILL_VALUE)[0];
+                featureData.put(date, (float)Math.sqrt(x * x + y * y));
             }
             else
             {
-                float x = picData.get(0)[0];
-                float y = picData.get(1)[0];
-                featureData.put(date, (float)Math.sqrt(x * x + y * y));
+                float val = var.read(tIndex, zIndex, new float[]{lat},
+                    new float[]{lon}, FILL_VALUE)[0];
+                featureData.put(date, val);
             }
         }
         
@@ -474,19 +497,19 @@ public class WmsController extends AbstractController
     /**
      * @return a List of indices along the time axis corresponding with the
      * requested TIME parameter.  If there is no time axis, this will return
-     * a List with a single value of null.
+     * a List with a single value of -1.
      */
-    static List<VariableMetadata.TimestepInfo> getTimesteps(String timeString,
-        VariableMetadata var) throws WmsException
+    static List<Integer> getTIndices(String timeString, VariableMetadata var)
+        throws WmsException
     {
-        List<VariableMetadata.TimestepInfo> tInfos = new ArrayList<VariableMetadata.TimestepInfo>();
+        List<Integer> tIndices = new ArrayList<Integer>();
         if (var.isTaxisPresent())
         {
             if (timeString == null)
             {
                 // The default time is the last value along the axis
                 // TODO: this should be the time closest to now
-                tInfos.add(var.getDefaultTimestep());
+                tIndices.add(var.getDefaultTIndex());
             }
             else
             {
@@ -497,12 +520,12 @@ public class WmsController extends AbstractController
                     if (startStopPeriod.length == 1)
                     {
                         // This is a single time value
-                        tInfos.add(var.findTimestepInfo(startStopPeriod[0]));
+                        tIndices.add(var.findTIndex(startStopPeriod[0]));
                     }
                     else if (startStopPeriod.length == 2)
                     {
                         // Use all time values from start to stop inclusive
-                        tInfos.addAll(var.findTimestepInfoList(startStopPeriod[0],
+                        tIndices.addAll(var.findTIndices(startStopPeriod[0],
                             startStopPeriod[1]));
                     }
                     else if (startStopPeriod.length == 3)
@@ -521,9 +544,9 @@ public class WmsController extends AbstractController
         else
         {
             // The variable has no time axis.  We ignore any provided TIME value.
-            tInfos.add(null); // Signifies a single frame with no particular time value
+            tIndices.add(-1); // Signifies a single frame with no particular time value
         }
-        return tInfos;
+        return tIndices;
     }
     
     /**

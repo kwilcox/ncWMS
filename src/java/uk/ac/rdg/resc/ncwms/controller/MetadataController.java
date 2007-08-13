@@ -323,11 +323,10 @@ public class MetadataController
         int zIndex = WmsController.getZIndex(dataRequest.getElevationString(), var); // -1 if no z axis present
         
         // Get the information about the requested timestep (taking the first only)
-        VariableMetadata.TimestepInfo timestep =
-            WmsController.getTimesteps(dataRequest.getTimeString(), var).get(0);
+        int tIndex = WmsController.getTIndices(dataRequest.getTimeString(), var).get(0);
         
         // Now read the data
-        List<float[]> picData = var.read(timestep, zIndex, grid, WmsController.FILL_VALUE);
+        List<float[]> picData = WmsController.readData(var, tIndex, zIndex, grid);
 
         // Now find the minimum and maximum values: for a vector this is the magnitude
         boolean allFillValue = true;
