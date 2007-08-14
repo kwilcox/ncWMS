@@ -135,8 +135,19 @@ public abstract class DataReader
             // of the location path will be the filter expression
             File locFile = new File(location);
             FilenameFilter filter = new GlobFilenameFilter(locFile.getName());
-            // Loop over all the files that match the glob pattern
-            for (File f : locFile.getParentFile().listFiles(filter))
+            File parentFile = locFile.getParentFile();
+            if (parentFile == null)
+            {
+                throw new IOException(locFile.getPath() + " does not have a parent");
+            }
+            // Find the files that match the glob pattern
+            File[] files = parentFile.listFiles(filter);
+            if (files == null)
+            {
+                throw new IOException(parentFile.getPath() + " is not a valid directory");
+            }
+            // Add all the matching filenamse
+            for (File f : files)
             {
                 filenames.add(f.getPath());
             }

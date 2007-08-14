@@ -584,5 +584,4 @@ public class WmsController extends AbstractController
     {
         this.metadataController = metadataController;
     }
-    
 }

@@ -56,8 +56,7 @@ public class Server
     @Element(name="abstract", required=false)
     private String abstr; // "Abstract" is a reserved word
     @Element(name="keywords", required=false)
-    private String keywords; // Comma-separated list
-    private List<String> keywordsList; // List of keywords
+    private String keywords; // Comma-separated list of keywords
     @Element(name="url", required=false)
     private String url;
     @Element(name="adminpassword")
@@ -77,20 +76,6 @@ public class Server
         this.abstr = " ";
         this.url = " ";
         this.keywords = " ";
-    }
-    
-    /**
-     * Called when we have checked that the information is valid.  Populates
-     * the List of keywords
-     */
-    @Commit
-    public void build()
-    {
-        this.keywordsList = new ArrayList<String>();
-        for (String keyword : this.keywords.split(","))
-        {
-            this.keywordsList.add(keyword.trim());
-        }
     }
 
     public String getTitle()
@@ -142,13 +127,13 @@ public class Server
     {
         this.abstr = Contact.checkEmpty(abstr);
     }
-
+    
     /**
-     * @return list of keywords
+     * @return the keywords as a comma-separated string
      */
-    public List<String> getKeywords()
+    public String getKeywords()
     {
-        return this.keywordsList;
+        return this.keywords;
     }
 
     public void setKeywords(String keywords)

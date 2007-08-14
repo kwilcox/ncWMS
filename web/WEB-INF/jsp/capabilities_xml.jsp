@@ -22,6 +22,7 @@
         <Title>${config.server.title}</Title>
         <Abstract>${config.server.abstract}</Abstract>
         <KeywordList>
+            <%-- forEach recognizes that keywords is a comma-delimited String --%>
             <c:forEach var="keyword" items="${config.server.keywords}">
             <Keyword>${keyword}</Keyword>
             </c:forEach>

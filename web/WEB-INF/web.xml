@@ -30,6 +30,10 @@
         <servlet-name>WMS</servlet-name>
         <url-pattern>/index.jsp</url-pattern>
     </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>WMS</servlet-name>
+        <url-pattern>/admin/*</url-pattern>
+    </servlet-mapping>
     <session-config>
         <session-timeout>
             30

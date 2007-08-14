@@ -91,18 +91,43 @@
          contains links to the Capabilities documents and sample images for each
          layer.  Mapped to index.jsp. -->
     <bean id="frontPageController" class="uk.ac.rdg.resc.ncwms.controller.FrontPageController">
+        <property name="supportedMethods" value="GET"/>
         <property name="config"><ref local="ncwmsConfig"/></property>
         <property name="picMakerFactory"><ref local="picMakerFactory"/></property>
     </bean>
     
+    <!-- This Controller is used to display the administrative pages of the server.
+         The AdminController is a MultiActionController that uses a different method
+         for each page under the /admin/ directory -->
+    <bean id="adminController" class="uk.ac.rdg.resc.ncwms.controller.AdminController">
+        <property name="supportedMethods" value="GET,POST"/>
+        <property name="config"><ref local="ncwmsConfig"/></property>
+        <property name="methodNameResolver"><ref local="methodNameResolverBean"/></property>
+    </bean>
+    <!-- This maps URL patterns to the methods of the admin controller -->
+    <bean id="methodNameResolverBean" class="org.springframework.web.servlet.mvc.multiaction.PropertiesMethodNameResolver">
+        <property name="mappings">
+            <value>
+                / = displayAdminPage
+                /index.jsp = displayAdminPage
+                /error.jsp = displayErrorPage
+                /updateConfig = updateConfig
+            </value>
+        </property>
+    </bean>
+    
     <!-- This mapping ensures that all requests to "/wms" are mapped to the WmsController
          and "index.jsp" results in the display of the front page -->
-    <bean id="controllermap" class="org.springframework.web.servlet.handler.SimpleUrlHandlerMapping">
+    <!-- no 'id' required, HandlerMapping beans are automatically detected by the DispatcherServlet -->
+    <bean class="org.springframework.web.servlet.handler.SimpleUrlHandlerMapping">
+        <property name="alwaysUseFullPath" value="true"/>
         <property name="mappings">
-            <props>
-                <prop key="/wms">wmsController</prop>
-                <prop key="index.jsp">frontPageController</prop>
-            </props>
+            <value>
+                /admin/* = adminController
+                /wms = wmsController
+                /index.jsp = frontPageController
+                / = frontPageController
+            </value>
         </property>
     </bean>
     
