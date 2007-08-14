@@ -192,7 +192,7 @@ public class Config
      * @return the time of the last change to the configuration or metadata,
      * in milliseconds since the epoch
      */
-    public long getLastUpdateTimeSeconds()
+    public long getLastUpdateTimeMilliseconds()
     {
         return this.lastUpdateTime.getTime();
     }

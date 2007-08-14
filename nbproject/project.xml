@@ -59,10 +59,6 @@
                     <path-in-war>WEB-INF/lib</path-in-war>
                 </library>
                 <library files="1">
-                    <file>${file.reference.jython-2.2b1-standalone.jar}</file>
-                    <path-in-war>WEB-INF/lib</path-in-war>
-                </library>
-                <library files="1">
                     <file>${file.reference.je-3.2.23.jar}</file>
                     <path-in-war>WEB-INF/lib</path-in-war>
                 </library>

@@ -119,7 +119,7 @@ public class VectorStyle extends AbstractStyle
             for (int j = 0; j < this.picHeight; j += MAX_ARROW_LENGTH)
             {
                 int di = j * this.picWidth + i;
-                if (comp1[di] != this.fillValue && comp2[di] != this.fillValue)
+                if (!Float.isNaN(comp1[di]) && !Float.isNaN(comp2[di]))
                 {
                     double len = Math.sqrt(comp1[di] * comp1[di] + comp2[di] * comp2[di]);
                     if (len > longest) longest = len;
@@ -156,7 +156,7 @@ public class VectorStyle extends AbstractStyle
             for (int j = 0; j < this.picHeight; j += MAX_ARROW_LENGTH)
             {
                 int dataIndex = j * this.picWidth + i;
-                if (comp1[dataIndex] != this.fillValue && comp2[dataIndex] != this.fillValue)
+                if (!Float.isNaN(comp1[dataIndex]) && !Float.isNaN(comp2[dataIndex]))
                 {
                     // Calculate the end point of the arrow
                     float iEnd = i + comp1[dataIndex] / this.unitsPerPixel;

@@ -163,7 +163,7 @@ public class BoxFillStyle extends AbstractStyle
         float[] firstComponent = data.get(0);
         for (int i = 0; i < firstComponent.length; i++)
         {
-            if (firstComponent[i] != this.fillValue)
+            if (!Float.isNaN(firstComponent[i]))
             {
                 double sumsq = firstComponent[i] * firstComponent[i];
                 for (int j = 1; j < data.size(); j++)
@@ -231,7 +231,7 @@ public class BoxFillStyle extends AbstractStyle
         this.scaleMax = -Float.MAX_VALUE;
         for (float val : data.get(0))
         {
-            if (val != this.fillValue)
+            if (!Float.isNaN(val))
             {
                 if (val < this.scaleMin) this.scaleMin = val;
                 if (val > this.scaleMax) this.scaleMax = val;
@@ -244,7 +244,7 @@ public class BoxFillStyle extends AbstractStyle
      */
     private byte getColourIndex(float value)
     {
-        if (value == this.fillValue)
+        if (Float.isNaN(value))
         {
             return 0; // represents a transparent pixel
         }

@@ -51,8 +51,6 @@ public abstract class AbstractStyle
     // Width and height of the resulting picture
     protected int picWidth;
     protected int picHeight;
-    // The fill value of the data.
-    protected float fillValue;
     protected boolean transparent;
     protected int bgColor; // Background colour as an integer
     
@@ -105,19 +103,6 @@ public abstract class AbstractStyle
     public void setPicHeight(int picHeight)
     {
         this.picHeight = picHeight;
-    }
-
-    public float getFillValue()
-    {
-        return fillValue;
-    }
-
-    /**
-     * @param fillValue The value to use for missing data
-     */
-    public void setFillValue(float fillValue)
-    {
-        this.fillValue = fillValue;
     }
 
     public boolean isTransparent()

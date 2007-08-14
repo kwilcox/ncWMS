@@ -335,7 +335,7 @@ public class MetadataController
         for (int i = 0; i < picData.get(0).length; i++)
         {
             float val = picData.get(0)[i];
-            if (val != WmsController.FILL_VALUE)
+            if (!Float.isNaN(val))
             {
                 allFillValue = false;
                 if (picData.size() == 2)

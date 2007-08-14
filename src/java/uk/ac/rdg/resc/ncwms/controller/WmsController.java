@@ -78,10 +78,6 @@ public class WmsController extends AbstractController
      * operation
      */
     private static final int LAYER_LIMIT = 1;
-    /**
-     * The fill value to use when reading data and making pictures
-     */
-    static final float FILL_VALUE = Float.NaN;
     
     private static final String FEATURE_INFO_XML_FORMAT = "text/xml";
     private static final String FEATURE_INFO_PNG_FORMAT = "image/png";
@@ -278,12 +274,12 @@ public class WmsController extends AbstractController
         List<float[]> picData = new ArrayList<float[]>();
         if (var.isVector())
         {
-            picData.add(var.getEastwardComponent().read(tIndex, zIndex, grid, FILL_VALUE));
-            picData.add(var.getNorthwardComponent().read(tIndex, zIndex, grid, FILL_VALUE));
+            picData.add(var.getEastwardComponent().read(tIndex, zIndex, grid));
+            picData.add(var.getNorthwardComponent().read(tIndex, zIndex, grid));
         }
         else
         {
-            picData.add(var.read(tIndex, zIndex, grid, FILL_VALUE));
+            picData.add(var.read(tIndex, zIndex, grid));
         }
         return picData;
     }
@@ -342,15 +338,15 @@ public class WmsController extends AbstractController
             if (var.isVector())
             {
                 float x = var.getEastwardComponent().read(tIndex, zIndex,
-                    new float[]{lat}, new float[]{lon}, FILL_VALUE)[0];
+                    new float[]{lat}, new float[]{lon})[0];
                 float y = var.getNorthwardComponent().read(tIndex, zIndex,
-                    new float[]{lat}, new float[]{lon}, FILL_VALUE)[0];
+                    new float[]{lat}, new float[]{lon})[0];
                 featureData.put(date, (float)Math.sqrt(x * x + y * y));
             }
             else
             {
                 float val = var.read(tIndex, zIndex, new float[]{lat},
-                    new float[]{lon}, FILL_VALUE)[0];
+                    new float[]{lon})[0];
                 featureData.put(date, val);
             }
         }
@@ -432,7 +428,6 @@ public class WmsController extends AbstractController
             logger.debug("Style object of type {} created from style spec {}",
                 style.getClass(), styleSpecs[0]);
         }
-        style.setFillValue(FILL_VALUE);
         style.setTransparent(getMapRequest.getStyleRequest().isTransparent());
         style.setBgColor(getMapRequest.getStyleRequest().getBackgroundColour());
         style.setPicWidth(getMapRequest.getDataRequest().getWidth());

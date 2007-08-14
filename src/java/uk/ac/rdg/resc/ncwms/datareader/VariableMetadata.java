@@ -617,11 +617,12 @@ public class VariableMetadata
     
     /**
      * Reads a layer of data from this variable (which must be a scalar or a
-     * single component of a vector).
+     * single component of a vector).  Missing values will be represented by
+     * Float.NaN.
      * Currently only works for RectangularLatLonGrids.
      */
-    public float[] read(int tIndex, int zIndex, AbstractGrid grid,
-        float fillValue) throws Exception
+    public float[] read(int tIndex, int zIndex, AbstractGrid grid)
+        throws Exception
     {
         // Check that we can handle this type of grid
         if (!(grid instanceof RectangularLatLonGrid))
@@ -631,15 +632,16 @@ public class VariableMetadata
         }
         RectangularLatLonGrid rectGrid = (RectangularLatLonGrid)grid;
         return this.read(tIndex, zIndex, rectGrid.getLatArray(),
-            rectGrid.getLonArray(), fillValue);
+            rectGrid.getLonArray());
     }
     
     /**
      * Reads a layer of data from this variable (which must be a scalar or a
-     * single component of a vector).
+     * single component of a vector).  Missing values will be represented by
+     * Float.NaN.
      */
     public float[] read(int tIndex, int zIndex, float[] latValues,
-        float[] lonValues, float fillValue) throws Exception
+        float[] lonValues) throws Exception
     {
         // Get a DataReader object for reading the data
         String dataReaderClass = this.dataset.getDataReaderClass();
@@ -663,8 +665,7 @@ public class VariableMetadata
             filename = this.dataset.getLocation();
             tIndexInFile = -1;
         }
-        return dr.read(filename, this, tIndexInFile, zIndex, latValues,
-            lonValues, fillValue);
+        return dr.read(filename, this, tIndexInFile, zIndex, latValues, lonValues);
     }
     
     /**

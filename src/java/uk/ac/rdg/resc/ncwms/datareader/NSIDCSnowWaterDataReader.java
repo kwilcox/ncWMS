@@ -130,7 +130,9 @@ public class NSIDCSnowWaterDataReader extends DataReader
     /**
      * Reads an array of data from a NetCDF file and projects onto a rectangular
      * lat-lon grid.  Reads data for a single timestep only.  This method knows
-     * nothing about aggregation: it simply reads data from the given file.
+     * nothing about aggregation: it simply reads data from the given file. 
+     * Missing values (e.g. land pixels in oceanography data) will be represented
+     * by Float.NaN.
      * 
      * @param filename Full path to the individual file containing the data
      * @param vm {@link VariableMetadata} object representing the variable
@@ -139,19 +141,18 @@ public class NSIDCSnowWaterDataReader extends DataReader
      * @param zIndex The index along the vertical axis (or -1 if there is no vertical axis)
      * @param latValues Array of latitude values
      * @param lonValues Array of longitude values
-     * @param fillValue Value to use for missing data
      * @throws Exception if an error occurs
      */
     public float[] read(String filename, VariableMetadata vm,
-        int tIndex, int zIndex, float[] latValues, float[] lonValues,
-        float fillValue) throws Exception
+        int tIndex, int zIndex, float[] latValues, float[] lonValues)
+        throws Exception
     {
         // Find the file containing the data
         logger.debug("Reading data from " + filename);
         
         // Create an array to hold the data
         float[] picData = new float[lonValues.length * latValues.length];
-        Arrays.fill(picData, fillValue);
+        Arrays.fill(picData, Float.NaN);
         
         FileInputStream fin = null;
         ByteBuffer data = null;
