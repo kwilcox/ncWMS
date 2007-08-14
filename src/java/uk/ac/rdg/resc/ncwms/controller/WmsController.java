@@ -341,13 +341,14 @@ public class WmsController extends AbstractController
                     new float[]{lat}, new float[]{lon})[0];
                 float y = var.getNorthwardComponent().read(tIndex, zIndex,
                     new float[]{lat}, new float[]{lon})[0];
-                featureData.put(date, (float)Math.sqrt(x * x + y * y));
+                float val = (float)Math.sqrt(x * x + y * y);
+                featureData.put(date, Float.isNaN(val) ? null : val);
             }
             else
             {
                 float val = var.read(tIndex, zIndex, new float[]{lat},
                     new float[]{lon})[0];
-                featureData.put(date, val);
+                featureData.put(date, Float.isNaN(val) ? null : val);
             }
         }
         
