@@ -1,6 +1,5 @@
 <%@include file="xml_header.jsp"%>
 <%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
-<%@taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn"%>
 <%@taglib uri="/WEB-INF/taglib/wmsUtils" prefix="utils"%> <%-- tag library for useful utility functions --%>
 <%-- Displays the Capabilities document in XML.
      Data (models) passed in to this page:
@@ -93,8 +92,8 @@
                 <Title>${dataset.value.title}</Title>
                 <c:forEach var="variable" items="${dataset.value.variables}">
                 <Layer<c:if test="${config.server.allowFeatureInfo} and ${dataset.value.queryable}"> queryable="1"</c:if>>
-                    <Title>${variable.value.title}</Title>
                     <Name>${variable.value.layerName}</Name>
+                    <Title>${variable.value.title}</Title>
                     <Abstract>${variable.value.abstract}</Abstract>
                     <c:set var="bbox" value="${variable.value.bbox}"/>
                     <EX_GeographicBoundingBox>

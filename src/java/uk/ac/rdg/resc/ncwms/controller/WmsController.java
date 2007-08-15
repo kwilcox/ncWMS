@@ -33,6 +33,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
@@ -331,7 +333,8 @@ public class WmsController extends AbstractController
         List<Integer> tIndices = getTIndices(dataRequest.getTimeString(), var);
         
         // Now read the data, mapping date-times to data values
-        Map<Date, Float> featureData = new HashMap<Date, Float>();
+        // The map is sorted in order of ascending time
+        SortedMap<Date, Float> featureData = new TreeMap<Date, Float>();
         for (int tIndex : tIndices)
         {
             Date date = tIndex < 0 ? null : var.getTimesteps().get(tIndex).getDate();
@@ -374,7 +377,7 @@ public class WmsController extends AbstractController
 
             // Create a chart with no legend, tooltips or URLs
             String title = "Lon: " + lon + ", Lat: " + lat;
-            String yLabel = var.getTitle() + "(" + var.getUnits() + ")";
+            String yLabel = var.getTitle() + " (" + var.getUnits() + ")";
             JFreeChart chart = ChartFactory.createTimeSeriesChart(title,
                 "Date / time", yLabel, xydataset, false, false, false);
             response.setContentType("image/png");

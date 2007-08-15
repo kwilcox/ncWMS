@@ -31,10 +31,9 @@ package uk.ac.rdg.resc.ncwms.config;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 import org.apache.log4j.Logger;
 import simple.xml.Element;
 import simple.xml.ElementList;
@@ -65,7 +64,7 @@ public class Config
     @Element(name="server")
     private Server server;
     @ElementList(name="datasets", type=Dataset.class)
-    private Vector<Dataset> datasetList;
+    private List<Dataset> datasetList;
     
     private Date lastUpdateTime; // Time of the last update to this configuration
                                  // or any of the contained metadata
@@ -80,8 +79,8 @@ public class Config
     /** Creates a new instance of Config */
     public Config()
     {
-        this.datasets = new Hashtable<String, Dataset>();
-        this.datasetList = new Vector<Dataset>();
+        this.datasets = new HashMap<String, Dataset>();
+        this.datasetList = new ArrayList<Dataset>();
         this.lastUpdateTime = new Date();
         this.server = new Server();
         this.contact = new Contact();
@@ -163,7 +162,7 @@ public class Config
     
     /**
      * Called when we have checked that the configuration is valid.  Populates
-     * the datasets and users hashtables
+     * the datasets hashmap
      */
     @Commit
     public void build()

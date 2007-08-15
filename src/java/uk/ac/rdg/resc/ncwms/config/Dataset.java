@@ -89,7 +89,7 @@ public class Dataset
         this.queryable = true;
         // We'll use a default data reader unless this is overridden in the config file
         this.dataReaderClass = "";
-        this.updateInterval = -1; // Means "never update"
+        this.updateInterval = -1; // Means "never update automatically"
         this.lastUpdate = null;
     }
 
@@ -154,7 +154,7 @@ public class Dataset
     
     /**
      * Thread that loads metadata on demand, without waiting for the periodic 
-     * reloader ({@link WMSFilter.DatasetReloader})
+     * reloader ({@link MetadataLoader})
      */
     private class Refresher extends Thread
     {
