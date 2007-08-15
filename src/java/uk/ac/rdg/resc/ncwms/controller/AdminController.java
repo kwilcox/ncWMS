@@ -36,6 +36,7 @@ import uk.ac.rdg.resc.ncwms.config.Config;
 import uk.ac.rdg.resc.ncwms.config.Contact;
 import uk.ac.rdg.resc.ncwms.config.Dataset;
 import uk.ac.rdg.resc.ncwms.config.Server;
+import uk.ac.rdg.resc.ncwms.metadata.MetadataLoader;
 
 /**
  * Displays the administrative pages of the ncWMS application (i.e. /admin/*)
@@ -47,8 +48,9 @@ import uk.ac.rdg.resc.ncwms.config.Server;
  */
 public class AdminController extends MultiActionController
 {
-    // This will be injected by Spring
+    // These will be injected by Spring
     private Config config;
+    private MetadataLoader metadataLoader;
     
     /**
      * Displays the administrative web page
@@ -138,7 +140,7 @@ public class AdminController extends MultiActionController
                 }
                 if (refreshDataset)
                 {
-                    ds.forceRefresh();
+                    this.metadataLoader.forceReloadMetadata(ds);
                 }
             }
             // Now look for the new datasets
@@ -155,7 +157,7 @@ public class AdminController extends MultiActionController
                     ds.setQueryable(request.getParameter("dataset.new" + i + ".queryable") != null);
                     ds.setUpdateInterval(Integer.parseInt(request.getParameter("dataset.new" + i + ".updateinterval")));
                     this.config.addDataset(ds);
-                    ds.forceRefresh();
+                    this.metadataLoader.forceReloadMetadata(ds);
                 }
             }
 
@@ -174,6 +176,14 @@ public class AdminController extends MultiActionController
     public void setConfig(Config config)
     {
         this.config = config;
+    }
+    
+    /**
+     * Called by Spring to inject the metadata loading object
+     */
+    public void setMetadataLoader(MetadataLoader metadataLoader)
+    {
+        this.metadataLoader = metadataLoader;
     }
     
 }

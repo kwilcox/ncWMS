@@ -40,7 +40,7 @@ import uk.ac.rdg.resc.ncwms.config.Dataset;
 import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
 import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
 import uk.ac.rdg.resc.ncwms.grids.AbstractGrid;
-import uk.ac.rdg.resc.ncwms.grids.RectangularLatLonGrid;
+import uk.ac.rdg.resc.ncwms.metadata.MetadataStore;
 import uk.ac.rdg.resc.ncwms.utils.WmsUtils;
 
 /**
@@ -61,6 +61,7 @@ public class MetadataController
     
     private Config config; // Will be injected by Spring
     private Factory<AbstractGrid> gridFactory; // Ditto
+    private MetadataStore metadataStore;
     
     public ModelAndView handleRequest(HttpServletRequest request,
         HttpServletResponse response) throws Exception
@@ -181,22 +182,25 @@ public class MetadataController
     }
     
     /**
-     * @return the Variable that the user is requesting, throwing a
-     * WmsException if it doesn't exist
+     * @return the Variable that the user is requesting, throwing an
+     * Exception if it doesn't exist or if there was a problem reading from the
+     * data store.
      */
     private VariableMetadata getVariable(HttpServletRequest request)
-        throws WmsException
+        throws Exception
     {
         Dataset ds = this.getDataset(request);
         String varId = request.getParameter("variable");
         if (varId == null)
         {
-            throw new WmsException("Must provide a value for the variable parameter");
+            throw new Exception("Must provide a value for the variable parameter");
         }
-        VariableMetadata var = ds.getVariables().get(varId);
+        // This logic for constructing the layer name must match up with VariableMetadata.getLayerName()!
+        VariableMetadata var =
+            this.metadataStore.getVariableByLayerName(ds.getId() + "/" + varId);
         if (var == null)
         {
-            throw new WmsException("There is no variable with id " + varId
+            throw new Exception("There is no variable with id " + varId
                 + " in the dataset " + ds.getId());
         }
         return var;
@@ -314,7 +318,7 @@ public class MetadataController
         // TODO: some of the code below is repetitive of WmsController: refactor?
         
         // Get the variable we're interested in
-        VariableMetadata var = this.config.getVariable(dataRequest.getLayers()[0]);
+        VariableMetadata var = this.metadataStore.getVariableByLayerName(dataRequest.getLayers()[0]);
         
         // Get the grid onto which the data is being projected
         AbstractGrid grid = WmsController.getGrid(dataRequest, this.gridFactory);
@@ -373,6 +377,14 @@ public class MetadataController
     public void setGridFactory(Factory<AbstractGrid> gridFactory)
     {
         this.gridFactory = gridFactory;
+    }
+    
+    /**
+     * Called by Spring to inject the metadata store
+     */
+    public void setMetadataStore(MetadataStore metadataStore)
+    {
+        this.metadataStore = metadataStore;
     }
     
 }

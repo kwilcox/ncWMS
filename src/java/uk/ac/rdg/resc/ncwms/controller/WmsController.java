@@ -58,6 +58,7 @@ import uk.ac.rdg.resc.ncwms.exceptions.StyleNotDefinedException;
 import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
 import uk.ac.rdg.resc.ncwms.graphics.KmzMaker;
 import uk.ac.rdg.resc.ncwms.graphics.PicMaker;
+import uk.ac.rdg.resc.ncwms.metadata.MetadataStore;
 import uk.ac.rdg.resc.ncwms.styles.AbstractStyle;
 import uk.ac.rdg.resc.ncwms.utils.WmsUtils;
 
@@ -86,11 +87,10 @@ public class WmsController extends AbstractController
     
     // These objects will be injected by Spring
     private Config config;
+    private MetadataStore metadataStore;
     private Factory<PicMaker> picMakerFactory;
     private Factory<AbstractStyle> styleFactory;
     private Factory<AbstractGrid> gridFactory;
-    
-    // This will be created when this object is created
     private MetadataController metadataController;
     
     /**
@@ -208,7 +208,7 @@ public class WmsController extends AbstractController
                 WmsController.LAYER_LIMIT + " layer(s) simultaneously from this server");
         }
         // TODO: support more than one layer
-        VariableMetadata var = this.config.getVariable(layers[0]);
+        VariableMetadata var = this.metadataStore.getVariableByLayerName(layers[0]);
         
         // Get the grid onto which the data will be projected
         AbstractGrid grid = getGrid(getMapRequest.getDataRequest(),
@@ -314,7 +314,7 @@ public class WmsController extends AbstractController
         
         // Get the variable we're interested in
         String layer = dataRequest.getLayers()[0];
-        VariableMetadata var = this.config.getVariable(layer);
+        VariableMetadata var = this.metadataStore.getVariableByLayerName(layer);
         if (!var.isQueryable())
         {
             throw new LayerNotQueryableException(layer);
@@ -586,5 +586,13 @@ public class WmsController extends AbstractController
     public void setMetadataController(MetadataController metadataController)
     {
         this.metadataController = metadataController;
+    }
+    
+    /**
+     * Called by Spring to inject the metadata store
+     */
+    public void setMetadataStore(MetadataStore metadataStore)
+    {
+        this.metadataStore = metadataStore;
     }
 }

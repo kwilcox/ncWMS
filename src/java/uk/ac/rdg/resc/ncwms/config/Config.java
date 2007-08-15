@@ -42,8 +42,7 @@ import simple.xml.load.Commit;
 import simple.xml.load.PersistenceException;
 import simple.xml.load.Persister;
 import simple.xml.load.Validate;
-import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
-import uk.ac.rdg.resc.ncwms.exceptions.LayerNotDefinedException;
+import uk.ac.rdg.resc.ncwms.metadata.MetadataStore;
 
 /**
  * Configuration of the server.  We use Simple XML Serialization
@@ -70,6 +69,8 @@ public class Config
                                  // or any of the contained metadata
     private File configFile;     // Location to which the config information was
                                  // last saved
+    private MetadataStore metadataStore; // Injected by Spring.  Gives access to
+                                         // metadata
     
     /**
      * This contains the map of dataset IDs to Dataset objects
@@ -143,7 +144,7 @@ public class Config
     
     /**
      * Checks that the data we have read are valid.  Checks that there are no
-     * duplicate dataset IDs or usernames.
+     * duplicate dataset IDs.
      */
     @Validate
     public void validate() throws PersistenceException
@@ -244,33 +245,17 @@ public class Config
         this.datasetList.remove(ds);
     }
     
-    /**
-     * @return the VariableMetadata object that corresponds with the supplied
-     * layer name (e.g. "FOAM_ONE/TMP").
-     * @throws LayerNotDefinedException if the given name does not match an
-     * available layer.
-     */
-    public VariableMetadata getVariable(String layerName)
-        throws LayerNotDefinedException
+    MetadataStore getMetadataStore()
     {
-        // NOTE!! The logic of this method must match up with
-        // VariableMetadata.getLayerName()!
-        String[] dsAndVarIds = layerName.split("/");
-        if (dsAndVarIds.length != 2)
-        {
-            throw new LayerNotDefinedException(layerName);
-        }
-        Dataset ds = this.datasets.get(dsAndVarIds[0]);
-        if (ds == null)
-        {
-            throw new LayerNotDefinedException(layerName);
-        }
-        VariableMetadata var = ds.getVariables().get(dsAndVarIds[1]);
-        if (var == null)
-        {
-            throw new LayerNotDefinedException(layerName);
-        }
-        return var;
+        return this.metadataStore;
+    }
+    
+    /**
+     * Called by Spring to inject the metadata store
+     */
+    public void setMetadataStore(MetadataStore metadataStore)
+    {
+        this.metadataStore = metadataStore;
     }
     
 }

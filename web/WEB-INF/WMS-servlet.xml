@@ -13,13 +13,19 @@
        xsi:schemaLocation='http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd'>
     
     <!-- Need beans for the tile cache, ?logging framework? -->
+          
+    <!-- An object that is used to store and read metadata about the variables
+         that are being exposed through this server. -->
+    <bean id="metadataStore" class="uk.ac.rdg.resc.ncwms.metadata.InMemoryMetadataStore"/>
     
     <!-- Defines a configuration object that is used to configure this server.
          This object is created via Config.readConfig(), a static factory method.
          If a configuration file does not already exist in the default location
          ($HOME/.ncwms/config.xml) it will be created. -->
-    <bean id="ncwmsConfig" class="uk.ac.rdg.resc.ncwms.config.Config"
-          factory-method="readConfig"/>
+     <bean id="ncwmsConfig" class="uk.ac.rdg.resc.ncwms.config.Config"
+           factory-method="readConfig">
+         <property name="metadataStore"><ref local="metadataStore"/></property>
+     </bean>
     
     <!-- An object that is used to create PicMakers. -->
     <bean id="picMakerFactory" class="uk.ac.rdg.resc.ncwms.controller.Factory">
@@ -63,10 +69,11 @@
         </property>
     </bean>
     
-    <!-- Object that handles the periodic refreshing of metadata -->
-    <bean id="metadataLoader" class="uk.ac.rdg.resc.ncwms.controller.MetadataLoader"
+    <!-- Object that handles the periodic refreshing of metadata. -->
+    <bean id="metadataLoader" class="uk.ac.rdg.resc.ncwms.metadata.MetadataLoader"
             init-method="init" destroy-method="close">
         <property name="config"><ref local="ncwmsConfig"/></property>
+        <property name="metadataStore"><ref local="metadataStore"/></property>
     </bean>
     
     <!-- This Controller will handle all the requests to the WMS -->
@@ -77,6 +84,7 @@
         <property name="styleFactory"><ref local="styleFactory"/></property>
         <property name="gridFactory"><ref local="gridFactory"/></property>
         <property name="metadataController"><ref local="metadataController"/></property>
+        <property name="metadataStore"><ref local="metadataStore"/></property>
     </bean>
     
     <!-- This Controller will handle all requests for the non-standard
@@ -85,6 +93,7 @@
     <bean id="metadataController" class="uk.ac.rdg.resc.ncwms.controller.MetadataController">
         <property name="config"><ref local="ncwmsConfig"/></property>
         <property name="gridFactory"><ref local="gridFactory"/></property>
+        <property name="metadataStore"><ref local="metadataStore"/></property>
     </bean>
     
     <!-- This Controller is used to display the front page of the server, which
@@ -102,10 +111,11 @@
     <bean id="adminController" class="uk.ac.rdg.resc.ncwms.controller.AdminController">
         <property name="supportedMethods" value="GET,POST"/>
         <property name="config"><ref local="ncwmsConfig"/></property>
-        <property name="methodNameResolver"><ref local="methodNameResolverBean"/></property>
+        <property name="metadataLoader"><ref local="metadataLoader"/></property>
+        <property name="methodNameResolver"><ref local="methodNameResolver"/></property>
     </bean>
     <!-- This maps URL patterns to the methods of the admin controller -->
-    <bean id="methodNameResolverBean" class="org.springframework.web.servlet.mvc.multiaction.PropertiesMethodNameResolver">
+    <bean id="methodNameResolver" class="org.springframework.web.servlet.mvc.multiaction.PropertiesMethodNameResolver">
         <property name="mappings">
             <value>
                 / = displayAdminPage

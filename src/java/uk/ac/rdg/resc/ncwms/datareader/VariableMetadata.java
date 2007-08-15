@@ -79,7 +79,7 @@ public class VariableMetadata
     private VariableMetadata northward;
     
     /** Creates a new instance of VariableMetadata */
-    VariableMetadata()
+    public VariableMetadata()
     {
         this.title = null;
         this.abstr = null;
@@ -189,7 +189,7 @@ public class VariableMetadata
      */
     public synchronized long[] getTvalues()
     {
-        long[] tVals = new long[this.getTimesteps().size()];
+        long[] tVals = new long[this.timesteps.size()];
         int i = 0;
         for (TimestepInfo tInfo : timesteps)
         {
@@ -368,7 +368,7 @@ public class VariableMetadata
         {
             // Return the last timestep
             // TODO: should be the index of the timestep closest to now
-            return this.timesteps.size() - 1;
+            return this.getLastTIndex();
         }
         Date target = WmsUtils.iso8601ToDate(isoDateTime);
         if (target == null)
@@ -570,7 +570,7 @@ public class VariableMetadata
      */
     public int getLastTIndex()
     {
-        return this.getTimesteps().size() - 1;
+        return this.timesteps.size() - 1;
     }
     
     /**
@@ -663,7 +663,7 @@ public class VariableMetadata
         {
             // There is no time axis
             filename = this.dataset.getLocation();
-            tIndexInFile = -1;
+            tIndexInFile = tIndex;
         }
         return dr.read(filename, this, tIndexInFile, zIndex, latValues, lonValues);
     }

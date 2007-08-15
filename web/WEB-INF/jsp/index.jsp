@@ -5,12 +5,11 @@
 <%-- Front page of the ncWMS server.
      Data (models) passed in to this page:
          config     = Configuration of this server (uk.ac.rdg.resc.ncwms.config.Config)
+         metadataStore = Store of metadata (uk.ac.rdg.resc.ncwms.metadata.MetadataStore)
          supportedImageFormats = Set of Strings representing MIME types of supported image formats
      --%>
-
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
    "http://www.w3.org/TR/html4/loose.dtd">
-
 <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">

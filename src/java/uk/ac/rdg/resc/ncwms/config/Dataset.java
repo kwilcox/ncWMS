@@ -29,13 +29,11 @@
 package uk.ac.rdg.resc.ncwms.config;
 
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
-import java.util.Hashtable;
-import java.util.Map;
 import org.apache.log4j.Logger;
 import simple.xml.Attribute;
 import simple.xml.Root;
-import uk.ac.rdg.resc.ncwms.datareader.DataReader;
 import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
 
 /**
@@ -74,9 +72,6 @@ public class Dataset
     @Attribute(name="updateInterval", required=false)
     private int updateInterval; // The update interval in minutes
     
-    // Variables contained in this dataset, keyed by their unique IDs
-    private Map<String, VariableMetadata> vars;
-    
     private State state;     // State of this dataset
     private Exception err;   // Set if there is an error loading the dataset
     private Date lastUpdate; // Time at which the dataset was last updated
@@ -84,7 +79,6 @@ public class Dataset
     
     public Dataset()
     {
-        this.vars = new Hashtable<String, VariableMetadata>();
         this.state = State.TO_BE_LOADED;
         this.queryable = true;
         // We'll use a default data reader unless this is overridden in the config file
@@ -111,11 +105,6 @@ public class Dataset
     public void setLocation(String location)
     {
         this.location = location.trim();
-    }
-
-    public Map<String, VariableMetadata> getVariables()
-    {
-        return vars;
     }
     
     /**
@@ -153,25 +142,9 @@ public class Dataset
     }
     
     /**
-     * Thread that loads metadata on demand, without waiting for the periodic 
-     * reloader ({@link MetadataLoader})
+     * @return true if the metadata from this dataset needs to be reloaded
      */
-    private class Refresher extends Thread
-    {
-        public void run()
-        {
-            logger.debug("Loading metadata for {}", location);
-            boolean loaded = loadMetadata();
-            String message = loaded ? "Loaded metadata for {}" :
-                "Did not load metadata for {}";
-            logger.debug(message, location);
-        }
-    }
-    
-    /**
-     * @return true if this dataset needs to be reloaded
-     */
-    private boolean needsRefresh()
+    public boolean needsRefresh()
     {
         if (this.state == State.LOADING || this.state == State.UPDATING)
         {
@@ -198,164 +171,6 @@ public class Dataset
     }
     
     /**
-     * (Re)loads the metadata for this Dataset, checking first to see if the
-     * metadata need reloading (returning false if not).
-     * @return true if the metadata was reloaded, false if not (either because of
-     * an error or because the metadata does not need to be reloaded yet).
-     */
-    public boolean loadMetadata()
-    {
-        // We must make this part of the method thread-safe because more than
-        // one thread might be trying to update the metadata.
-        synchronized(this)
-        {
-            if (this.needsRefresh())
-            {
-                this.state = this.state == State.READY ? State.UPDATING : State.LOADING;
-                this.err = null;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        try
-        {
-            // Get a DataReader object of the correct type
-            logger.debug("Getting data reader of type {}", this.dataReaderClass);
-            DataReader dr = DataReader.getDataReader(this.dataReaderClass, this.location);
-            // Read the metadata
-            Map<String, VariableMetadata> vars = dr.getAllVariableMetadata(this.getLocation());
-            logger.debug("loaded VariableMetadata");
-            // Search for vector quantities (e.g. northward/eastward_sea_water_velocity)
-            findVectorQuantities(vars);
-            for (VariableMetadata vm : vars.values())
-            {
-                vm.setDataset(this);
-            }
-            this.vars = vars;
-            this.state = State.READY;
-            this.lastUpdate = new Date();
-            this.config.setLastUpdateTime(this.lastUpdate);
-            return true;
-        }
-        catch(Exception e)
-        {
-            logger.error("Error loading metadata for dataset " + this.getId(), e);
-            this.err = e;
-            this.state = State.ERROR;
-            return false;
-        }
-    }
-    
-    /**
-     * Searches through the collection of VariableMetadata objects, looking for
-     * pairs of quantities that represent the components of a vector, e.g.
-     * northward/eastward_sea_water_velocity.  Modifies the given Hashtable
-     * in-place.
-     * @todo Only works for northward/eastward components so far
-     */
-    private static void findVectorQuantities(Map<String, VariableMetadata> vars)
-    {
-        // This hashtable will store pairs of components in eastward-northward
-        // order, keyed by the standard name for the vector quantity
-        Hashtable<String, VariableMetadata[]> components =
-            new Hashtable<String, VariableMetadata[]>();
-        for (VariableMetadata vm : vars.values())
-        {
-            if (vm.getTitle().contains("eastward"))
-            {
-                String vectorKey = vm.getTitle().replaceFirst("eastward_", "");
-                // Look to see if we've already found the northward component
-                if (!components.containsKey(vectorKey))
-                {
-                    // We haven't found the northward component yet
-                    components.put(vectorKey, new VariableMetadata[2]);
-                }
-                components.get(vectorKey)[0] = vm;
-            }
-            else if (vm.getTitle().contains("northward"))
-            {
-                String vectorKey = vm.getTitle().replaceFirst("northward_", "");
-                // Look to see if we've already found the eastward component
-                if (!components.containsKey(vectorKey))
-                {
-                    // We haven't found the eastward component yet
-                    components.put(vectorKey, new VariableMetadata[2]);
-                }
-                components.get(vectorKey)[1] = vm;
-            }
-            else if (vm.getTitle().contains("_x_"))
-            {
-                String vectorKey = vm.getTitle().replaceFirst("_x_", "_");
-                // Look to see if we've already found the y component
-                if (!components.containsKey(vectorKey))
-                {
-                    // We haven't found the y component yet
-                    components.put(vectorKey, new VariableMetadata[2]);
-                }
-                components.get(vectorKey)[0] = vm;
-            }
-            else if (vm.getTitle().contains("_y_"))
-            {
-                String vectorKey = vm.getTitle().replaceFirst("_y_", "_");
-                // Look to see if we've already found the x component
-                if (!components.containsKey(vectorKey))
-                {
-                    // We haven't found the x component yet
-                    components.put(vectorKey, new VariableMetadata[2]);
-                }
-                components.get(vectorKey)[1] = vm;
-            }
-            else if (vm.getTitle().startsWith("x_"))
-            {
-                String vectorKey = vm.getTitle().replaceFirst("x_", "");
-                // Look to see if we've already found the y component
-                if (!components.containsKey(vectorKey))
-                {
-                    // We haven't found the y component yet
-                    components.put(vectorKey, new VariableMetadata[2]);
-                }
-                components.get(vectorKey)[0] = vm;
-            }
-            else if (vm.getTitle().startsWith("y_"))
-            {
-                String vectorKey = vm.getTitle().replaceFirst("y_", "");
-                // Look to see if we've already found the x component
-                if (!components.containsKey(vectorKey))
-                {
-                    // We haven't found the x component yet
-                    components.put(vectorKey, new VariableMetadata[2]);
-                }
-                components.get(vectorKey)[1] = vm;
-            }
-        }
-        
-        // Now add the vector quantities to the collection of VariableMetadata objects
-        for (String key : components.keySet())
-        {
-            VariableMetadata[] comps = components.get(key);
-            if (comps[0] != null && comps[1] != null)
-            {
-                // We've found both components.  Create a new VariableMetadata object
-                VariableMetadata vec = new VariableMetadata(key, comps[0], comps[1]);
-                // Use the title as the unique ID for this variable
-                vec.setId(key);
-                vars.put(key, vec);
-            }
-        }
-    }
-    
-    /**
-     * Forces a refresh of the metadata: loads the metadata in a new thread
-     */
-    public synchronized void forceRefresh()
-    {
-        this.state = State.TO_BE_LOADED;
-        new Refresher().start();
-    }
-    
-    /**
      * @return true if there is an error with this dataset
      */
     public boolean isError()
@@ -372,9 +187,23 @@ public class Dataset
         return this.state == State.ERROR ? this.err : null;
     }
     
+    /**
+     * Called by the MetadataReloader to set the error associated with this
+     * dataset
+     */
+    public void setException(Exception e)
+    {
+        this.err = e;
+    }
+    
     public State getState()
     {
         return this.state;
+    }
+    
+    public void setState(State state)
+    {
+        this.state = state;
     }
     
     public String toString()
@@ -416,5 +245,20 @@ public class Dataset
     public Date getLastUpdate()
     {
         return this.lastUpdate;
+    }
+    
+    public void setLastUpdate(Date lastUpdate)
+    {
+        this.lastUpdate = lastUpdate;
+    }
+    
+    /**
+     * @return a Collection of all the variables in this dataset.  A convenience
+     * method that reads from the metadata store.
+     * @throws Exception if there was an error reading from the store.
+     */
+    public Collection<VariableMetadata> getVariables() throws Exception
+    {
+        return this.config.getMetadataStore().getVariablesInDataset(this.id);
     }
 }
