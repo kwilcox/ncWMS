@@ -92,10 +92,10 @@
                 <Title>${dataset.value.title}</Title>
                 <c:forEach var="variable" items="${dataset.value.variables}">
                 <Layer<c:if test="${config.server.allowFeatureInfo} and ${dataset.value.queryable}"> queryable="1"</c:if>>
-                    <Name>${variable.value.layerName}</Name>
-                    <Title>${variable.value.title}</Title>
-                    <Abstract>${variable.value.abstract}</Abstract>
-                    <c:set var="bbox" value="${variable.value.bbox}"/>
+                    <Name>${variable.layerName}</Name>
+                    <Title>${variable.title}</Title>
+                    <Abstract>${variable.abstract}</Abstract>
+                    <c:set var="bbox" value="${variable.bbox}"/>
                     <EX_GeographicBoundingBox>
                         <westBoundLongitude>${bbox[0]}</westBoundLongitude>
                         <eastBoundLongitude>${bbox[2]}</eastBoundLongitude>
@@ -103,22 +103,22 @@
                         <northBoundLatitude>${bbox[3]}</northBoundLatitude>
                     </EX_GeographicBoundingBox>
                     <BoundingBox CRS="CRS:84" minx="${bbox[0]}" maxx="${bbox[2]}" miny="${bbox[1]}" maxy="${bbox[3]}"/>
-                    <c:if test="${variable.value.zaxisPresent}">
-                    <Dimension name="elevation" units="${variable.value.zunits}" default="${variable.value.defaultZValue}">
+                    <c:if test="${variable.zaxisPresent}">
+                    <Dimension name="elevation" units="${variable.zunits}" default="${variable.defaultZValue}">
                         <%-- Print out the dimension values, comma separated, making sure
                              that there is no comma at the start or end of the list.  Note that
                              we can't use ${fn:join} because the z values are an array of doubles,
                              not strings. --%>
-                        <c:forEach var="zval" items="${variable.value.zvalues}" varStatus="status"><c:if test="${status.index > 0}">,</c:if>${zval}</c:forEach>
+                        <c:forEach var="zval" items="${variable.zvalues}" varStatus="status"><c:if test="${status.index > 0}">,</c:if>${zval}</c:forEach>
                     </Dimension>
                     </c:if>
-                    <c:set var="tvalues" value="${variable.value.tvalues}"/>
-                    <c:if test="${variable.value.taxisPresent}">
-                    <Dimension name="time" units="ISO8601" multipleValues="true" current="true" default="${utils:millisecondsToISO8601(variable.value.defaultTValue)}">
+                    <c:set var="tvalues" value="${variable.tvalues}"/>
+                    <c:if test="${variable.taxisPresent}">
+                    <Dimension name="time" units="ISO8601" multipleValues="true" current="true" default="${utils:millisecondsToISO8601(variable.defaultTValue)}">
                         <c:forEach var="tval" items="${tvalues}" varStatus="status"><c:if test="${status.index > 0}">,</c:if>${utils:millisecondsToISO8601(tval)}</c:forEach>
                     </Dimension>
                     </c:if>
-                    <c:forEach var="style" items="${variable.value.supportedStyleKeys}">
+                    <c:forEach var="style" items="${variable.supportedStyleKeys}">
                     <Style><Name>${style}</Name><Title>${style}</Title></Style>
                     </c:forEach>
                 </Layer>

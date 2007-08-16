@@ -36,7 +36,7 @@ import uk.ac.rdg.resc.ncwms.exceptions.LayerNotDefinedException;
 
 /**
  * A MetadataStore that stores metadata in memory.  This is likely to be fast
- * but is likely to use a large amount of memory for large datasets.
+ * but will use a large amount of memory for large datasets.
  *
  * @author Jon Blower
  * $Revision$
@@ -105,16 +105,14 @@ public class InMemoryMetadataStore implements MetadataStore
      */
     public synchronized void addOrUpdateVariable(VariableMetadata vm) throws Exception
     {
-        /*List<String> varIds = this.datasets.get(vm.getDataset().getId());
-        if (varIds == null)
+        String datasetId = vm.getDataset().getId();
+        Map<String, VariableMetadata> varsInDataset = vars.get(datasetId);
+        if (varsInDataset == null)
         {
-            varIds = new ArrayList<String>();
-            varIds.add(vm.getId());
+            varsInDataset = new HashMap<String, VariableMetadata>();
+            vars.put(datasetId, varsInDataset);
         }
-        else
-        {
-            if 
-        }*/
+        varsInDataset.put(vm.getId(), vm);
     }
     
 }

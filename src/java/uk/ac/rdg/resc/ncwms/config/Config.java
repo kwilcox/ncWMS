@@ -245,6 +245,9 @@ public class Config
         this.datasetList.remove(ds);
     }
     
+    /**
+     * Used by Dataset to provide a method to get variables
+     */
     MetadataStore getMetadataStore()
     {
         return this.metadataStore;

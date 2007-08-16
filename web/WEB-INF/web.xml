@@ -10,7 +10,7 @@
         <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
     </listener>
     <filter>
-        <description>Acegi Security filter, applies to admin URLs</description>
+        <description>Acegi Security filter, secures the admin pages</description>
         <filter-name>Acegi Filter Chain Proxy</filter-name>
         <filter-class>org.acegisecurity.util.FilterToBeanProxy</filter-class>
         <init-param>
