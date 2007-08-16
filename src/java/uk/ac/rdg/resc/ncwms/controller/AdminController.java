@@ -28,6 +28,8 @@
 
 package uk.ac.rdg.resc.ncwms.controller;
 
+import java.util.ArrayList;
+import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.springframework.web.servlet.ModelAndView;
@@ -82,14 +84,13 @@ public class AdminController extends MultiActionController
     }
     
     /**
-     * Handles the submission of new configuration information
+     * Handles the submission of new configuration information from admin_index.jsp
      */
     public ModelAndView updateConfig(HttpServletRequest request,
         HttpServletResponse response) throws Exception
     {
         Contact contact = this.config.getContact();
         Server server = this.config.getServer();
-        int numBlankDatasets = 3; // TODO: must line up with index.jsp
 
         if (request.getParameter("contact.name") != null)
         {
@@ -108,12 +109,15 @@ public class AdminController extends MultiActionController
 
             // Save the dataset information, checking for removals
             // First look through the existing datasets for edits.
+            List<Dataset> datasetsToRemove = new ArrayList<Dataset>();
             for (Dataset ds : this.config.getDatasets().values())
             {
                 boolean refreshDataset = false;
                 if (request.getParameter("dataset." + ds.getId() + ".remove") != null)
                 {
-                    this.config.removeDataset(ds);
+                    // We don't do the actual removal here because we get a
+                    // ConcurrentModificationException for the hashmap
+                    datasetsToRemove.add(ds);
                 }
                 else
                 {
@@ -133,18 +137,26 @@ public class AdminController extends MultiActionController
                     ds.setQueryable(request.getParameter("dataset." + ds.getId() + ".queryable") != null);
                     ds.setUpdateInterval(Integer.parseInt(request.getParameter("dataset." + ds.getId() + ".updateinterval")));
                     ds.setId(request.getParameter("dataset." + ds.getId() + ".id"));
-                }
-                if (request.getParameter("dataset." + ds.getId() + ".refresh") != null)
-                {
-                    refreshDataset = true;
+                    if (request.getParameter("dataset." + ds.getId() + ".refresh") != null)
+                    {
+                        refreshDataset = true;
+                    }
                 }
                 if (refreshDataset)
                 {
                     this.metadataLoader.forceReloadMetadata(ds);
                 }
             }
-            // Now look for the new datasets
-            for (int i = 0; i < numBlankDatasets; i++)
+            // Now we can remove the datasets
+            for (Dataset ds : datasetsToRemove)
+            {
+                this.config.removeDataset(ds);
+            }
+            // Now look for the new datasets. This logic means that we don't have
+            // to know in advance how many new datasets the user has created (or
+            // how many spaces were available in admin_index.jsp)
+            int i = 0;
+            while (request.getParameter("dataset.new" + i + ".id") != null)
             {
                 // Look for non-blank ID fields
                 if (!request.getParameter("dataset.new" + i + ".id").trim().equals(""))
@@ -159,6 +171,7 @@ public class AdminController extends MultiActionController
                     this.config.addDataset(ds);
                     this.metadataLoader.forceReloadMetadata(ds);
                 }
+                i++;
             }
 
             // Save the config information

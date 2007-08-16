@@ -138,13 +138,17 @@ public abstract class DataReader
             File parentFile = locFile.getParentFile();
             if (parentFile == null)
             {
-                throw new IOException(locFile.getPath() + " does not have a parent");
+                throw new IOException(locFile.getPath() + " is not a valid path");
             }
             // Find the files that match the glob pattern
             File[] files = parentFile.listFiles(filter);
             if (files == null)
             {
                 throw new IOException(parentFile.getPath() + " is not a valid directory");
+            }
+            if (files.length == 0)
+            {
+                throw new IOException(location + " does not match any files");
             }
             // Add all the matching filenamse
             for (File f : files)
