@@ -40,7 +40,7 @@ import java.awt.image.SampleModel;
 import java.awt.image.SinglePixelPackedSampleModel;
 import java.awt.image.WritableRaster;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
+import java.util.List;
 import org.apache.log4j.Logger;
 import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
 import uk.ac.rdg.resc.ncwms.exceptions.StyleNotDefinedException;
@@ -56,6 +56,11 @@ import uk.ac.rdg.resc.ncwms.exceptions.StyleNotDefinedException;
 public class BoxFillStyle extends AbstractStyle
 {
     private static final Logger logger = Logger.getLogger(BoxFillStyle.class);
+    
+    /**
+     * Defines the names of styles that this class supports: see Factory.setClasses()
+     */
+    public static final String[] KEYS = new String[]{"boxfill"};
     
     private static DecimalFormat DECIMAL_FORMATTER = new DecimalFormat("0.#####");
     private static DecimalFormat SCIENTIFIC_FORMATTER = new DecimalFormat("0.###E0");
@@ -98,7 +103,7 @@ public class BoxFillStyle extends AbstractStyle
     /** Creates a new instance of BoxFillStyle */
     public BoxFillStyle()
     {
-        super("boxfill");
+        super(KEYS[0]);
         this.opacity = 100;
         this.scaleMin = 0.0f;
         this.scaleMax = 0.0f;
@@ -145,26 +150,27 @@ public class BoxFillStyle extends AbstractStyle
     }
     
     /**
-     * Calculates the magnitude of the data in-place, replacing data[0] with the
+     * Calculates the magnitude of the data in-place, replacing data.get(0) with the
      * magnitude of the data.
      */
-    public void processData(float[][] data)
+    public void processData(List<float[]> data)
     {
-        logger.debug("Calculating the magnitude of {} components", data.length);
-        if (data.length == 1)
+        logger.debug("Calculating the magnitude of {} components", data.size());
+        if (data.size() == 1)
         {
             return;
         }
-        for (int i = 0; i < data[0].length; i++)
+        float[] firstComponent = data.get(0);
+        for (int i = 0; i < firstComponent.length; i++)
         {
-            if (data[0][i] != this.fillValue)
+            if (!Float.isNaN(firstComponent[i]))
             {
-                double sumsq = data[0][i] * data[0][i];
-                for (int j = 1; j < data.length; j++)
+                double sumsq = firstComponent[i] * firstComponent[i];
+                for (int j = 1; j < data.size(); j++)
                 {
-                    sumsq += data[j][i] * data[j][i];
+                    sumsq += data.get(j)[i] * data.get(j)[i];
                 }
-                data[0][i] = (float)Math.sqrt(sumsq);
+                firstComponent[i] = (float)Math.sqrt(sumsq);
             }
         }
     }
@@ -174,14 +180,15 @@ public class BoxFillStyle extends AbstractStyle
      * Adds the label if one has been set.  The scale must be set before
      * calling this method.
      */
-    public void createImage(float[][] data, String label)
+    public void createImage(List<float[]> data, String label)
     {
         // Create the pixel array for the frame
         byte[] pixels = new byte[this.picWidth * this.picHeight];
         // We only use the first of the data arrays: this is a Style for scalars
+        float[] firstArray = data.get(0);
         for (int i = 0; i < pixels.length; i++)
         {
-            pixels[i] = getColourIndex(data[0][i]);
+            pixels[i] = getColourIndex(firstArray[i]);
         }
         
         // Create the Image
@@ -217,14 +224,14 @@ public class BoxFillStyle extends AbstractStyle
     /**
      * Adjusts the colour scale to accommodate the given frame.
      */
-    protected void adjustScaleForFrame(float[][] data)
+    protected void adjustScaleForFrame(List<float[]> data)
     {
         // We only use the first data array: this is a Style for scalars
         this.scaleMin = Float.MAX_VALUE;
         this.scaleMax = -Float.MAX_VALUE;
-        for (float val : data[0])
+        for (float val : data.get(0))
         {
-            if (val != this.fillValue)
+            if (!Float.isNaN(val))
             {
                 if (val < this.scaleMin) this.scaleMin = val;
                 if (val > this.scaleMax) this.scaleMax = val;
@@ -237,7 +244,7 @@ public class BoxFillStyle extends AbstractStyle
      */
     private byte getColourIndex(float value)
     {
-        if (value == this.fillValue)
+        if (Float.isNaN(value))
         {
             return 0; // represents a transparent pixel
         }

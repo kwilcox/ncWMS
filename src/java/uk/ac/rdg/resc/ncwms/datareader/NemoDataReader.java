@@ -29,10 +29,12 @@
 package uk.ac.rdg.resc.ncwms.datareader;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Vector;
 import org.apache.log4j.Logger;
 import ucar.ma2.Array;
@@ -43,7 +45,6 @@ import ucar.nc2.dataset.NetcdfDataset;
 import ucar.nc2.units.DateUnit;
 import ucar.unidata.geoloc.LatLonPoint;
 import ucar.unidata.geoloc.LatLonPointImpl;
-import uk.ac.rdg.resc.ncwms.exceptions.WMSExceptionInJava;
 
 /**
  * Description of NemoDataReader
@@ -59,35 +60,39 @@ public class NemoDataReader extends DefaultDataReader
     
     /**
      * Reads an array of data from a NetCDF file and projects onto a rectangular
-     * lat-lon grid.  Reads data for a single time index only.
-     *
-     * @param location Location of the NetCDF dataset (full file path, OPeNDAP URL etc)
+     * lat-lon grid.  Reads data for a single timestep only.  This method knows
+     * nothing about aggregation: it simply reads data from the given file. 
+     * Missing values (e.g. land pixels in oceanography data) will be represented
+     * by Float.NaN.
+     * 
+     * @param filename Location of the file, NcML aggregation or OPeNDAP URL
      * @param vm {@link VariableMetadata} object representing the variable
-     * @param tIndex The index along the time axis as found in getmap.py
-     * @param zIndex The index along the vertical axis (or 0 if there is no vertical axis)
+     * @param tIndex The index along the time axis (or -1 if there is no time axis)
+     * @param zIndex The index along the vertical axis (or -1 if there is no vertical axis)
      * @param latValues Array of latitude values
      * @param lonValues Array of longitude values
-     * @param fillValue Value to use for missing data
-     * @throws WMSExceptionInJava if an error occurs
+     * @throws Exception if an error occurs
      */
-    public float[] read(String location, VariableMetadata vm,
-        int tIndex, int zIndex, float[] latValues, float[] lonValues,
-        float fillValue) throws WMSExceptionInJava
+    public float[] read(String filename, VariableMetadata vm,
+        int tIndex, int zIndex, float[] latValues, float[] lonValues)
+        throws Exception
     {
-        // TODO: allow for aggregated dataset - see DefaultDataReader.
-        // This assumes that the whole dataset is one NetCDF or NcML file
+        logger.debug("Reading data from {}", filename);
         NetcdfDataset nc = null;
         try
         {
             // Get the metadata from the cache
             long start = System.currentTimeMillis();
             
+            // Prevent InvalidRangeExceptions for ranges we're not going to use anyway
+            if (tIndex < 0) tIndex = 0;
+            if (zIndex < 0) zIndex = 0;
             Range tRange = new Range(tIndex, tIndex);
             Range zRange = new Range(zIndex, zIndex);
             
             // Create an array to hold the data
             float[] picData = new float[lonValues.length * latValues.length];
-            Arrays.fill(picData, fillValue);
+            Arrays.fill(picData, Float.NaN);
 
             EnhancedCoordAxis xAxis = vm.getXaxis();
             EnhancedCoordAxis yAxis = vm.getYaxis();
@@ -126,8 +131,8 @@ public class NemoDataReader extends DefaultDataReader
             logger.debug("Built scanlines in {} ms", System.currentTimeMillis() - start);
             start = System.currentTimeMillis();
 
-            // Now build the picture
-            nc = getDataset(location);
+            // Now build the picture array
+            nc = getDataset(filename);
             Variable var = nc.findVariable(vm.getId());
             
             float scaleFactor = 1.0f;
@@ -203,16 +208,6 @@ public class NemoDataReader extends DefaultDataReader
             logger.debug("Read data in {} ms", System.currentTimeMillis() - start);
             return picData;
         }
-        catch(IOException e)
-        {
-            logger.error("IOException reading from " + nc.getLocation(), e);
-            throw new WMSExceptionInJava("IOException: " + e.getMessage());
-        }
-        catch(InvalidRangeException ire)
-        {
-            logger.error("InvalidRangeException reading from " + nc.getLocation(), ire);
-            throw new WMSExceptionInJava("InvalidRangeException: " + ire.getMessage());
-        }
         finally
         {
             if (nc != null)
@@ -278,20 +273,22 @@ public class NemoDataReader extends DefaultDataReader
     
     /**
      * Reads and returns the metadata for all the variables in the dataset
-     * at the given location.
-     * @param location The location of the NetCDF dataset
-     * @return Hashtable of variable IDs mapped to {@link VariableMetadata} objects
+     * at the given location, which is the location of a NetCDF file, NcML
+     * aggregation, or OPeNDAP location (i.e. one element resulting from the
+     * expansion of a glob aggregation).
+     * @param filename Full path to the dataset (N.B. not an aggregation)
+     * @return List of {@link VariableMetadata} objects
      * @throws IOException if there was an error reading from the data source
      */
-    public Hashtable<String, VariableMetadata> getVariableMetadata(String location)
+    protected List<VariableMetadata> getVariableMetadata(String filename)
         throws IOException
     {
-        Hashtable<String, VariableMetadata> vars = new Hashtable<String, VariableMetadata>();
+        List<VariableMetadata> vars = new ArrayList<VariableMetadata>();
         NetcdfDataset nc = null;
         
         try
         {
-            nc = NetcdfDataset.openDataset(location, false, null);
+            nc = NetcdfDataset.openDataset(filename, false, null);
             
             // Get the depth values and units
             Variable depth = nc.findVariable("deptht");
@@ -367,10 +364,10 @@ public class NemoDataReader extends DefaultDataReader
                     {
                         Date timestep = dateUnit.makeDate(ftVals[i]);
                         vm.addTimestepInfo(new VariableMetadata.TimestepInfo(
-                            timestep, location, i));
+                            timestep, filename, i));
                     }
 
-                    vars.put(vm.getId(), vm);
+                    vars.add(vm);
                 }
             }
             return vars;
@@ -386,23 +383,6 @@ public class NemoDataReader extends DefaultDataReader
                 catch (IOException ex)
                 {
                     logger.error("IOException closing " + nc.getLocation(), ex);
-                }
-            }
-        }
-    }
-    
-    public static void main(String[] args) throws Exception
-    {
-        DataReader dr = new NemoDataReader();
-        Hashtable<String, VariableMetadata> vms = dr.getVariableMetadata("C:\\data\\NEMO\\NEMO.ncml");
-        for (String varID : vms.keySet())
-        {
-            System.out.println(varID);
-            if (vms.get(varID).getTvalues() != null)
-            {
-                for (double t : vms.get(varID).getTvalues())
-                {
-                    System.out.println("  " + new Date(new Double(t * 1000).longValue()));
                 }
             }
         }

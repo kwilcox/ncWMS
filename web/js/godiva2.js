@@ -217,7 +217,7 @@ function popUp(url, width, height)
 // Populates the left-hand menu with a set of datasets
 function loadDatasets(dsDivId, filter)
 {
-    downloadUrl('WMS.py', 'SERVICE=WMS&REQUEST=GetMetadata&item=datasets&filter=' + filter,
+    downloadUrl('wms', 'REQUEST=GetMetadata&item=datasets&filter=' + filter,
         function(req) {
             $(dsDivId).innerHTML = req.responseText;
             var accordion = new Rico.Accordion (
@@ -254,7 +254,7 @@ function datasetSelected(expandedTab)
     // Get the pretty-printed name of the dataset
     prettyDsName = expandedTab.titleBar.firstChild.nodeValue;
     // returns a table of variable names in HTML format
-    downloadUrl('WMS.py', 'SERVICE=WMS&REQUEST=GetMetadata&item=variables&dataset=' + dataset,
+    downloadUrl('wms', 'REQUEST=GetMetadata&item=variables&dataset=' + dataset,
         function(req) {
             var xmldoc = req.responseXML;
             // set the size of the panel to match the number of variables
@@ -276,7 +276,7 @@ function variableSelected(datasetName, variableName)
 {
     newVariable = true;
     resetAnimation();
-    downloadUrl('WMS.py', 'SERVICE=WMS&REQUEST=GetMetadata&item=variableDetails&dataset=' + datasetName +
+    downloadUrl('wms', 'REQUEST=GetMetadata&item=variableDetails&dataset=' + datasetName +
         '&variable=' + variableName,
         function(req) {
             var xmldoc = req.responseXML;
@@ -387,7 +387,7 @@ function variableSelected(datasetName, variableName)
 function setCalendar(dataset, variable, dateTime)
 {
     // Set the calendar. When the calendar arrives the map will be updated
-    downloadUrl('WMS.py', 'SERVICE=WMS&REQUEST=GetMetadata&item=calendar&dataset=' +  dataset + 
+    downloadUrl('wms', 'REQUEST=GetMetadata&item=calendar&dataset=' +  dataset + 
         '&variable=' + variable + '&dateTime=' + dateTime,
         function(req) {
             if (req.responseText == '') {
@@ -428,7 +428,7 @@ function getTimesteps(dataset, variable, tIndex, tVal, prettyTVal)
     $('utc').style.visibility = 'visible';
     
     // Get the timesteps
-    downloadUrl('WMS.py', 'SERVICE=WMS&REQUEST=GetMetadata&item=timesteps&dataset=' +  dataset + 
+    downloadUrl('wms', 'REQUEST=GetMetadata&item=timesteps&dataset=' +  dataset + 
         '&variable=' + variable + '&tIndex=' + tIndex,
         function(req) {
             $('time').innerHTML = req.responseText; // the data will be a selection box
@@ -482,7 +482,7 @@ function autoScale()
     }
     // Get the minmax metadata item.  This gets a grid of 50x50 data points
     // covering the BBOX and finds the min and max values
-    downloadUrl('WMS.py', 'SERVICE=WMS&REQUEST=GetMetadata&item=minmax&layers=' +
+    downloadUrl('wms', 'REQUEST=GetMetadata&item=minmax&layers=' +
         layerName + '&BBOX=' + dataBounds + '&WIDTH=50&HEIGHT=50'
         + '&CRS=CRS:84&ELEVATION=' + getZValue() + '&TIME=' + tValue,
         function(req) {
@@ -644,7 +644,7 @@ function updateMap()
         // If this were an Untiled layer we could control the ratio of image
         // size to viewport size with "{buffer: 1, ratio: 1.5}"
         essc_wms = new OpenLayers.Layer.WMS1_3("ESSC WMS",
-            baseURL + '/WMS.py', {
+            baseURL + '/wms', {
             layers: layerName,
             elevation: getZValue(),
             time: tValue,
@@ -724,7 +724,7 @@ function setGEarthURL()
                 // and the viewport BBOX
                 gEarthURL += '&BBOX=' + getIntersectionBBOX();
             } else if (!urlEls[i].startsWith('OPACITY')) {
-                // We remove the OPACITY ARGUMENT as Google Earth allows opacity
+                // We remove the OPACITY argument as Google Earth allows opacity
                 // to be controlled in the client
                 gEarthURL += '&' + urlEls[i];
             }

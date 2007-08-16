@@ -33,6 +33,7 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Polygon;
 import java.awt.image.BufferedImage;
+import java.util.List;
 import org.apache.log4j.Logger;
 import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
 import uk.ac.rdg.resc.ncwms.exceptions.StyleNotDefinedException;
@@ -48,6 +49,12 @@ import uk.ac.rdg.resc.ncwms.exceptions.StyleNotDefinedException;
 public class VectorStyle extends AbstractStyle
 {
     private static final Logger logger = Logger.getLogger(VectorStyle.class);
+    
+    /**
+     * Defines the names of styles that this class supports: see Factory.setClasses()
+     */
+    public static final String[] KEYS = new String[]{"vector"};
+    
     /**
      * The maximum length of arrows in pixels
      */
@@ -60,7 +67,7 @@ public class VectorStyle extends AbstractStyle
      */
     public VectorStyle()
     {
-        super("vector");
+        super(KEYS[0]);
         this.unitsPerPixel = 0.0f;
     }
 
@@ -95,14 +102,16 @@ public class VectorStyle extends AbstractStyle
         return null; // TODO:
     }
 
-    protected void adjustScaleForFrame(float[][] data)
+    protected void adjustScaleForFrame(List<float[]> data)
     {
-        if (data.length != 2)
+        if (data.size() != 2)
         {
             // Shouldn't happen: defensive programming
             throw new IllegalStateException("A vector style is only appropriate "
                 + "for fields with two components");
         }
+        float[] comp1 = data.get(0);
+        float[] comp2 = data.get(1);
         // Find the longest arrow in the units of the data
         double longest = -1.0;        
         for (int i = 0; i < this.picWidth; i += MAX_ARROW_LENGTH)
@@ -110,9 +119,9 @@ public class VectorStyle extends AbstractStyle
             for (int j = 0; j < this.picHeight; j += MAX_ARROW_LENGTH)
             {
                 int di = j * this.picWidth + i;
-                if (data[0][di] != this.fillValue && data[1][di] != this.fillValue)
+                if (!Float.isNaN(comp1[di]) && !Float.isNaN(comp2[di]))
                 {
-                    double len = Math.sqrt(data[0][di] * data[0][di] + data[1][di] * data[1][di]);
+                    double len = Math.sqrt(comp1[di] * comp1[di] + comp2[di] * comp2[di]);
                     if (len > longest) longest = len;
                 }
             }
@@ -121,9 +130,9 @@ public class VectorStyle extends AbstractStyle
         if (longest >= 0.0) this.unitsPerPixel = (float)longest / MAX_ARROW_LENGTH;
     }
 
-    protected void createImage(float[][] data, String label)
+    protected void createImage(List<float[]> data, String label)
     {
-        if (data.length != 2)
+        if (data.size() != 2)
         {
             // Shouldn't happen: defensive programming
             throw new IllegalStateException("A vector style is only appropriate "
@@ -140,16 +149,18 @@ public class VectorStyle extends AbstractStyle
         g.setColor(Color.RED);
         
         logger.debug("Drawing vectors, unitsPerPixel = {}", this.unitsPerPixel);
+        float[] comp1 = data.get(0);
+        float[] comp2 = data.get(1);
         for (int i = 0; i < this.picWidth; i += MAX_ARROW_LENGTH)
         {
             for (int j = 0; j < this.picHeight; j += MAX_ARROW_LENGTH)
             {
                 int dataIndex = j * this.picWidth + i;
-                if (data[0][dataIndex] != this.fillValue && data[1][dataIndex] != this.fillValue)
+                if (!Float.isNaN(comp1[dataIndex]) && !Float.isNaN(comp2[dataIndex]))
                 {
                     // Calculate the end point of the arrow
-                    float iEnd = i + data[0][dataIndex] / this.unitsPerPixel;
-                    float jEnd = j + data[1][dataIndex] / this.unitsPerPixel;
+                    float iEnd = i + comp1[dataIndex] / this.unitsPerPixel;
+                    float jEnd = j + comp2[dataIndex] / this.unitsPerPixel;
                     //logger.debug("i={}, j={}, dataIndex={}, east={}, north={}",
                     //    new Object[]{i, j, dataIndex, data[0][dataIndex], data[1][dataIndex]});
                     // Draw a dot representing the data location

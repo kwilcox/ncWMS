@@ -37,15 +37,16 @@ package uk.ac.rdg.resc.ncwms.exceptions;
  * $Date$
  * $Log$
  */
-public class StyleNotDefinedException extends WMSExceptionInJava
+public class StyleNotDefinedException extends WmsException
 {
     
     /**
      * Creates a new instance of StyleNotDefinedException
      */
-    public StyleNotDefinedException(String message)
+    public StyleNotDefinedException(String styleName)
     {
-        super(message);
+        super("The selected layer does not support the " + styleName + " style",
+            "StyleNotDefined");
     }
     
 }

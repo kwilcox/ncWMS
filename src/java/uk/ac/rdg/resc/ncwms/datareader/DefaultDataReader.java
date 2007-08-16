@@ -28,15 +28,13 @@
 
 package uk.ac.rdg.resc.ncwms.datareader;
 
-import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import org.apache.log4j.Logger;
-import org.apache.oro.io.GlobFilenameFilter;
-import ucar.ma2.InvalidRangeException;
 import ucar.ma2.Range;
 import ucar.nc2.Attribute;
 import ucar.nc2.Variable;
@@ -51,7 +49,6 @@ import ucar.nc2.dataset.grid.GridDataset;
 import ucar.unidata.geoloc.LatLonPoint;
 import ucar.unidata.geoloc.LatLonPointImpl;
 import ucar.unidata.geoloc.LatLonRect;
-import uk.ac.rdg.resc.ncwms.exceptions.WMSExceptionInJava;
 
 /**
  * Default data reading class for CF-compliant NetCDF datasets.
@@ -67,38 +64,34 @@ public class DefaultDataReader extends DataReader
     
     /**
      * Reads an array of data from a NetCDF file and projects onto a rectangular
-     * lat-lon grid.  Reads data for a single time index only.
-     *
-     * @param location Location of the NetCDF dataset (full file path, OPeNDAP URL etc)
+     * lat-lon grid.  Reads data for a single timestep only.  This method knows
+     * nothing about aggregation: it simply reads data from the given file. 
+     * Missing values (e.g. land pixels in oceanography data) will be represented
+     * by Float.NaN.
+     * 
+     * @param filename Location of the file, NcML aggregation or OPeNDAP URL
      * @param vm {@link VariableMetadata} object representing the variable
-     * @param tIndex The index along the time axis as found in getmap.py
-     * @param zIndex The index along the vertical axis (or 0 if there is no vertical axis)
+     * @param tIndex The index along the time axis (or -1 if there is no time axis)
+     * @param zIndex The index along the vertical axis (or -1 if there is no vertical axis)
      * @param latValues Array of latitude values
      * @param lonValues Array of longitude values
-     * @param fillValue Value to use for missing data
-     * @throws WMSExceptionInJava if an error occurs
+     * @throws Exception if an error occurs
      */
-    public float[] read(String location, VariableMetadata vm,
-        int tIndex, int zIndex, float[] latValues, float[] lonValues,
-        float fillValue) throws WMSExceptionInJava
+    public float[] read(String filename, VariableMetadata vm,
+        int tIndex, int zIndex, float[] latValues, float[] lonValues)
+        throws Exception
     {
-        // Firstly we need to figure out which file actually contains the data
-        // for this timestep:  TODO: do this in DataReader?
-        VariableMetadata.TimestepInfo tInfo = vm.getTimestepInfo(tIndex);
-        int tIndexInFile = 0;
-        String filename = location;
-        if (tInfo != null)
-        {
-            tIndexInFile = tInfo.getIndexInFile();
-            filename = tInfo.getFilename();
-        }
-        
         NetcdfDataset nc = null;
         try
         {
             long start = System.currentTimeMillis();
             
-            Range tRange = new Range(tIndexInFile, tIndexInFile);
+            logger.debug("filename = {}, tIndex = {}, zIndex = {}",
+                new Object[]{filename, tIndex, zIndex});
+            // Prevent InvalidRangeExceptions for ranges we're not going to use anyway
+            if (tIndex < 0) tIndex = 0;
+            if (zIndex < 0) zIndex = 0;
+            Range tRange = new Range(tIndex, tIndex);
             Range zRange = new Range(zIndex, zIndex);
             
             EnhancedCoordAxis xAxis = vm.getXaxis();
@@ -106,7 +99,8 @@ public class DefaultDataReader extends DataReader
             
             // Create an array to hold the data
             float[] picData = new float[lonValues.length * latValues.length];
-            Arrays.fill(picData, fillValue);
+            // Use NaNs to represent missing data
+            Arrays.fill(picData, Float.NaN);
             
             // Find the range of x indices
             int minX = -1;
@@ -138,7 +132,9 @@ public class DefaultDataReader extends DataReader
             long openedDS = System.currentTimeMillis();
             logger.debug("Opened NetcdfDataset in {} milliseconds", (openedDS - readMetadata));            
             GridDataset gd = new GridDataset(nc);
+            logger.debug("Getting GeoGrid with id {}", vm.getId());
             GeoGrid gg = gd.findGridByName(vm.getId());
+            logger.debug("filename = {}, gg = " + gg, filename);
             // Get an enhanced version of the variable for fast reading of data
             EnhanceScaleMissingImpl enhanced = getEnhanced(gg);
             
@@ -168,7 +164,8 @@ public class DefaultDataReader extends DataReader
                                 // We unpack and check for missing values just for
                                 // the points we need to display.
                                 float pixel = (float)enhanced.convertScaleOffsetMissing(val);
-                                picData[picIndex] = Float.isNaN(pixel) ? fillValue : pixel;
+                                // This may be redundant, but we're playing safe
+                                picData[picIndex] = Float.isNaN(pixel) ? Float.NaN : pixel;
                             }
                         }
                     }
@@ -176,27 +173,10 @@ public class DefaultDataReader extends DataReader
             }
             
             long builtPic = System.currentTimeMillis();
-            logger.debug("Built picture in {} milliseconds", (builtPic - readMetadata));
+            logger.debug("Built picture array in {} milliseconds", (builtPic - readMetadata));
             logger.info("Whole read() operation took {} milliseconds", (builtPic - start));
             
             return picData;
-        }
-        catch(IOException e)
-        {
-            if (nc == null)
-            {
-                logger.error("IOException", e);
-            }
-            else
-            {
-                logger.error("IOException reading from " + nc.getLocation(), e);
-            }
-            throw new WMSExceptionInJava("IOException: " + e.getMessage());
-        }
-        catch(InvalidRangeException ire)
-        {
-            logger.error("InvalidRangeException reading from " + nc.getLocation(), ire);
-            throw new WMSExceptionInJava("InvalidRangeException: " + ire.getMessage());
         }
         finally
         {
@@ -227,136 +207,99 @@ public class DefaultDataReader extends DataReader
     }
     
     /**
-     * Implemented as a function because for some reason we can't access
-     * EnhanceScaleMissingImpl() constructor from Jython.
+     * @return enhanced version of the given GeoGrid
      */
-    public static EnhanceScaleMissingImpl getEnhanced(GeoGrid gg)
+    protected static EnhanceScaleMissingImpl getEnhanced(GeoGrid gg)
     {
         return new EnhanceScaleMissingImpl((VariableDS)gg.getVariable());
     }
     
     /**
      * Reads and returns the metadata for all the variables in the dataset
-     * at the given location.
-     * @param location The location of the NetCDF dataset
-     * @return Hashtable of variable IDs mapped to {@link VariableMetadata} objects
+     * at the given location, which is the location of a NetCDF file, NcML
+     * aggregation, or OPeNDAP location (i.e. one element resulting from the
+     * expansion of a glob aggregation).
+     * @param filename Full path to the dataset (N.B. not an aggregation)
+     * @return List of {@link VariableMetadata} objects
      * @throws IOException if there was an error reading from the data source
      */
-    public Hashtable<String, VariableMetadata> getVariableMetadata(String location)
+    protected List<VariableMetadata> getVariableMetadata(String filename)
         throws IOException
     {
-        logger.debug("Reading metadata for dataset {}", location);
-        Hashtable<String, VariableMetadata> vars = new Hashtable<String, VariableMetadata>();
-        
-        String[] filenames = null;
-        File locFile = null; // Only used if not an opendap location
-        if (this.isOpendapLocation(location))
-        {
-            filenames = new String[]{location};
-        }
-        else
-        {
-            // The location might be a glob expression, in which case the last part
-            // of the location path will be the filter expression
-            locFile = new File(location);
-            GlobFilenameFilter filter = new GlobFilenameFilter(locFile.getName());
-            // Loop over all the files that match the glob pattern
-            filenames = locFile.getParentFile().list(filter);
-        }
+        logger.debug("Reading metadata for file {}", filename);
+        List<VariableMetadata> vars = new ArrayList<VariableMetadata>();
         
         NetcdfDataset nc = null;
         try
         {
-            for (String filepath : filenames)
+            // We use openDataset() rather than acquiring from cache
+            // because we need to enhance the dataset
+            nc = NetcdfDataset.openDataset(filename, true, null);
+            GridDataset gd = new GridDataset(nc);
+            for (Iterator it = gd.getGrids().iterator(); it.hasNext(); )
             {
-                if (!isOpendapLocation(location))
+                GeoGrid gg = (GeoGrid)it.next();
+                GridCoordSys coordSys = gg.getCoordinateSystem();
+                logger.debug("Creating new VariableMetadata object for {}", gg.getName());
+                VariableMetadata vm = new VariableMetadata();
+                vm.setId(gg.getName());
+                vm.setTitle(getStandardName(gg.getVariable().getOriginalVariable()));
+                vm.setAbstract(gg.getDescription());
+                vm.setUnits(gg.getUnitsString());
+                vm.setXaxis(EnhancedCoordAxis.create(coordSys.getXHorizAxis()));
+                vm.setYaxis(EnhancedCoordAxis.create(coordSys.getYHorizAxis()));
+
+                if (coordSys.hasVerticalAxis())
                 {
-                    // Prepend the full path
-                    filepath = new File(locFile.getParentFile(), filepath).getPath();
+                    CoordinateAxis1D zAxis = coordSys.getVerticalAxis();
+                    vm.setZunits(zAxis.getUnitsString());
+                    double[] zVals = zAxis.getCoordValues();
+                    vm.setZpositive(coordSys.isZPositive());
+                    if (coordSys.isZPositive())
+                    {
+                        vm.setZvalues(zVals);
+                    }
+                    else
+                    {
+                        double[] zVals2 = new double[zVals.length];
+                        for (int i = 0; i < zVals.length; i++)
+                        {
+                            zVals2[i] = 0.0 - zVals[i];
+                        }
+                        vm.setZvalues(zVals2);
+                    }
                 }
-                logger.debug("Reading metadata from file {}", filepath);
-                // We use openDataset() rather than acquiring from cache
-                // because we need to enhance the dataset
-                nc = NetcdfDataset.openDataset(filepath, true, null);
-                GridDataset gd = new GridDataset(nc);
-                for (Iterator it = gd.getGrids().iterator(); it.hasNext(); )
+
+                // Set the bounding box
+                // TODO: should take into account the cell bounds
+                LatLonRect latLonRect = coordSys.getLatLonBoundingBox();
+                LatLonPoint lowerLeft = latLonRect.getLowerLeftPoint();
+                LatLonPoint upperRight = latLonRect.getUpperRightPoint();
+                double minLon = lowerLeft.getLongitude();
+                double maxLon = upperRight.getLongitude();
+                double minLat = lowerLeft.getLatitude();
+                double maxLat = upperRight.getLatitude();
+                if (latLonRect.crossDateline())
                 {
-                    GeoGrid gg = (GeoGrid)it.next();
-                    GridCoordSys coordSys = gg.getCoordinateSystem();
-                    // Get the VM object from the hashtable
-                    VariableMetadata vm = vars.get(gg.getName());
-                    if (vm == null)
-                    {
-                        // This is the first time we've seen this variable in 
-                        // this list of files
-                        logger.debug("Creating new VariableMetadata object for {}", gg.getName());
-                        vm = new VariableMetadata();
-                        vm.setId(gg.getName());
-                        vm.setTitle(getStandardName(gg.getVariable().getOriginalVariable()));
-                        vm.setAbstract(gg.getDescription());
-                        vm.setUnits(gg.getUnitsString());
-                        vm.setXaxis(EnhancedCoordAxis.create(coordSys.getXHorizAxis()));
-                        vm.setYaxis(EnhancedCoordAxis.create(coordSys.getYHorizAxis()));
-
-                        if (coordSys.hasVerticalAxis())
-                        {
-                            CoordinateAxis1D zAxis = coordSys.getVerticalAxis();
-                            vm.setZunits(zAxis.getUnitsString());
-                            double[] zVals = zAxis.getCoordValues();
-                            vm.setZpositive(coordSys.isZPositive());
-                            if (coordSys.isZPositive())
-                            {
-                                vm.setZvalues(zVals);
-                            }
-                            else
-                            {
-                                double[] zVals2 = new double[zVals.length];
-                                for (int i = 0; i < zVals.length; i++)
-                                {
-                                    zVals2[i] = 0.0 - zVals[i];
-                                }
-                                vm.setZvalues(zVals2);
-                            }
-                        }
-
-                        // Set the bounding box
-                        // TODO: should take into account the cell bounds
-                        LatLonRect latLonRect = coordSys.getLatLonBoundingBox();
-                        LatLonPoint lowerLeft = latLonRect.getLowerLeftPoint();
-                        LatLonPoint upperRight = latLonRect.getUpperRightPoint();
-                        double minLon = lowerLeft.getLongitude();
-                        double maxLon = upperRight.getLongitude();
-                        double minLat = lowerLeft.getLatitude();
-                        double maxLat = upperRight.getLatitude();
-                        if (latLonRect.crossDateline())
-                        {
-                            minLon = -180.0;
-                            maxLon = 180.0;
-                        }
-                        vm.setBbox(new double[]{minLon, minLat, maxLon, maxLat});
-
-                        vm.setValidMin(gg.getVariable().getValidMin());
-                        vm.setValidMax(gg.getVariable().getValidMax());
-                        // Add this to the Hashtable
-                        vars.put(vm.getId(), vm);
-                    }
-                    
-                    // Now add the timestep information to the VM object
-                    Date[] tVals = this.getTimesteps(nc, gg);
-                    for (int i = 0; i < tVals.length; i++)
-                    {
-                        VariableMetadata.TimestepInfo tInfo = new
-                            VariableMetadata.TimestepInfo(tVals[i], filepath, i);
-                        vm.addTimestepInfo(tInfo);
-                    }
-                    
-                    // (TODO: for safety we could check that the other axes
-                    // match, just in case we're accidentally trying to
-                    // aggregate two separate datasets)
+                    minLon = -180.0;
+                    maxLon = 180.0;
                 }
-                nc.close();
+                vm.setBbox(new double[]{minLon, minLat, maxLon, maxLat});
+                
+                vm.setValidMin(gg.getVariable().getValidMin());
+                vm.setValidMax(gg.getVariable().getValidMax());
+
+                // Now add the timestep information to the VM object
+                Date[] tVals = this.getTimesteps(nc, gg);
+                for (int i = 0; i < tVals.length; i++)
+                {
+                    VariableMetadata.TimestepInfo tInfo = new
+                        VariableMetadata.TimestepInfo(tVals[i], filename, i);
+                    vm.addTimestepInfo(tInfo);
+                }
+                // Add this variable to the List
+                vars.add(vm);
             }
-            return vars;
         }
         finally
         {
@@ -372,6 +315,7 @@ public class DefaultDataReader extends DataReader
                 }
             }
         }
+        return vars;
     }
     
     /**
@@ -404,11 +348,6 @@ public class DefaultDataReader extends DataReader
         Attribute stdNameAtt = var.findAttributeIgnoreCase("standard_name");
         return (stdNameAtt == null || stdNameAtt.getStringValue().trim().equals(""))
             ? var.getName() : stdNameAtt.getStringValue();
-    }
-    
-    public static void main(String[] args) throws Exception
-    {
-        NetcdfDataset nc = NetcdfDataset.openDataset("thredds:file:/M:/raid/data/marine/processing/ag_server_xml/catalog.xml.sample#MERSEA North Atlantic TEP");
     }
     
 }

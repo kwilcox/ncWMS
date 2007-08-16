@@ -32,20 +32,14 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.Set;
+import java.util.List;
 import org.apache.log4j.Logger;
 import uk.ac.rdg.resc.ncwms.datareader.VariableMetadata;
-import uk.ac.rdg.resc.ncwms.exceptions.InvalidFormatException;
-import uk.ac.rdg.resc.ncwms.exceptions.WMSExceptionInJava;
 
 /**
  * Abstract superclass of picture makers.  Subclasses must have a no-argument
- * constructor
- *
- * Makes a picture from an array of raw data, using a rainbow colour model.
- * Fill values are represented as transparent pixels and out-of-range values
- * are represented as black pixels.
+ * constructor and provide a public static field "KEYS", which is an array of
+ * Strings that specify which MIME types are supported by the PicMaker.
  *
  * @author Jon Blower
  * $Revision$
@@ -55,78 +49,14 @@ import uk.ac.rdg.resc.ncwms.exceptions.WMSExceptionInJava;
 public abstract class PicMaker
 {
     private static final Logger logger = Logger.getLogger(PicMaker.class);
-    /**
-     * Maps MIME types to the required class of PicMaker
-     */
-    private static Hashtable<String, Class> picMakers;
     
-    // Image MIME type
-    protected String mimeType;
     // The variable metadata from which this picture was created
     protected VariableMetadata var;
     
-    protected String[] tValues; // Array of time values, one for each frame
+    protected List<String> tValues; // List of time values, one for each frame
     protected String zValue;
     protected float[] bbox;
-    protected BufferedImage legend; // If we need a legend, it will be stored here    
-    
-    static
-    {
-        picMakers = new Hashtable<String, Class>();
-        picMakers.put("image/png", SimplePicMaker.class);
-        picMakers.put("image/gif", GifMaker.class);
-        picMakers.put("application/vnd.google-earth.kmz", KmzMaker.class);
-    }
-    
-    /**
-     * @return the image formats (MIME types) that can be produced as a
-     * Set of Strings.
-     */
-    public static final Set<String> getSupportedImageFormats()
-    {
-        return picMakers.keySet();
-    }
-    
-    /**
-     * Creates a PicMaker object for the given mime type.  Creates a new PicMaker
-     * object with each call.
-     * @param mimeType The MIME type of the image that is required
-     * @return A PicMaker object
-     * @throws a {@link InvalidFormatException} if there isn't a PicMaker for
-     * the given MIME type
-     * @throws a {@link WMSExceptionInJava} if the PicMaker could not be created
-     */
-    public static PicMaker createPicMaker(String mimeType)
-        throws InvalidFormatException, WMSExceptionInJava
-    {
-        Class clazz = picMakers.get(mimeType.trim());
-        if (clazz == null)
-        {
-            throw new InvalidFormatException(mimeType);
-        }
-        try
-        {
-            PicMaker pm = (PicMaker)clazz.newInstance();
-            // Some PicMakers support multiple MIME types
-            pm.mimeType = mimeType;
-            return pm;
-        }
-        catch (InstantiationException ie)
-        {
-            throw new WMSExceptionInJava("Internal error: could not create PicMaker "
-                + "of type " + clazz.getName());
-        }
-        catch (IllegalAccessException iae)
-        {
-            throw new WMSExceptionInJava("Internal error: IllegalAccessException" +
-                " when creating PicMaker of type " + clazz.getName());
-        }
-    }
-    
-    public String getMimeType()
-    {
-        return mimeType;
-    }
+    protected BufferedImage legend; // If we need a legend, it will be stored here 
     
     public VariableMetadata getVar()
     {
@@ -151,21 +81,20 @@ public abstract class PicMaker
     
     /**
      * Encodes and writes the frames to the given OutputStream
-     * @param frames The arrays of pixels that will be rendered
-     * @param transparentColor The Color that is to be rendered transparent
-     * (may be ignored in subclasses that understand the alpha channel)
+     * @param frames The image frames that will be rendered
+     * @param mimeType The mime type of the image to write
      * @param out The {@link OutputStream} to which the image will be written
      * @throws IOException if there was an error writing the data
      */
-    public abstract void writeImage(ArrayList<BufferedImage> frames, 
-        OutputStream out) throws IOException;
+    public abstract void writeImage(List<BufferedImage> frames, 
+        String mimeType, OutputStream out) throws IOException;
 
-    public String[] getTvalues()
+    public List<String> getTvalues()
     {
         return tValues;
     }
 
-    public void setTvalues(String[] tValues)
+    public void setTvalues(List<String> tValues)
     {
         this.tValues = tValues;
     }

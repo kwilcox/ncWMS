@@ -28,13 +28,12 @@
 
 package uk.ac.rdg.resc.ncwms.graphics;
 
-import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.IndexColorModel;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
+import java.util.List;
 import org.apache.log4j.Logger;
 
 /**
@@ -48,6 +47,10 @@ import org.apache.log4j.Logger;
 public class GifMaker extends PicMaker
 {
     private static final Logger logger = Logger.getLogger(GifMaker.class);
+    /**
+     * Defines the MIME types that this PicMaker supports: see Factory.setClasses()
+     */
+    public static final String[] KEYS = new String[]{"image/gif"};
     
     /** Creates a new instance of GifMaker */
     public GifMaker()
@@ -55,7 +58,8 @@ public class GifMaker extends PicMaker
         logger.debug("Created GifMaker");
     }
 
-    public void writeImage(ArrayList<BufferedImage> frames, OutputStream out) throws IOException
+    public void writeImage(List<BufferedImage> frames, String mimeType,
+        OutputStream out) throws IOException
     {
         logger.debug("Writing GIF to output stream ...");
         AnimatedGifEncoder e = new AnimatedGifEncoder();

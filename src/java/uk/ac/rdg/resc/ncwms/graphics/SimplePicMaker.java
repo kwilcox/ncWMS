@@ -33,7 +33,7 @@ import javax.imageio.ImageIO;
 
 import java.io.OutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Writes images using the ImageIO class.  Will only write the first frame of
@@ -44,12 +44,17 @@ import java.util.ArrayList;
 public class SimplePicMaker extends PicMaker
 {
     /**
-     * This just writes the first frame as the image.  The transparentColor is
-     * not used because this class understands the alpha channel.
+     * Defines the MIME types that this PicMaker supports: see Factory.setClasses()
      */
-    public void writeImage(ArrayList<BufferedImage> frames, OutputStream out) throws IOException
+    public static final String[] KEYS = new String[]{"image/png"};
+    
+    /**
+     * This just writes the first frame as the image.
+     */
+    public void writeImage(List<BufferedImage> frames, String mimeType,
+        OutputStream out) throws IOException
     {
-        String imageType = this.mimeType.split("/")[1];
+        String imageType = mimeType.split("/")[1];
         ImageIO.write(frames.get(0), imageType, out);
     }
 }
