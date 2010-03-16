@@ -111,9 +111,6 @@ final class CurvilinearGrid implements Iterable<Cell>
 
         // Make sure that scale/offset/missing are processed for the coordinate
         // axis values
-        // TODO: we could do this in DefaultDataReader, but this means we need
-        // to check for NaNs throughout (e.g. for 1D coordinate axes) and we
-        // might break datasets that currently work.  Need to think about this more.
         lonAxis.enhance(SCALE_MISSING);
         latAxis.enhance(SCALE_MISSING);
 
@@ -135,24 +132,17 @@ final class CurvilinearGrid implements Iterable<Cell>
             {
                 double lon = lonAxis.getCoordValue(j, i);
                 double lat = latAxis.getCoordValue(j, i);
-                float lonf;
-                float latf;
-                if (Double.isNaN(lon) || Double.isNaN(lat))
+                boolean isNaN = Double.isNaN(lon) || Double.isNaN(lat);
+                if (!isNaN)
                 {
-                    lonf = Float.NaN;
-                    latf = Float.NaN;
-                }
-                else
-                {
-                    lonf = (float)Longitude.constrain180(lon);
-                    latf = (float)lat;
+                    lon = Longitude.constrain180(lon);
                     minLon = Math.min(minLon, lon);
                     maxLon = Math.max(maxLon, lon);
                     minLat = Math.min(minLat, lat);
                     maxLat = Math.max(maxLat, lat);
                 }
-                this.longitudes[index] = lonf;
-                this.latitudes[index] = latf;
+                this.longitudes[index] = isNaN ? Float.NaN : (float)lon;
+                this.latitudes[index]  = isNaN ? Float.NaN : (float)lat;
                 index++;
             }
         }
