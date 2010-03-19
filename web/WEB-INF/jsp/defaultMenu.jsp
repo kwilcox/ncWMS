@@ -17,7 +17,7 @@ response.setDateHeader ("Expires", 0); //prevents caching at the proxy server
          serverInfo  = uk.ac.rdg.resc.ncwms.config.Server object
 --%>
 <menu:folder label="${serverTitle}">
-    <c:forEach items="${datasets}" var="dataset">
+    <c:forEach var="dataset" items="${datasets}">
         <menu:dataset dataset="${dataset.value}"/>
     </c:forEach>
 </menu:folder>

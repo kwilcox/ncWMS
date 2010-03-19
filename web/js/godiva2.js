@@ -680,8 +680,8 @@ function layerSelected(layerDetails)
             layerDetails.scaleRange.length > 1 &&
             layerDetails.scaleRange[0] != layerDetails.scaleRange[1] &&
             !scaleLocked) {
-        scaleMinVal = layerDetails.scaleRange[0];
-        scaleMaxVal = layerDetails.scaleRange[1];
+        scaleMinVal = parseFloat(layerDetails.scaleRange[0]);
+        scaleMaxVal = parseFloat(layerDetails.scaleRange[1]);
         $('scaleMin').value = scaleMinVal.toPrecision(4);
         $('scaleMax').value = scaleMaxVal.toPrecision(4);
         gotScaleRange = true;

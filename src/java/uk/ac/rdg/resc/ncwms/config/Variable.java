@@ -32,9 +32,10 @@ import org.simpleframework.xml.Attribute;
 import org.simpleframework.xml.Root;
 import org.simpleframework.xml.load.PersistenceException;
 import org.simpleframework.xml.load.Validate;
-import uk.ac.rdg.resc.ncwms.datareader.DataReader;
-import uk.ac.rdg.resc.ncwms.metadata.Layer;
-import uk.ac.rdg.resc.ncwms.styles.ColorPalette;
+import uk.ac.rdg.resc.ncwms.config.datareader.DataReader;
+import uk.ac.rdg.resc.ncwms.graphics.ColorPalette;
+import uk.ac.rdg.resc.ncwms.util.Range;
+import uk.ac.rdg.resc.ncwms.util.Ranges;
 
 /**
  * Contains fields that can be filled in to override values that are
@@ -61,7 +62,7 @@ public class Variable
 
     private Dataset dataset;
 
-    private float[] colorScaleRange = null;
+    private Range<Float> colorScaleRange = null;
 
     private boolean logScaling = false;
 
@@ -86,7 +87,7 @@ public class Variable
                 float min = Float.parseFloat(els[0]);
                 float max = Float.parseFloat(els[1]);
                 if (max < min) max = min;
-                this.colorScaleRange = new float[]{min, max};
+                this.colorScaleRange = Ranges.newRange(min, max);
             }
             catch(NumberFormatException nfe)
             {
@@ -152,29 +153,17 @@ public class Variable
      * set.
      * @return
      */
-    public float[] getColorScaleRange()
+    public Range<Float> getColorScaleRange()
     {
         return this.colorScaleRange;
     }
 
-    public void setColorScaleRange(float[] colorScaleRange)
+    public void setColorScaleRange(Range<Float> colorScaleRange)
     {
-        if (colorScaleRange == null)
-        {
-            this.colorScaleRange = null;
-            this.colorScaleRangeStr = null;
-            return;
-        }
-        if (colorScaleRange.length != 2)
-        {
-            throw new IllegalArgumentException("Colorscalerange must have two elements");
-        }
-        if (colorScaleRange[0] > colorScaleRange[1])
-        {
-            colorScaleRange[1] = colorScaleRange[0];
-        }
         this.colorScaleRange = colorScaleRange;
-        this.colorScaleRangeStr = colorScaleRange[0] + "," + colorScaleRange[1];
+        this.colorScaleRangeStr = colorScaleRange == null
+            ? null
+            : String.format("%f,%f", colorScaleRange.getMinimum(), colorScaleRange.getMaximum());
     }
 
     public String getPaletteName()
