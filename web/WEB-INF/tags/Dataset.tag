@@ -1,7 +1,7 @@
 <%@tag description="Displays a dataset as a set of layers in the menu. The dataset must be hosted on this server." pageEncoding="UTF-8"%>
 <%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
 <%@taglib uri="/WEB-INF/taglib/MenuMaker" prefix="menu"%>
-<%@attribute name="dataset" required="true" type="uk.ac.rdg.resc.ncwms.config.Dataset" description="The dataset object to display"%>
+<%@attribute name="dataset" required="true" type="uk.ac.rdg.resc.ncwms.wms.Dataset" description="The dataset object to display"%>
 <%@attribute name="label" description="Optional: can be used to override the title of the dataset"%>
 <c:set var="title" value="${dataset.title}"/>
 <c:if test="${not empty label}">
