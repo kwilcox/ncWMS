@@ -226,11 +226,16 @@ public abstract class AbstractScalarLayer implements ScalarLayer
         if (!it.hasNext()) return Double.NaN;
         
         // Adapted from Collections.min()
-	Double candidate = Math.abs(it.next());
+	Double candidate = it.next();
         while (it.hasNext())
         {
-	    Double next = Math.abs(it.next());
-	    if (next.compareTo(candidate) < 0) candidate = next;
+	    Double next = it.next();
+            // Find out which value is closest to zero (i.e. has the smaller
+            // absolute value)
+	    if (Double.compare(Math.abs(next), Math.abs(candidate)) < 0)
+            {
+                candidate = next;
+            }
 	}
 	return candidate;
     }
