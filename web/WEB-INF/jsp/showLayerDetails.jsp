@@ -2,7 +2,7 @@
 <%@page pageEncoding="UTF-8"%>
 <%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
 <%@taglib uri="http://www.atg.com/taglibs/json" prefix="json"%>
-<%@taglib uri="/WEB-INF/taglib/wmsUtils" prefix="utils"%> <%-- tag library for useful utility functions --%>
+<%@taglib uri="/WEB-INF/taglib/wms/wmsUtils" prefix="utils"%> <%-- tag library for useful utility functions --%>
 <%
 response.setHeader("Cache-Control","no-cache"); //HTTP 1.1
 response.setHeader("Pragma","no-cache"); //HTTP 1.0
@@ -63,6 +63,9 @@ response.setDateHeader ("Expires", 0); //prevents caching at the proxy server
         <%-- The nearest time on the time axis to the time that's currently
              selected on the web interface, in ISO8601 format --%>
         <json:property name="nearestTimeIso" value="${nearestTimeIso}"/>
+        <%-- The time axis units: "ISO8601" for "normal" axes, "360_day" for
+             axes that use the 360-day calendar --%>
+        <json:property name="timeAxisUnits" value="${utils:getTimeAxisUnits(layer.chronology)}"/>
     </c:if>
     
     <json:property name="moreInfo" value="${layer.dataset.moreInfoUrl}"/>

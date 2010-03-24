@@ -1,6 +1,6 @@
 <%@include file="xml_header.jsp"%>
 <%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
-<%@taglib uri="/WEB-INF/taglib/wmsUtils" prefix="utils"%> <%-- tag library for useful utility functions --%>
+<%@taglib uri="/WEB-INF/taglib/wms/wmsUtils" prefix="utils"%> <%-- tag library for useful utility functions --%>
 <%
 response.setHeader("Cache-Control","no-cache"); //HTTP 1.1
 response.setHeader("Pragma","no-cache"); //HTTP 1.0
@@ -107,7 +107,7 @@ response.setDateHeader ("Expires", 0); //prevents caching at the proxy server
                     </c:if>
                     <c:set var="tvalues" value="${layer.timeValues}"/>
                     <c:if test="${not empty tvalues}">
-                        <Dimension name="time" units="ISO8601" multipleValues="true" current="true" default="${utils:dateTimeToISO8601(layer.defaultTimeValue)}">
+                        <Dimension name="time" units="${utils:getTimeAxisUnits(layer.chronology)}" multipleValues="true" current="true" default="${utils:dateTimeToISO8601(layer.defaultTimeValue)}">
                         <c:forEach var="tval" items="${tvalues}" varStatus="status"><c:if test="${status.index > 0}">,</c:if>${utils:dateTimeToISO8601(tval)}</c:forEach>
                         </Dimension>
                     </c:if>

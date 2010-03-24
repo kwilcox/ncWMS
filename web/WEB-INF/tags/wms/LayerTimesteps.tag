@@ -1,7 +1,7 @@
 <%@tag description="Displays all the timesteps for a layer as separate overlays" pageEncoding="UTF-8"%>
 <%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
-<%@taglib uri="/WEB-INF/taglib/wms2kml" prefix="wms2kml"%>
-<%@taglib uri="/WEB-INF/taglib/wmsUtils" prefix="wmsUtils"%>
+<%@taglib uri="/WEB-INF/taglib/wms/wms2kml" prefix="wms2kml"%>
+<%@taglib uri="/WEB-INF/taglib/wms/wmsUtils" prefix="wmsUtils"%>
 <%@attribute name="tiledLayer" required="true" type="uk.ac.rdg.resc.ncwms.controller.TiledLayer" description="Layer object with tile information"%>
 <%@attribute name="baseURL" required="true" description="URL to use as a base for any callbacks to this server, e.g. in NetworkLinks"%>
 <%@attribute name="elevation" required="false" description="elevation value"%>

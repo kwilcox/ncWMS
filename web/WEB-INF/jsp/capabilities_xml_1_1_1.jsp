@@ -1,6 +1,6 @@
 <%@page contentType="text/xml"%><%--@page contentType="application/vnd.ogc.wms_xml"--%><%@page pageEncoding="UTF-8"%><?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
-<%@taglib uri="/WEB-INF/taglib/wmsUtils" prefix="utils"%> <%-- tag library for useful utility functions --%>
+<%@taglib uri="/WEB-INF/taglib/wms/wmsUtils" prefix="utils"%> <%-- tag library for useful utility functions --%>
 <%
 response.setHeader("Cache-Control","no-cache"); //HTTP 1.1
 response.setHeader("Pragma","no-cache"); //HTTP 1.0
@@ -114,7 +114,7 @@ response.setDateHeader ("Expires", 0); //prevents caching at the proxy server
                     <LatLonBoundingBox minx="${bbox.westBoundLongitude}" maxx="${bbox.eastBoundLongitude}" miny="${bbox.southBoundLatitude}" maxy="${bbox.northBoundLatitude}"/>
                     <BoundingBox SRS="EPSG:4326" minx="${bbox.westBoundLongitude}" maxx="${bbox.eastBoundLongitude}" miny="${bbox.southBoundLatitude}" maxy="${bbox.northBoundLatitude}"/>
                     <c:if test="${not empty layer.elevationValues}"><Dimension name="elevation" units="${layer.elevationUnits}"/><!-- TODO: units correct? --></c:if>
-                    <c:if test="${not empty layer.timeValues}"><Dimension name="time" units="ISO8601"/></c:if>
+                    <c:if test="${not empty layer.timeValues}"><Dimension name="time" units="${utils:getTimeAxisUnits(layer.chronology)}"/></c:if>
                     <c:if test="${not empty layer.elevationValues}">
                     <Extent name="elevation" default="${layer.defaultElevationValue}">
                         <%-- Print out the dimension values, comma separated, making sure
