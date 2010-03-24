@@ -29,6 +29,7 @@
 package uk.ac.rdg.resc.ncwms.wms;
 
 import java.util.List;
+import org.joda.time.Chronology;
 import org.joda.time.DateTime;
 import org.opengis.metadata.extent.GeographicBoundingBox;
 import uk.ac.rdg.resc.ncwms.coords.HorizontalCoordSys;
@@ -92,6 +93,14 @@ public interface Layer
      * @return the horizontal coordinate system of this layer.
      */
     public HorizontalCoordSys getHorizontalCoordSys();
+
+    /**
+     * Returns the {@link Chronology} used to interpret {@link DateTime}s that
+     * represent the {@link #getTimeValues() time values} of this layer.
+     * @return the Chronology used to interpret this layer's time values, or null
+     * if this layer has no time values.
+     */
+    public Chronology getChronology();
 
     /**
      * Returns the list of time instants that are valid for this layer, in

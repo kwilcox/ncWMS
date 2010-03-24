@@ -225,7 +225,7 @@ class MetadataController
         }
         
         Map<Integer, Map<Integer, List<Integer>>> datesWithData =
-            new HashMap<Integer, Map<Integer, List<Integer>>>();
+            new LinkedHashMap<Integer, Map<Integer, List<Integer>>>();
         List<DateTime> timeValues = layer.getTimeValues();
         DateTime nearestDateTime = timeValues.isEmpty() ? new DateTime(0) : timeValues.get(0);
         
@@ -249,7 +249,7 @@ class MetadataController
             Map<Integer, List<Integer>> months = datesWithData.get(year);
             if (months == null)
             {
-                months = new HashMap<Integer, List<Integer>>();
+                months = new LinkedHashMap<Integer, List<Integer>>();
                 datesWithData.put(year, months);
             }
             // We need to subtract 1 from the month number as Javascript months

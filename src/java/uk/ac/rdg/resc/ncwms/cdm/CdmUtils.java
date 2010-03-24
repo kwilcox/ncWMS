@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import org.geotoolkit.metadata.iso.extent.DefaultGeographicBoundingBox;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.opengis.metadata.extent.GeographicBoundingBox;
 import org.opengis.referencing.operation.TransformException;
 import org.slf4j.Logger;
@@ -47,6 +48,7 @@ import ucar.ma2.Range;
 import ucar.nc2.Attribute;
 import ucar.nc2.constants.FeatureType;
 import ucar.nc2.dataset.CoordinateAxis1D;
+import ucar.nc2.dataset.CoordinateAxis1DTime;
 import ucar.nc2.dataset.NetcdfDataset;
 import ucar.nc2.dataset.NetcdfDataset.Enhance;
 import ucar.nc2.dataset.VariableDS;
@@ -64,6 +66,8 @@ import uk.ac.rdg.resc.ncwms.coords.HorizontalPosition;
 import uk.ac.rdg.resc.ncwms.coords.LonLatPosition;
 import uk.ac.rdg.resc.ncwms.coords.PixelMap;
 import uk.ac.rdg.resc.ncwms.coords.PointList;
+import uk.ac.rdg.resc.ncwms.coords.chrono.ThreeSixtyDayChronology;
+import uk.ac.rdg.resc.ncwms.util.TimeUtils;
 import uk.ac.rdg.resc.ncwms.wms.Layer;
 import uk.ac.rdg.resc.ncwms.wms.ScalarLayer;
 
@@ -234,7 +238,7 @@ public final class CdmUtils
         // Sometimes the bounding boxes can be NaN, e.g. for a VerticalPerspectiveView
         // that encompasses more than the Earth's disc
         minLon = Double.isNaN(minLon) ? -180.0 : minLon;
-        minLat = Double.isNaN(minLat) ? -90.0  : minLat;
+        minLat = Double.isNaN(minLat) ?  -90.0 : minLat;
         maxLon = Double.isNaN(maxLon) ?  180.0 : maxLon;
         maxLat = Double.isNaN(maxLat) ?   90.0 : maxLat;
         return new DefaultGeographicBoundingBox(minLon, maxLon, minLat, maxLat);
@@ -288,24 +292,75 @@ public final class CdmUtils
      * @param coordSys The coordinate system containing the time information
      * @return List of TimestepInfo objects, or an empty list if the coordinate
      * system has no time axis
+     * @throws IllegalArgumentException if the calendar system of the time axis
+     * cannot be handled.
      */
     private static List<DateTime> getTimesteps(GridCoordSystem coordSys)
     {
-        List<DateTime> timesteps = new ArrayList<DateTime>();
         if (coordSys.hasTimeAxis1D())
         {
-            for (Date date : coordSys.getTimeAxis1D().getTimeDates())
+            CoordinateAxis1DTime timeAxis = coordSys.getTimeAxis1D();
+            Attribute cal = timeAxis.findAttribute("calendar");
+            String calString = cal == null ? null : cal.getStringValue().toLowerCase();
+            if (calString == null || calString.equals("gregorian") || calString.equals("standard"))
             {
-                timesteps.add(new DateTime(date));
+                List<DateTime> timesteps = new ArrayList<DateTime>();
+                // Use the Java NetCDF library's built-in date parsing code
+                for (Date date : timeAxis.getTimeDates())
+                {
+                    timesteps.add(new DateTime(date, DateTimeZone.UTC));
+                }
+                return timesteps;
+            }
+            else if (calString.equals("360_day"))
+            {
+                return getTimesteps360Day(timeAxis);
+            }
+            else
+            {
+                throw new IllegalArgumentException("The calendar system "
+                    + cal.getStringValue() + " cannot be handled");
             }
         }
+        // There is no time axis
+        return Collections.emptyList();
+    }
+
+    /**
+     * Creates a list of DateTimes in the 360-day calendar system.  All of the
+     * DateTimes will have a zero time zone offset (i.e. UTC) and will use
+     * the {@link ThreeSixtyDayChronology}.
+     */
+    private static List<DateTime> getTimesteps360Day(CoordinateAxis1DTime timeAxis)
+    {
+        // Get the units of the time axis, e.g. "days since 1970-1-1 0:0:0"
+        String timeAxisUnits = timeAxis.getUnitsString();
+        int indexOfSince = timeAxisUnits.indexOf(" since ");
+
+        // Get the units of the time axis, e.g. "days", "months"
+        String unitIncrement = timeAxisUnits.substring(0, indexOfSince);
+        // Get the number of milliseconds this represents
+        long unitLength = TimeUtils.getUnitLengthMillis(unitIncrement);
+
+        // Get the base date of the axis, e.g. "1970-1-1 0:0:0"
+        String baseDateTimeString = timeAxisUnits.substring(indexOfSince + " since ".length());
+        DateTime baseDateTime = TimeUtils.parseUdunitsTimeString(baseDateTimeString,
+                ThreeSixtyDayChronology.getInstanceUTC());
+
+        // Now create and return the axis values
+        List<DateTime> timesteps = new ArrayList<DateTime>();
+        for (double val : timeAxis.getCoordValues())
+        {
+            timesteps.add(baseDateTime.plus((long)(unitLength * val)));
+        }
+
         return timesteps;
     }
 
     /**
      * Reads a set of points at a given time and elevation from the given
      * GridDatatype.
-     * @param grid The GridDatatype from which we will read datac
+     * @param grid The GridDatatype from which we will read data
      * @param tIndex The time index, or -1 if the grid has no time axis
      * @param zIndex The elevation index, or -1 if the grid has no elevation axis
      * @param pointList The list of points for which we need data

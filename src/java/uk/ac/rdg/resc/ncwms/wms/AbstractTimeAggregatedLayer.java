@@ -31,6 +31,7 @@ package uk.ac.rdg.resc.ncwms.wms;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
+import org.joda.time.Chronology;
 import org.joda.time.DateTime;
 import uk.ac.rdg.resc.ncwms.util.WmsUtils;
 
@@ -72,6 +73,19 @@ public abstract class AbstractTimeAggregatedLayer extends AbstractScalarLayer
     public AbstractTimeAggregatedLayer(String id)
     {
         super(id);
+    }
+
+    /**
+     * Returns the {@link Chronology} used to interpret {@link DateTime}s that
+     * represent the {@link #getTimeValues() time values} of this layer.
+     * @return the Chronology used to interpret this layer's time values, or null
+     * if this layer has no time values.
+     */
+    @Override
+    public Chronology getChronology()
+    {
+        if (this.timesteps.isEmpty()) return null;
+        return this.timesteps.get(0).timestep.getChronology();
     }
 
     /**

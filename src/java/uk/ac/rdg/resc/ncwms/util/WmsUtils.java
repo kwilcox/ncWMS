@@ -40,11 +40,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.joda.time.Chronology;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.joda.time.chrono.ISOChronology;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 import uk.ac.rdg.resc.ncwms.coords.HorizontalGrid;
+import uk.ac.rdg.resc.ncwms.coords.chrono.ThreeSixtyDayChronology;
 import uk.ac.rdg.resc.ncwms.exceptions.InvalidDimensionValueException;
 import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
 import uk.ac.rdg.resc.ncwms.wms.Layer;
@@ -414,6 +417,19 @@ public class WmsUtils
     public static boolean isVectorLayer(Layer layer)
     {
         return layer instanceof VectorLayer;
+    }
+
+    /**
+     * <p>Returns the string to be used to display units for the TIME dimension
+     * in Capabilities documents.  For standard (ISO) chronologies, this will
+     * return "ISO8601".  For 360-day chronologies this will return "360_day".
+     * For other chronologies this will return "unknown".</p>
+     */
+    public static String getTimeAxisUnits(Chronology chronology)
+    {
+        if (chronology instanceof ISOChronology) return "ISO8601";
+        if (chronology instanceof ThreeSixtyDayChronology) return "360_day";
+        return "unknown";
     }
     
 }

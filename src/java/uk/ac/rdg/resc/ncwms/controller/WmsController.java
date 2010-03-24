@@ -333,7 +333,7 @@ public class WmsController extends AbstractController {
                 throw new WmsException("There is no dataset with ID " + datasetId);
             } else if (!ds.isReady()) {
                 throw new WmsException("The dataset with ID " + datasetId +
-                    "is not ready for use");
+                    " is not ready for use");
             }
             datasets = Arrays.asList(ds);
             // The last update time for the Capabilities doc is the last time

@@ -41,7 +41,7 @@ import static org.junit.Assert.*;
  * Test for the {@link ThreeSixtyDayChronology}.
  * @author Jon
  */
-public class ThreeSixtyDayChronologyTest {
+public final class ThreeSixtyDayChronologyTest {
 
     private static Chronology CHRON_360 = ThreeSixtyDayChronology.getInstanceUTC();
 

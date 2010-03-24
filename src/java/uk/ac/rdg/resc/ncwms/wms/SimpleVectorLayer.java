@@ -30,6 +30,7 @@ package uk.ac.rdg.resc.ncwms.wms;
 
 import java.io.IOException;
 import java.util.List;
+import org.joda.time.Chronology;
 import org.joda.time.DateTime;
 import org.opengis.metadata.extent.GeographicBoundingBox;
 import uk.ac.rdg.resc.ncwms.coords.HorizontalCoordSys;
@@ -104,6 +105,9 @@ public class SimpleVectorLayer implements VectorLayer
 
     @Override
     public HorizontalCoordSys getHorizontalCoordSys() { return this.east.getHorizontalCoordSys(); }
+
+    @Override
+    public Chronology getChronology() { return this.east.getChronology(); }
 
     @Override
     public List<DateTime> getTimeValues() { return this.east.getTimeValues(); }

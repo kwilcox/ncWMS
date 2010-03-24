@@ -29,6 +29,7 @@
 package uk.ac.rdg.resc.ncwms.config;
 
 import java.util.List;
+import org.joda.time.Chronology;
 import org.joda.time.DateTime;
 import org.opengis.metadata.extent.GeographicBoundingBox;
 import uk.ac.rdg.resc.ncwms.coords.HorizontalCoordSys;
@@ -138,6 +139,11 @@ public final class VectorLayerImpl implements VectorLayer
     @Override
     public HorizontalCoordSys getHorizontalCoordSys() {
         return this.wrappedLayer.getHorizontalCoordSys();
+    }
+
+    @Override
+    public Chronology getChronology() {
+        return this.wrappedLayer.getChronology();
     }
 
     @Override
