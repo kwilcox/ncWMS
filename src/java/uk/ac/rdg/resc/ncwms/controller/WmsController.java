@@ -70,6 +70,7 @@ import org.jfree.ui.TextAnchor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.joda.time.DateTime;
+import org.joda.time.chrono.ISOChronology;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.AbstractController;
 import uk.ac.rdg.resc.ncwms.coords.CrsHelper;
@@ -346,7 +347,7 @@ public class WmsController extends AbstractController {
         if (updateSeqStr != null) {
             DateTime updateSequence;
             try {
-                updateSequence = WmsUtils.iso8601ToDateTime(updateSeqStr);
+                updateSequence = WmsUtils.iso8601ToDateTime(updateSeqStr, ISOChronology.getInstanceUTC());
             } catch (IllegalArgumentException iae) {
                 throw new InvalidUpdateSequence(updateSeqStr +
                         " is not a valid ISO date-time");
@@ -1225,7 +1226,7 @@ public class WmsController extends AbstractController {
     {
         DateTime target = isoDateTime.equals("current")
             ? layer.getCurrentTimeValue()
-            : WmsUtils.iso8601ToDateTime(isoDateTime);
+            : WmsUtils.iso8601ToDateTime(isoDateTime, layer.getChronology());
 
         // Find the equivalent DateTime in the Layer.  Note that we can't simply
         // use the contains() method of the List, since this is based on equals().

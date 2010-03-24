@@ -117,7 +117,8 @@ public class KmzFormat extends ImageFormat
                 // We must make sure the ISO8601 timestamp is full and includes
                 // seconds, otherwise Google Earth gets confused.  This is why we
                 // convert to a DateTime and back again.
-                DateTime dt = WmsUtils.iso8601ToDateTime(tValues.get(frameIndex));
+                // TODO: not sure if this will work for 360-day calendars...
+                DateTime dt = WmsUtils.iso8601ToDateTime(tValues.get(frameIndex), layer.getChronology());
                 timestamp = WmsUtils.dateTimeToISO8601(dt);
                 kml.append("<TimeStamp><when>" + timestamp + "</when></TimeStamp>");
             }

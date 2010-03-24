@@ -129,9 +129,9 @@ public class WmsUtils
      * Converts an ISO8601-formatted String into a {@link DateTime} object
      * @throws IllegalArgumentException if the string is not a valid ISO date-time
      */
-    public static DateTime iso8601ToDateTime(String isoDateTime)
+    public static DateTime iso8601ToDateTime(String isoDateTime, Chronology chronology)
     {
-        return ISO_DATE_TIME_PARSER.parseDateTime(isoDateTime);
+        return ISO_DATE_TIME_PARSER.withChronology(chronology).parseDateTime(isoDateTime);
     }
     
     /**

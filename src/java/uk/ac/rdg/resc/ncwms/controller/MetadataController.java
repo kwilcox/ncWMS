@@ -221,7 +221,7 @@ class MetadataController
         String targetDateIso = request.getParameter("time");
         if (targetDateIso != null && !targetDateIso.trim().equals(""))
         {
-            targetDateTime = WmsUtils.iso8601ToDateTime(targetDateIso);
+            targetDateTime = WmsUtils.iso8601ToDateTime(targetDateIso, layer.getChronology());
         }
         
         Map<Integer, Map<Integer, List<Integer>>> datesWithData =
@@ -312,7 +312,7 @@ class MetadataController
         {
             throw new Exception("Must provide a value for the day parameter");
         }
-        DateTime date = WmsUtils.iso8601ToDateTime(dayStr);
+        DateTime date = WmsUtils.iso8601ToDateTime(dayStr, layer.getChronology());
         
         // List of date-times that fall on this day
         List<DateTime> timesteps = new ArrayList<DateTime>();
