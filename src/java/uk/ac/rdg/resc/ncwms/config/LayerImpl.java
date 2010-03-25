@@ -181,9 +181,15 @@ public final class LayerImpl extends AbstractTimeAggregatedLayer
         int tIndex = this.findAndCheckTimeIndex(time);
 
         // Find which file we're reading from and the time index in the file
-        String filename = this.dataset.getLocation();
-        int tIndexInFile = tIndex;
-        if (tIndex >= 0) {
+        final String filename;
+        final int tIndexInFile;
+        if (tIndex < 0) {
+            // This layer has no time dimension.  It's possible that the dataset's
+            // location is a glob expression, so we expand it and take the first
+            // element.
+            filename = DataReader.expandGlobExpression(this.dataset.getLocation()).get(0).getPath();
+            tIndexInFile = tIndex;
+        } else {
             TimestepInfo tInfo = this.timesteps.get(tIndex);
             filename = tInfo.getFilename();
             tIndexInFile = tInfo.getIndexInFile();

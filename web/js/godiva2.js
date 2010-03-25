@@ -717,7 +717,6 @@ function layerSelected(layerDetails)
 
         if (layerDetails.timeAxisUnits == null || layerDetails.timeAxisUnits == "ISO8601")
         {
-            if (basicDateSelector != null) basicDateSelector.hide();
             // TODO: link up with CSS
             $('panelText').style.width = "390px";
             if (calendar == null) {
@@ -768,6 +767,7 @@ function layerSelected(layerDetails)
             
             if (basicDateSelector == null) {
                 basicDateSelector = new BasicDateSelector({
+                    el: $('date'),
                     // Called when the selected date changes
                     callback: function(year, month, day) {
                         // Create an ISO representation of the day and load
@@ -811,7 +811,7 @@ function isDateDisabled(date, year, month, day)
 // Function that is called when a user clicks on a date in the calendar
 function dateSelected(cal, force)
 {
-    if (calendar.dateClicked || force) {
+    if (cal.dateClicked || force) {
         var selectedDate = new Date(cal.date.getTime());
         // Print out date, e.g. "15 Oct 2007"
         var prettyPrintDate = selectedDate.getFullYear() == 0

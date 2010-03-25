@@ -17,6 +17,11 @@ var BasicDateSelector = Class.create
         this.monthSel = document.createElement("select");
         this.daySel   = document.createElement("select");
 
+        this.container = document.createElement('span');
+        this.container.appendChild(this.yearSel);
+        this.container.appendChild(this.monthSel);
+        this.container.appendChild(this.daySel);
+
         // Every time we change one of the year, month or day fields, we'll call
         // onDateChange().  Note that the .bind(this) part is very important to
         // ensure that the onDateChange() event knows that "this" refers to
@@ -113,18 +118,8 @@ var BasicDateSelector = Class.create
     show: function(el)
     {
         this.el = el;
-        this.container = document.createElement('span');
-        this.container.appendChild(this.yearSel);
-        this.container.appendChild(this.monthSel);
-        this.container.appendChild(this.daySel);
         el.appendChild(this.container);
         this.container.style.visibility = 'visible';
-    },
-
-    hide: function()
-    {
-        this.container.style.visibility = 'hidden';
-        this.el.removeChild(this.container);
     }
 });
 
