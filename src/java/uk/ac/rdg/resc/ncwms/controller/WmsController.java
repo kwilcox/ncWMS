@@ -500,7 +500,7 @@ public class WmsController extends AbstractController {
                     " does not support partially-transparent pixels");
         }
 
-        double zValue = getElevationValue(dr.getElevationString());
+        double zValue = getElevationValue(dr.getElevationString(), layer);
 
         // Cycle through all the provided timesteps, extracting data for each step
         List<String> tValueStrings = new ArrayList<String>();
@@ -617,7 +617,7 @@ public class WmsController extends AbstractController {
         LonLatPosition gridCellCentre = layer.getHorizontalCoordSys().gridToLonLat(gridCoords);
 
         // Get the elevation value requested
-        double zValue = getElevationValue(dr.getElevationString());
+        double zValue = getElevationValue(dr.getElevationString(), layer);
 
         // Get the requested timesteps.  If the layer doesn't have
         // a time axis then this will return a single-element List with value null.
@@ -962,7 +962,7 @@ public class WmsController extends AbstractController {
         String lineString = params.getMandatoryString("linestring");
         String outputFormat = params.getMandatoryString("format");
         DateTime tValue = getTimeValues(params.getString("time"), layer).get(0); // null if no t axis
-        double zValue = getElevationValue(params.getString("elevation"));
+        double zValue = getElevationValue(params.getString("elevation"), layer);
 
         if (!outputFormat.equals(FEATURE_INFO_PNG_FORMAT) &&
                 !outputFormat.equals(FEATURE_INFO_XML_FORMAT)) {
@@ -1148,14 +1148,26 @@ public class WmsController extends AbstractController {
     /**
      * Gets the elevation value requested by the client.
      * @param zValue the value of the ELEVATION string from the request
-     * @return the elevation value requested by the client.  Returns NaN if
-     * {@code zValue} is null.
+     * @return the elevation value requested by the client.  Returns
+     * {@link Layer#getDefaultElevationValue() layer.getDefaultElevationValue()}
+     * if zValue is null and the layer supports a default elevation value.
+     * Returns {@link Double#NaN} if the layer does not have an elevation axis.
      * @throws InvalidDimensionValueException if the provided z value is not
-     * a valid number.
+     * a valid number, or if zValue is null and the layer does not support
+     * a default elevation value
      */
-    static double getElevationValue(String zValue) throws InvalidDimensionValueException
+    static double getElevationValue(String zValue, Layer layer) throws InvalidDimensionValueException
     {
-        if (zValue == null) return Double.NaN;
+        if (layer.getElevationValues().isEmpty()) return Double.NaN;
+        if (zValue == null)
+        {
+            double defaultVal = layer.getDefaultElevationValue();
+            if (Double.isNaN(defaultVal))
+            {
+                throw new InvalidDimensionValueException("elevation", "null");
+            }
+            return defaultVal;
+        }
 
         // Check to see if this is a single value (the
         // user hasn't requested anything of the form z1,z2 or start/stop/step)
@@ -1186,7 +1198,7 @@ public class WmsController extends AbstractController {
 
         // If the layer does not have a time axis return a List containing
         // a single null value
-        if (layer.getTimeValues().size() == 0) return Arrays.asList((DateTime)null);
+        if (layer.getTimeValues().isEmpty()) return Arrays.asList((DateTime)null);
         
         // Use the default time if none is specified
         if (timeString == null) {

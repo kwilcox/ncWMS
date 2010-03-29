@@ -368,7 +368,7 @@ class MetadataController
                 dr.getHeight(), dr.getBbox());
         
         // Get the value on the z axis
-        double zValue = WmsController.getElevationValue(dr.getElevationString());
+        double zValue = WmsController.getElevationValue(dr.getElevationString(), layer);
         
         // Get the requested timestep (taking the first only if an animation is requested)
         DateTime tValue = WmsController.getTimeValues(dr.getTimeString(), layer).get(0);
