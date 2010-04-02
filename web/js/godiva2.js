@@ -752,6 +752,8 @@ function layerSelected(layerDetails)
             // visibility of the zValues selector.  Hence we set this visibility
             // below, in updateMap()
             calendar.show();
+            // Manually refresh the calendar to ensure that the correct dates are disabled
+            calendar.refresh();
 
             // Pretend we clicked the calendar
             dateSelected(calendar, true);
