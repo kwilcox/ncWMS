@@ -31,7 +31,9 @@ package uk.ac.rdg.resc.ncwms.graphics;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
+import java.awt.RenderingHints;
 import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.DataBufferByte;
@@ -59,7 +61,7 @@ public final class ImageProducer
 {
     private static final Logger logger = LoggerFactory.getLogger(ImageProducer.class);
 
-    private enum Style {BOXFILL, VECTOR, ASAVEC};
+    private enum Style {BOXFILL, VECTOR, ASAVEC, BARB};
     
     private Layer layer;
     private Style style;
@@ -81,10 +83,10 @@ public final class ImageProducer
     private Range<Float> scaleRange;
     
     /**
-     * The length of arrows in pixels, only used for vector plots
+     * The length of arrows in pixels, only for vector and barb plots
      */
-    private float arrowLength = 9.0f;
-    private float arrowWidth = 3.0f;
+    private float arrowLength = 16.0f;
+    private float barbLength = 30.0f;
     
     // set of rendered images, ready to be turned into a picture
     private List<BufferedImage> renderedFrames = new ArrayList<BufferedImage>();
@@ -145,62 +147,13 @@ public final class ImageProducer
         }
     }
 
-    /**
-   * Draws an arrow on the given Graphics2D context
-   * @param g The Graphics2D context to draw on
-   * @param x The x location of the "tail" of the arrow
-   * @param y The y location of the "tail" of the arrow
-   * @param xx The x location of the "head" of the arrow
-   * @param yy The y location of the "head" of the arrow
-   */
-    private void drawArrow( Graphics2D g, int x, int y, int xx, int yy ) {
-        float theta = 0.423f ;
-        int[] xPoints = new int[ 3 ] ;
-        int[] yPoints = new int[ 3 ] ;
-        float[] vecLine = new float[ 2 ] ;
-        float[] vecLeft = new float[ 2 ] ;
-        float fLength;
-        float th;
-        float ta;
-        float baseX, baseY ;
-
-        xPoints[ 0 ] = xx ;
-        yPoints[ 0 ] = yy ;
-
-        // build the line vector
-        vecLine[ 0 ] = (float)xPoints[ 0 ] - x ;
-        vecLine[ 1 ] = (float)yPoints[ 0 ] - y ;
-
-        // build the arrow base vector - normal to the line
-        vecLeft[ 0 ] = -vecLine[ 1 ] ;
-        vecLeft[ 1 ] = vecLine[ 0 ] ;
-
-        // setup length parameters
-        fLength = (float)Math.sqrt( vecLine[0] * vecLine[0] + vecLine[1] * vecLine[1] ) ;
-        th = this.arrowWidth / ( 2.0f * fLength ) ;
-        ta = this.arrowWidth / ( 2.0f * ( (float)Math.tan( theta ) / 2.0f ) * fLength ) ;
-
-        // find the base of the arrow
-        baseX = ( (float)xPoints[ 0 ] - ta * vecLine[0]);
-        baseY = ( (float)yPoints[ 0 ] - ta * vecLine[1]);
-
-        // build the points on the sides of the arrow
-        xPoints[ 1 ] = (int)( baseX + th * vecLeft[0] );
-        yPoints[ 1 ] = (int)( baseY + th * vecLeft[1] );
-        xPoints[ 2 ] = (int)( baseX - th * vecLeft[0] );
-        yPoints[ 2 ] = (int)( baseY - th * vecLeft[1] );
-
-        g.setStroke(new BasicStroke(1));
-        g.drawLine( x, y, (int)baseX, (int)baseY ) ;
-        g.fillPolygon( xPoints, yPoints, 3 ) ;
-    }
-
-    private BufferedImage createAsaVector(List<List<Float>> data, String label) {
+    private BufferedImage createVector(List<List<Float>> data, String label) {
 
         // Create a ColorModel for the image
         ColorModel colorModel = this.colorPalette.getColorModel(this.numColourBands,
                                 this.opacity, this.bgColor, this.transparent);
         // Create the Image
+        String u = this.layer.getUnits();
         BufferedImage image = new BufferedImage(this.picWidth, this.picHeight, BufferedImage.TYPE_INT_ARGB);
 
         // Add the label to the image
@@ -214,17 +167,27 @@ public final class ImageProducer
             gfx.drawString(label, 10, image.getHeight() - 5);
         }
 
-        // We superimpose direction arrows on top of the background
-        // TODO: only do this for lat-lon projections!
         Graphics2D g = image.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setColor(new Color(0,0,0,100));
 
-        g.setColor(Color.BLACK);
         logger.debug("Drawing vectors, length = {} pixels", this.arrowLength);
         List<Float> east = data.get(0);
         List<Float> north = data.get(1);
-        for (int i = 0; i < this.picWidth; i += Math.ceil(this.arrowLength * 1.1))
+
+        double stepScale = 1.2;
+        float imageLength = this.arrowLength;
+        if (this.style == Style.ASAVEC) {
+            imageLength = this.arrowLength;
+            stepScale = 1.1;
+         } else if (this.style == Style.BARB) {
+            imageLength = this.barbLength;
+            stepScale = 1.2;
+         }
+
+        for (int i = 0; i < this.picWidth; i += Math.ceil(imageLength * stepScale))
         {
-            for (int j = 0; j < this.picHeight; j += Math.ceil(this.arrowLength * 1.1))
+            for (int j = 0; j < this.picHeight; j += Math.ceil(imageLength * stepScale))
             {
                 int dataIndex = j * this.picWidth + i;
                 Float eastVal = east.get(dataIndex);
@@ -233,14 +196,18 @@ public final class ImageProducer
                 {
                     double angle = Math.atan2(northVal.doubleValue(), eastVal.doubleValue());
                     Double mag = Math.sqrt(Math.pow(northVal.doubleValue(), 2) + Math.pow(eastVal.doubleValue() , 2));
-                    // Calculate the end point of the arrow
-                    double iEnd = i + this.arrowLength * Math.cos(angle);
-                    // Screen coordinates go down, but north is up, hence the minus sign
-                    double jEnd = j - this.arrowLength * Math.sin(angle);
 
                     // Color arrow
                     g.setColor(new Color(colorModel.getRGB(this.getColourIndex(mag.floatValue()))));
-                    this.drawArrow(g, (int)iEnd, (int)jEnd, i, j);
+                    if (this.style == Style.ASAVEC) {
+                      Path2D dirArrow = VectorFactory.getVector(0, mag, angle, i, j);
+                      g.fill(dirArrow);
+                      g.draw(dirArrow);
+                    } else if (this.style == Style.BARB) {
+                      Path2D windBarb = BarbFactory.getWindBarbForSpeed(mag, angle, i, j, this.layer.getUnits());
+                      g.setStroke(new BasicStroke(2));
+                      g.draw(windBarb);
+                    }
                 }
             }
         }
@@ -253,8 +220,8 @@ public final class ImageProducer
      */
     private BufferedImage createImage(List<List<Float>> data, String label)
     {
-        if (this.style == Style.ASAVEC) {
-            return this.createAsaVector(data, label);
+        if (this.style == Style.ASAVEC || this.style == Style.BARB) {
+            return this.createVector(data, label);
         } else {
             // Create the pixel array for the frame
             byte[] pixels = new byte[this.picWidth * this.picHeight];
@@ -323,8 +290,6 @@ public final class ImageProducer
                             // Draw a line representing the vector direction and magnitude
                             g.setStroke(new BasicStroke(1));
                             g.drawLine(i, j, (int)Math.round(iEnd), (int)Math.round(jEnd));
-                            // Draw the arrow on the canvas
-                            //drawArrow(g, i, j, (int)Math.round(iEnd), (int)Math.round(jEnd), 2);
                         }
                     }
                 }
@@ -468,6 +433,7 @@ public final class ImageProducer
             if (styleType.equalsIgnoreCase("boxfill")) this.style = Style.BOXFILL;
             else if (styleType.equalsIgnoreCase("vector")) this.style = Style.VECTOR;
             else if (styleType.equalsIgnoreCase("asavec")) this.style = Style.ASAVEC;
+            else if (styleType.equalsIgnoreCase("barb")) this.style = Style.BARB;
             else throw new StyleNotDefinedException("The style " + styleSpec +
                 " is not supported by this server");
 
