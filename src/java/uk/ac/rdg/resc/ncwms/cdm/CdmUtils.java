@@ -398,9 +398,7 @@ public final class CdmUtils
             logger.debug("Created PixelMap in {} milliseconds", (readMetadata - start));
 
             // Read the data from the dataset
-            long before = System.currentTimeMillis();
             drStrategy.populatePixelArray(picData, tRange, zRange, pixelMap, grid, scaleMissingDeferred);
-            long after = System.currentTimeMillis();
 
             long builtPic = System.currentTimeMillis();
             logger.debug("Built picture array in {} milliseconds", (builtPic - readMetadata));
