@@ -61,7 +61,7 @@ public final class ImageProducer
 {
     private static final Logger logger = LoggerFactory.getLogger(ImageProducer.class);
 
-    private enum Style {BOXFILL, VECTOR, ASAVEC, BARB};
+    private enum Style {BOXFILL, VECTOR, BARB, STUMPVEC, TRIVEC, LINEVEC, POLYVEC};
     
     private Layer layer;
     private Style style;
@@ -153,7 +153,6 @@ public final class ImageProducer
         ColorModel colorModel = this.colorPalette.getColorModel(this.numColourBands,
                                 this.opacity, this.bgColor, this.transparent);
         // Create the Image
-        String u = this.layer.getUnits();
         BufferedImage image = new BufferedImage(this.picWidth, this.picHeight, BufferedImage.TYPE_INT_ARGB);
 
         // Add the label to the image
@@ -177,12 +176,13 @@ public final class ImageProducer
 
         double stepScale = 1.2;
         float imageLength = this.arrowLength;
-        if (this.style == Style.ASAVEC) {
-            imageLength = this.arrowLength;
-            stepScale = 1.1;
-         } else if (this.style == Style.BARB) {
+
+        if (this.style == Style.BARB) {
             imageLength = this.barbLength;
             stepScale = 1.2;
+         } else {
+            imageLength = this.arrowLength;
+            stepScale = 1.1;
          }
 
         for (int i = 0; i < this.picWidth; i += Math.ceil(imageLength * stepScale))
@@ -199,14 +199,17 @@ public final class ImageProducer
 
                     // Color arrow
                     g.setColor(new Color(colorModel.getRGB(this.getColourIndex(mag.floatValue()))));
-                    if (this.style == Style.ASAVEC) {
-                      Path2D dirArrow = VectorFactory.getVector(0, mag, angle, i, j);
-                      g.fill(dirArrow);
-                      g.draw(dirArrow);
-                    } else if (this.style == Style.BARB) {
+                    if (this.style == Style.BARB) {
                       Path2D windBarb = BarbFactory.getWindBarbForSpeed(mag, angle, i, j, this.layer.getUnits());
                       g.setStroke(new BasicStroke(2));
                       g.draw(windBarb);
+                    } else {
+                      // Arrows.  We need to pick the style arrow now
+                      Path2D dirArrow = VectorFactory.getVector(this.style.name(), mag, angle, i, j);
+                      if (this.style != Style.LINEVEC) {
+                        g.fill(dirArrow);
+                      }
+                      g.draw(dirArrow);
                     }
                 }
             }
@@ -220,7 +223,7 @@ public final class ImageProducer
      */
     private BufferedImage createImage(List<List<Float>> data, String label)
     {
-        if (this.style == Style.ASAVEC || this.style == Style.BARB) {
+        if (this.style == Style.POLYVEC || this.style == Style.TRIVEC || this.style == Style.BARB || this.style == Style.STUMPVEC || this.style == Style.LINEVEC) {
             return this.createVector(data, label);
         } else {
             // Create the pixel array for the frame
@@ -432,8 +435,12 @@ public final class ImageProducer
             String styleType = styleStrEls[0];
             if (styleType.equalsIgnoreCase("boxfill")) this.style = Style.BOXFILL;
             else if (styleType.equalsIgnoreCase("vector")) this.style = Style.VECTOR;
-            else if (styleType.equalsIgnoreCase("asavec")) this.style = Style.ASAVEC;
             else if (styleType.equalsIgnoreCase("barb")) this.style = Style.BARB;
+            else if (styleType.equalsIgnoreCase("polyvec")) this.style = Style.POLYVEC;
+            else if (styleType.equalsIgnoreCase("trivec")) this.style = Style.TRIVEC;
+            else if (styleType.equalsIgnoreCase("stumpvec")) this.style = Style.STUMPVEC;
+            else if (styleType.equalsIgnoreCase("linevec")) this.style = Style.LINEVEC;
+
             else throw new StyleNotDefinedException("The style " + styleSpec +
                 " is not supported by this server");
 

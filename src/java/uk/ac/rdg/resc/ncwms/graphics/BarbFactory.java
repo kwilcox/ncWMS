@@ -53,9 +53,9 @@ public class BarbFactory {
 
     public static Path2D getWindBarbForSpeed(double speed, double angle, int i, int j, String units) {
         /* Convert to knots */
-        if (units.compareTo("m/s") == 0) {
+        if (units.equalsIgnoreCase("m/s")) {
             speed = speed * 1.94384449;
-        } else if (units.compareTo("cm/s") == 0) {
+        } else if (units.equalsIgnoreCase("cm/s")) {
            speed = speed * 0.0194384449;
         }
 
