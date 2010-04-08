@@ -40,6 +40,7 @@ import java.awt.image.DataBufferByte;
 import java.awt.image.Raster;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -149,11 +150,17 @@ public final class ImageProducer
 
     private BufferedImage createVector(List<List<Float>> data, String label) {
 
+        byte[] pixels = new byte[this.picWidth * this.picHeight];
+        Arrays.fill(pixels, (byte)this.numColourBands);
+
         // Create a ColorModel for the image
         ColorModel colorModel = this.colorPalette.getColorModel(this.numColourBands,
                                 this.opacity, this.bgColor, this.transparent);
-        // Create the Image
-        BufferedImage image = new BufferedImage(this.picWidth, this.picHeight, BufferedImage.TYPE_INT_ARGB);
+
+        DataBuffer buf = new DataBufferByte(pixels, pixels.length);
+        SampleModel sampleModel = colorModel.createCompatibleSampleModel(this.picWidth, this.picHeight);
+        WritableRaster raster = Raster.createWritableRaster(sampleModel, buf, null);
+        BufferedImage image = new BufferedImage(colorModel, raster, false, null);
 
         // Add the label to the image
         // TODO: colour needs to change with different palettes!
