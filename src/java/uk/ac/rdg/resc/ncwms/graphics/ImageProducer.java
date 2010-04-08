@@ -205,14 +205,16 @@ public final class ImageProducer
                     Double mag = Math.sqrt(Math.pow(northVal.doubleValue(), 2) + Math.pow(eastVal.doubleValue() , 2));
 
                     // Color arrow
-                    g.setColor(new Color(colorModel.getRGB(this.getColourIndex(mag.floatValue()))));
+                    int index = this.getColourIndex(mag.floatValue());
+                    g.setColor(new Color(colorModel.getRGB(index)));
+                    double scale = ((index + this.numColourBands) / this.numColourBands);
                     if (this.style == Style.BARB) {
                       Path2D windBarb = BarbFactory.getWindBarbForSpeed(mag, angle, i, j, this.layer.getUnits());
                       g.setStroke(new BasicStroke(2));
                       g.draw(windBarb);
                     } else {
                       // Arrows.  We need to pick the style arrow now
-                      Path2D dirArrow = VectorFactory.getVector(this.style.name(), mag, angle, i, j);
+                      Path2D dirArrow = VectorFactory.getVector(this.style.name(), mag, angle, i, j, scale);
                       if (this.style != Style.LINEVEC) {
                         g.fill(dirArrow);
                       }

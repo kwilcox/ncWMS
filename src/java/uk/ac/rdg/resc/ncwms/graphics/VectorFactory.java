@@ -34,7 +34,7 @@ public class VectorFactory {
 
     }
 
-    public static Path2D getVector(String style, double speed, double angle, int i, int j) {
+    public static Path2D getVector(String style, double speed, double angle, int i, int j, double scale) {
 
         int type = 0;
         if (style.equalsIgnoreCase("STUMPVEC")) {
@@ -51,6 +51,7 @@ public class VectorFactory {
         /* Rotate and set position */
         ret.transform(AffineTransform.getRotateInstance(angle));
         ret.transform(AffineTransform.getTranslateInstance(i, j));
+        //ret.transform(AffineTransform.getScaleInstance(scale, scale));
         return ret;
     }
 
