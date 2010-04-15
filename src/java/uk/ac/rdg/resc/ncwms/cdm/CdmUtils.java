@@ -99,8 +99,8 @@ public final class CdmUtils
      * @param gd the GridDataset to search
      * @param layerBuilder The {@link LayerBuilder} that creates ScalarLayers
      * of the given type and updates their properties.
-     * @param layers Map of {@link Layer#getId() layer id}s to ScalarLayer objects,
-     * which may be empty but cannot be null.
+     * @param layers Map of {@link Layer#getId() layer id}s to ScalarLayer objects;
+     * the Map may be empty but cannot be null.
      * @throws NullPointerException if any of the parameters is null
      */
     public static <L extends ScalarLayer> void findAndUpdateLayers(GridDataset gd,

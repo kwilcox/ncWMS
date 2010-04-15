@@ -530,7 +530,7 @@ public class Dataset implements uk.ac.rdg.resc.ncwms.wms.Dataset
         // Look for OPeNDAP datasets and update the credentials provider accordingly
         this.config.updateCredentialsProvider(this);
         // Read the metadata
-        this.scalarLayers = dr.getAllLayers(this);
+        this.scalarLayers = dr.getAllLayers(this.getLocation());
         for (LayerImpl layer : this.scalarLayers.values())
         {
             layer.setDataset(this);

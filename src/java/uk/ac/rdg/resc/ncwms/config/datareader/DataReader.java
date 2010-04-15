@@ -161,22 +161,22 @@ public abstract class DataReader
      * any existing files on the server
      * @throws IOException if there was an error reading from the data source
      */
-    public Map<String, LayerImpl> getAllLayers(final Dataset dataset)
+    public Map<String, LayerImpl> getAllLayers(final String location)
         throws FileNotFoundException, IOException
     {
         Map<String, LayerImpl> layers = new LinkedHashMap<String, LayerImpl>();
-        if (WmsUtils.isOpendapLocation(dataset.getLocation()))
+        if (WmsUtils.isOpendapLocation(location))
         {
-            this.findAndUpdateLayers(dataset.getLocation(), layers);
+            this.findAndUpdateLayers(location, layers);
         }
         else
         {
             // The dataset's location represents locally-held data so we do
             // a glob expansion
-            List<File> files = expandGlobExpression(dataset.getLocation());
+            List<File> files = expandGlobExpression(location);
             if (files.size() == 0)
             {
-                throw new FileNotFoundException(dataset.getLocation() + " does not match any files");
+                throw new FileNotFoundException(location + " does not match any files");
             }
             for (File file : files)
             {
