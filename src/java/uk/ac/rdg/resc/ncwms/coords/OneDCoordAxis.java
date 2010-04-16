@@ -87,13 +87,11 @@ abstract class OneDCoordAxis
     /**
      * Given a value along this coordinate axis, this method returns the nearest
      * index to this point, or -1 if the value is out of range for this axis.
-     * This default method simply uses the CoordinateAxis1D.findCoordElement() method,
-     * but this method can be overridden with more efficient algorithms if necessary.
      * @param coordValue The coordinate value (may be a latitude or longitude value,
      * or it may be a value in a projected coordinate system).
      * @return the index corresponding with this value, or -1 if the value is
      * out of range for this axis.
-     * @see uk.ac.rdg.resc.ncwms.datareader.PixelMap PixelMap
+     * @see PixelMap
      */
     public abstract int getIndex(double coordValue);
 
