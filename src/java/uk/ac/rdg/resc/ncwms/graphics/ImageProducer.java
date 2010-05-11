@@ -232,7 +232,7 @@ public final class ImageProducer
      */
     private BufferedImage createImage(List<List<Float>> data, String label)
     {
-        if (this.style == Style.POLYVEC || this.style == Style.TRIVEC || this.style == Style.BARB || this.style == Style.STUMPVEC || this.style == Style.LINEVEC) {
+        if (this.style == Style.FANCYVEC || this.style == Style.TRIVEC || this.style == Style.BARB || this.style == Style.STUMPVEC || this.style == Style.LINEVEC) {
             return this.createVector(data, label);
         } else {
             // Create the pixel array for the frame
@@ -445,7 +445,7 @@ public final class ImageProducer
             if (styleType.equalsIgnoreCase("boxfill")) this.style = Style.BOXFILL;
             else if (styleType.equalsIgnoreCase("vector")) this.style = Style.VECTOR;
             else if (styleType.equalsIgnoreCase("barb")) this.style = Style.BARB;
-            else if (styleType.equalsIgnoreCase("polyvec")) this.style = Style.POLYVEC;
+            else if (styleType.equalsIgnoreCase("fancyvec")) this.style = Style.FANCYVEC;
             else if (styleType.equalsIgnoreCase("trivec")) this.style = Style.TRIVEC;
             else if (styleType.equalsIgnoreCase("stumpvec")) this.style = Style.STUMPVEC;
             else if (styleType.equalsIgnoreCase("linevec")) this.style = Style.LINEVEC;

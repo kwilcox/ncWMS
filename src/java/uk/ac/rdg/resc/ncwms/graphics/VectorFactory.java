@@ -27,7 +27,7 @@ public class VectorFactory {
         vectors.add(stumpyVector());
         vectors.add(triangleVector());
         vectors.add(lineVector());
-        vectors.add(polygonVector());
+        vectors.add(fancyVector());
     }
 
     public VectorFactory() {
@@ -43,7 +43,7 @@ public class VectorFactory {
             type = 1;
         } else if (style.equalsIgnoreCase("LINEVEC")) {
             type = 2;
-        } else if (style.equalsIgnoreCase("POLYVEC")) {
+        } else if (style.equalsIgnoreCase("FANCYVEC")) {
             type = 3;
         }
 
@@ -84,15 +84,15 @@ public class VectorFactory {
         path.moveTo(0,0);
         path.lineTo(10,0);
         path.moveTo(10,0);
-        path.lineTo(6,4);
+        path.lineTo(6,2.5);
         path.moveTo(10,0);
-        path.lineTo(6,-4);
+        path.lineTo(6,-2.5);
         path.closePath();
         
         return path;
     }
 
-    private static Path2D polygonVector() {
+    private static Path2D fancyVector() {
         Path2D path = new Path2D.Double();
         path.moveTo(0,0);
         path.lineTo(0,-3);
