@@ -62,7 +62,7 @@ public final class ImageProducer
 {
     private static final Logger logger = LoggerFactory.getLogger(ImageProducer.class);
 
-    private enum Style {BOXFILL, VECTOR, BARB, STUMPVEC, TRIVEC, LINEVEC, POLYVEC};
+    private enum Style {BOXFILL, VECTOR, BARB, STUMPVEC, TRIVEC, LINEVEC, FANCYVEC};
     
     private Layer layer;
     private Style style;
@@ -192,22 +192,28 @@ public final class ImageProducer
             stepScale = 1.1;
          }
 
+        double scale;
+        int index;
+        int dataIndex;
+        double angle;
+        Double mag;
+
         for (int i = 0; i < this.picWidth; i += Math.ceil(imageLength * stepScale))
         {
             for (int j = 0; j < this.picHeight; j += Math.ceil(imageLength * stepScale))
             {
-                int dataIndex = j * this.picWidth + i;
+                dataIndex = j * this.picWidth + i;
                 Float eastVal = east.get(dataIndex);
                 Float northVal = north.get(dataIndex);
                 if (eastVal != null && northVal != null)
                 {
-                    double angle = Math.atan2(northVal.doubleValue(), eastVal.doubleValue());
-                    Double mag = Math.sqrt(Math.pow(northVal.doubleValue(), 2) + Math.pow(eastVal.doubleValue() , 2));
+                    angle = Math.atan2(northVal.doubleValue(), eastVal.doubleValue());
+                    mag = Math.sqrt(Math.pow(northVal.doubleValue(), 2) + Math.pow(eastVal.doubleValue() , 2));
 
                     // Color arrow
-                    int index = this.getColourIndex(mag.floatValue());
+                    index = this.getColourIndex(mag.floatValue());
                     g.setColor(new Color(colorModel.getRGB(index)));
-                    double scale = ((index + this.numColourBands) / this.numColourBands);
+                    scale = ((index + this.numColourBands) / this.numColourBands);
                     if (this.style == Style.BARB) {
                       Path2D windBarb = BarbFactory.getWindBarbForSpeed(mag, angle, i, j, this.layer.getUnits());
                       g.setStroke(new BasicStroke(2));
